@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
 import { Platform } from '@/enums/platform';
 import type { PinterestBoard } from '@/types';
+import { PostPlatformStatus } from '@/types/post';
 
 interface SocialAccount {
     id: string;
@@ -199,10 +200,10 @@ const getPlatformAvatar = (pp: PostPlatform): string | null =>
                                     >
                                         <IconAlertCircle class="h-2.5 w-2.5" />
                                     </Badge>
-                                    <Badge v-else-if="pp.status === 'published'" variant="success" class="absolute -top-1 -right-1 h-4 w-4 p-0">
+                                    <Badge v-else-if="pp.status === PostPlatformStatus.Published" variant="success" class="absolute -top-1 -right-1 h-4 w-4 p-0">
                                         <IconCircleCheck class="h-2.5 w-2.5" />
                                     </Badge>
-                                    <Badge v-else-if="pp.status === 'failed'" variant="destructive" class="absolute -top-1 -right-1 h-4 w-4 p-0 text-[9px]">!</Badge>
+                                    <Badge v-else-if="pp.status === PostPlatformStatus.Failed" variant="destructive" class="absolute -top-1 -right-1 h-4 w-4 p-0 text-[9px]">!</Badge>
                                 </div>
                                 <span
                                     class="line-clamp-2 text-center text-xs leading-tight"
@@ -226,7 +227,7 @@ const getPlatformAvatar = (pp: PostPlatform): string | null =>
             </div>
         </div>
 
-        <div v-if="postPlatforms.some(pp => pp.status !== 'pending')">
+        <div v-if="postPlatforms.some(pp => pp.status !== PostPlatformStatus.Pending)">
             <p class="mb-2 text-[11px] font-black uppercase tracking-widest text-foreground/60">
                 {{ $t('posts.edit.platform_status') }}
             </p>
@@ -243,12 +244,12 @@ const getPlatformAvatar = (pp: PostPlatform): string | null =>
                         <span class="text-sm font-bold text-foreground">{{ getPlatformDisplayName(pp) }}</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <Badge v-if="pp.status === 'published'" variant="success">{{ $t('posts.edit.status.published') }}</Badge>
-                        <Badge v-else-if="pp.status === 'publishing'" variant="warning">
+                        <Badge v-if="pp.status === PostPlatformStatus.Published" variant="success">{{ $t('posts.edit.status.published') }}</Badge>
+                        <Badge v-else-if="pp.status === PostPlatformStatus.Publishing" variant="warning">
                             <IconLoader2 class="size-3 animate-spin" />
                             {{ $t('posts.edit.status.publishing') }}
                         </Badge>
-                        <Badge v-else-if="pp.status === 'failed'" variant="destructive">{{ $t('posts.edit.status.failed') }}</Badge>
+                        <Badge v-else-if="pp.status === PostPlatformStatus.Failed" variant="destructive">{{ $t('posts.edit.status.failed') }}</Badge>
                         <a
                             v-if="pp.platform_url"
                             :href="pp.platform_url"

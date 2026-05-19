@@ -18,6 +18,7 @@ import dayjs from '@/dayjs';
 import debounce from '@/debounce';
 import { ContentType } from '@/enums/content-type';
 import { Platform } from '@/enums/platform';
+import { PostStatus } from '@/types/post';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { destroy as destroyPost, update as updatePost } from '@/routes/app/posts';
 import type { PinterestBoard } from '@/types';
@@ -98,10 +99,15 @@ const props = defineProps<{
 }>();
 
 const post = computed(() => props.post);
-// Terminal states the user cannot recover from — delete, navigate, but never edit.
-const isReadOnly = computed(() => ['publishing', 'published', 'partially_published', 'failed'].includes(post.value.status));
-const isPublishing = computed(() => post.value.status === 'publishing');
-const isScheduled = computed(() => post.value.status === 'scheduled');
+const READONLY_STATUSES: readonly string[] = [
+    PostStatus.Publishing,
+    PostStatus.Published,
+    PostStatus.PartiallyPublished,
+    PostStatus.Failed,
+];
+const isReadOnly = computed(() => READONLY_STATUSES.includes(post.value.status));
+const isPublishing = computed(() => post.value.status === PostStatus.Publishing);
+const isScheduled = computed(() => post.value.status === PostStatus.Scheduled);
 // Locked states — terminal + scheduled. Field edits and auto-save suppressed;
 // user must unschedule to re-enter draft and edit.
 const isLocked = computed(() => isReadOnly.value || isScheduled.value);
@@ -345,7 +351,7 @@ const getLocalSchedule = () => {
     return dayjs.utc(post.value.scheduled_at).local().format('YYYY-MM-DDTHH:mm:00');
 };
 const scheduledDateTime = ref(getLocalSchedule());
-const hasPickedTime = ref(post.value.status === 'scheduled' && !! post.value.scheduled_at);
+const hasPickedTime = ref(post.value.status === PostStatus.Scheduled && !! post.value.scheduled_at);
 
 const pickTimeLabel = computed(() => {
     if (! hasPickedTime.value || ! scheduledDateTime.value) {
@@ -466,7 +472,7 @@ onUnmounted(() => {
     debouncedSave.cancel();
 });
 
-const submit = (status: string = 'scheduled') => {
+const submit = (status: string = PostStatus.Scheduled) => {
     if (isSubmitting.value || isReadOnly.value) return;
     debouncedSave.cancel();
 
@@ -503,7 +509,7 @@ const unschedulePost = () => {
     debouncedSave.cancel();
     scheduledDateTime.value = '';
     hasPickedTime.value = false;
-    submit('draft');
+    submit(PostStatus.Draft);
 };
 
 // Echo: listen for real-time platform status updates.

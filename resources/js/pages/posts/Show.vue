@@ -18,6 +18,7 @@ import { getPlatformStatusConfig, getPostStatusConfig } from '@/composables/useP
 import dayjs from '@/dayjs';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { index as postsIndex } from '@/routes/app/posts';
+import { PostPlatformStatus, PostStatus } from '@/types/post';
 
 interface MediaItem {
     id: string;
@@ -73,7 +74,7 @@ const props = defineProps<{
 
 const enabledPlatforms = computed(() => props.post.platforms.filter((pp) => pp.enabled));
 
-const isPublishing = computed(() => props.post.status === 'publishing');
+const isPublishing = computed(() => props.post.status === PostStatus.Publishing);
 
 const postStatus = computed(() => getPostStatusConfig(props.post.status));
 
@@ -252,11 +253,11 @@ usePostEcho(props.post.id, '.post.platform.status.updated', () => {
                                             <component
                                                 :is="getPlatformStatusConfig(pp.status).icon"
                                                 class="size-3"
-                                                :class="pp.status === 'publishing' ? 'animate-spin' : ''"
+                                                :class="pp.status === PostPlatformStatus.Publishing ? 'animate-spin' : ''"
                                             />
                                             {{ getPlatformStatusConfig(pp.status).label }}
                                         </Badge>
-                                        <TooltipProvider v-if="pp.status === 'published' && pp.platform_url" :delay-duration="200">
+                                        <TooltipProvider v-if="pp.status === PostPlatformStatus.Published && pp.platform_url" :delay-duration="200">
                                             <Tooltip>
                                                 <TooltipTrigger as-child>
                                                     <a
@@ -276,7 +277,7 @@ usePostEcho(props.post.id, '.post.platform.status.updated', () => {
 
                                 <!-- Failed: error message -->
                                 <div
-                                    v-if="pp.status === 'failed' && pp.error_message"
+                                    v-if="pp.status === PostPlatformStatus.Failed && pp.error_message"
                                     class="border-t-2 border-foreground/10 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-700"
                                 >
                                     {{ pp.error_message }}
@@ -284,7 +285,7 @@ usePostEcho(props.post.id, '.post.platform.status.updated', () => {
 
                                 <!-- Published: metrics -->
                                 <PostPlatformMetrics
-                                    v-if="pp.status === 'published'"
+                                    v-if="pp.status === PostPlatformStatus.Published"
                                     :post-id="post.id"
                                     :post-platform-id="pp.id"
                                 />

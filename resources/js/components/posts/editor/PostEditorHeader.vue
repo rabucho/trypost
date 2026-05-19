@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import PickTimePopover from '@/components/posts/PickTimePopover.vue';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PostStatus } from '@/types/post';
 
 interface Props {
     post: { status: string };
@@ -27,9 +28,12 @@ const emit = defineEmits<{
     (e: 'submit', status: string): void;
 }>();
 
-const isReadOnly = computed(() => ['publishing', 'published', 'partially_published'].includes(props.post.status));
-const isScheduled = computed(() => props.post.status === 'scheduled');
-const isPublished = computed(() => ['published', 'partially_published'].includes(props.post.status));
+const READONLY_STATUSES: readonly string[] = [PostStatus.Publishing, PostStatus.Published, PostStatus.PartiallyPublished];
+const PUBLISHED_STATUSES: readonly string[] = [PostStatus.Published, PostStatus.PartiallyPublished];
+
+const isReadOnly = computed(() => READONLY_STATUSES.includes(props.post.status));
+const isScheduled = computed(() => props.post.status === PostStatus.Scheduled);
+const isPublished = computed(() => PUBLISHED_STATUSES.includes(props.post.status));
 </script>
 
 <template>
