@@ -33,7 +33,7 @@ class SyncAccountUsage implements ShouldQueue
             return;
         }
 
-        Cache::forget("account:{$this->accountId}:posts_count");
+        Cache::forget(Account::postsCountCacheKey($this->accountId));
 
         $account = Account::with('plan')->find($this->accountId);
 

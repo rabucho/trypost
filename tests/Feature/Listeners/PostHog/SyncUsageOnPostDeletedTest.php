@@ -45,6 +45,17 @@ test('listener is wired to the PostDeleted event via auto-discovery', function (
     Bus::assertDispatched(SyncAccountUsage::class);
 });
 
+test('listener does not dispatch when workspace no longer exists', function () {
+    Bus::fake();
+
+    (new SyncUsageOnPostDeleted)->handle(new PostDeleted(
+        postId: (string) Str::uuid(),
+        workspaceId: (string) Str::uuid(),
+    ));
+
+    Bus::assertNotDispatched(SyncAccountUsage::class);
+});
+
 test('listener does not dispatch when PostHog is disabled', function () {
     config(['services.posthog.enabled' => false]);
 

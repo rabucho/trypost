@@ -17,7 +17,11 @@ class SyncUsageOnPostDeleted
             return;
         }
 
-        $workspace = Workspace::findOrFail($event->workspaceId);
+        $workspace = Workspace::find($event->workspaceId);
+
+        if (! $workspace) {
+            return;
+        }
 
         SyncAccountUsage::dispatch((string) $workspace->account_id, (string) $workspace->id);
     }

@@ -26,6 +26,15 @@ class Account extends Model
 
     public const SUBSCRIPTION_NAME = 'default';
 
+    /**
+     * Redis/cache key for aggregated post counts across the account's workspaces.
+     * Invalidated by the PostHog usage sync job before re-reading aggregates for analytics.
+     */
+    public static function postsCountCacheKey(string $accountId): string
+    {
+        return "account:{$accountId}:posts_count";
+    }
+
     protected $fillable = [
         'owner_id',
         'name',

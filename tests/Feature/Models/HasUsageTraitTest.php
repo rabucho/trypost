@@ -94,7 +94,7 @@ test('postCount is cached and survives new posts within the TTL', function () {
     expect($this->account->usage()['postCount'])->toBe(2);
 
     // Forgetting the cache key returns the fresh count.
-    Cache::forget("account:{$this->account->id}:posts_count");
+    Cache::forget(Account::postsCountCacheKey((string) $this->account->id));
     expect($this->account->usage()['postCount'])->toBe(3);
 });
 
@@ -102,7 +102,7 @@ test('postCount returns zero without querying when account has no workspaces', f
     expect($this->account->usage()['postCount'])->toBe(0);
 
     // No cache entry should be written for the empty case.
-    expect(Cache::has("account:{$this->account->id}:posts_count"))->toBeFalse();
+    expect(Cache::has(Account::postsCountCacheKey((string) $this->account->id)))->toBeFalse();
 });
 
 test('postCount survives a string-typed cache value (Redis serializer quirk)', function () {
@@ -116,7 +116,7 @@ test('postCount survives a string-typed cache value (Redis serializer quirk)', f
         'user_id' => $this->owner->id,
     ]);
 
-    Cache::put("account:{$this->account->id}:posts_count", '42', 300);
+    Cache::put(Account::postsCountCacheKey((string) $this->account->id), '42', 300);
 
     $usage = $this->account->usage();
 

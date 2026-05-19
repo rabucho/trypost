@@ -107,7 +107,7 @@ test('handle invalidates the posts_count cache before reading usage', function (
         'user_id' => $this->user->id,
     ]);
 
-    Cache::put("account:{$this->account->id}:posts_count", 999, 300);
+    Cache::put(Account::postsCountCacheKey((string) $this->account->id), 999, 300);
 
     Post::factory()->count(2)->create([
         'workspace_id' => $workspace->id,

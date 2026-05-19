@@ -8,6 +8,7 @@ use App\Features\MemberLimit;
 use App\Features\MonthlyCreditsLimit;
 use App\Features\SocialAccountLimit;
 use App\Features\WorkspaceLimit;
+use App\Models\Account;
 use App\Models\AiUsageLog;
 use App\Models\Invite;
 use App\Models\Post;
@@ -78,7 +79,7 @@ trait HasUsage
         }
 
         return (int) Cache::remember(
-            "account:{$this->id}:posts_count",
+            Account::postsCountCacheKey((string) $this->id),
             self::POST_COUNT_CACHE_TTL,
             fn () => Post::whereIn('workspace_id', $workspaceIds)->count(),
         );
