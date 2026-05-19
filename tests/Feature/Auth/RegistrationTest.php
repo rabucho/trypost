@@ -168,6 +168,19 @@ test('signup clears pending_invite_id from session', function () {
     expect(User::where('email', 'invitee@example.com')->exists())->toBeTrue();
 });
 
+test('register POST passes when self_hosted with invite query param even without prior session', function () {
+    config()->set('trypost.self_hosted', true);
+
+    $response = $this->post(route('register.store', ['invite' => 'invite-xyz']), [
+        'name' => 'Invitee',
+        'email' => 'invitee@example.com',
+        'password' => 'Password123!',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    expect(User::where('email', 'invitee@example.com')->exists())->toBeTrue();
+});
+
 test('register works normally when not self_hosted even with pending invite in session', function () {
     config()->set('trypost.self_hosted', false);
 
