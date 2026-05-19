@@ -458,7 +458,7 @@ class LinkedInPagePublisher
             throw new TokenExpiredException('No refresh token available for LinkedIn Page account');
         }
 
-        $response = Http::asForm()->post('https://www.linkedin.com/oauth/v2/accessToken', [
+        $response = Http::asForm()->post(config('trypost.platforms.linkedin.oauth_api').'/oauth/v2/accessToken', [
             'grant_type' => 'refresh_token',
             'refresh_token' => $account->refresh_token,
             'client_id' => config('services.linkedin-openid.client_id'),

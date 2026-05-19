@@ -26,7 +26,7 @@ class BlueskyPublisher
         $content = $postPlatform->post->content ? app(ContentSanitizer::class)->sanitize($postPlatform->post->content, $postPlatform->platform) : null;
 
         $account = $postPlatform->socialAccount;
-        $service = $account->meta['service'] ?? 'https://bsky.social';
+        $service = $account->meta['service'] ?? config('trypost.platforms.bluesky.default_service');
 
         // Refresh token if needed
         if ($account->is_token_expired || $account->is_token_expiring_soon) {
@@ -270,7 +270,7 @@ class BlueskyPublisher
 
     public function refreshToken(SocialAccount $account): void
     {
-        $service = $account->meta['service'] ?? 'https://bsky.social';
+        $service = $account->meta['service'] ?? config('trypost.platforms.bluesky.default_service');
 
         // Try refresh first
         $response = $this->socialHttp()->withToken($account->refresh_token)

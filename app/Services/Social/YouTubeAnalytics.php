@@ -168,7 +168,7 @@ class YouTubeAnalytics
             throw new TokenExpiredException('No refresh token available for YouTube account');
         }
 
-        $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
+        $response = Http::asForm()->post(config('trypost.platforms.youtube.oauth_api').'/token', [
             'client_id' => config('services.google.client_id'),
             'client_secret' => config('services.google.client_secret'),
             'grant_type' => 'refresh_token',
