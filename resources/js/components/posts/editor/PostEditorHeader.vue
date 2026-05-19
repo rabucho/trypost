@@ -2,9 +2,12 @@
 import { IconCalendar, IconCircleCheck, IconLoader2, IconTrash } from '@tabler/icons-vue';
 import { computed } from 'vue';
 
+import InputError from '@/components/InputError.vue';
 import PickTimePopover from '@/components/posts/PickTimePopover.vue';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePageErrors } from '@/composables/usePageErrors';
+import { PostStatus } from '@/types/post';
 
 interface Props {
     post: { status: string };
@@ -27,9 +30,15 @@ const emit = defineEmits<{
     (e: 'submit', status: string): void;
 }>();
 
-const isReadOnly = computed(() => ['publishing', 'published', 'partially_published'].includes(props.post.status));
-const isScheduled = computed(() => props.post.status === 'scheduled');
-const isPublished = computed(() => ['published', 'partially_published'].includes(props.post.status));
+const READONLY_STATUSES: readonly string[] = [PostStatus.Publishing, PostStatus.Published, PostStatus.PartiallyPublished, PostStatus.Failed];
+const PUBLISHED_STATUSES: readonly string[] = [PostStatus.Published, PostStatus.PartiallyPublished];
+
+const isReadOnly = computed(() => READONLY_STATUSES.includes(props.post.status));
+const isScheduled = computed(() => props.post.status === PostStatus.Scheduled);
+const isPublished = computed(() => PUBLISHED_STATUSES.includes(props.post.status));
+
+const errors = usePageErrors();
+const scheduledAtError = computed(() => errors.value.scheduled_at);
 </script>
 
 <template>
@@ -82,49 +91,68 @@ const isPublished = computed(() => ['published', 'partially_published'].includes
                 </span>
             </div>
 
-            <div v-if="!isReadOnly" class="flex items-center gap-2">
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger as-child>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                class="bg-rose-100 hover:bg-rose-200"
-                                :disabled="isSaving || isSubmitting"
-                                @click="emit('delete')"
-                            >
-                                <IconTrash class="size-4 text-rose-700" />
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>{{ $t('posts.edit.delete') }}</TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+            <div v-if="!isReadOnly" class="flex flex-col items-end gap-1">
+                <div class="flex items-center gap-2">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger as-child>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    class="bg-rose-100 hover:bg-rose-200"
+                                    :disabled="isSaving || isSubmitting"
+                                    @click="emit('delete')"
+                                >
+                                    <IconTrash class="size-4 text-rose-700" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{{ $t('posts.edit.delete') }}</TooltipContent>
+                        </Tooltip>
 
-                <PickTimePopover
-                    v-model="scheduledDateTime"
-                    :disabled="isPostActionDisabled"
-                    @confirm="hasPickedTime = true"
-                >
-                    <Button
-                        type="button"
-                        variant="outline"
-                        :disabled="isPostActionDisabled"
-                        :title="postActionTooltip"
-                    >
-                        <IconCalendar class="size-4" />
-                        {{ pickTimeLabel }}
-                    </Button>
-                </PickTimePopover>
+                        <Tooltip>
+                            <TooltipTrigger as-child>
+                                <span tabindex="0">
+                                    <PickTimePopover
+                                        v-model="scheduledDateTime"
+                                        :disabled="isPostActionDisabled"
+                                        @confirm="hasPickedTime = true"
+                                    >
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            :disabled="isPostActionDisabled"
+                                        >
+                                            <IconCalendar class="size-4" />
+                                            {{ pickTimeLabel }}
+                                        </Button>
+                                    </PickTimePopover>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent v-if="postActionTooltip" class="max-w-xs whitespace-pre-line">
+                                {{ postActionTooltip }}
+                            </TooltipContent>
+                        </Tooltip>
 
-                <Button
-                    type="button"
-                    :disabled="isPostActionDisabled"
-                    :title="postActionTooltip"
-                    @click="emit('submit', hasPickedTime ? 'scheduled' : 'publishing')"
-                >
-                    {{ hasPickedTime ? $t('posts.edit.schedule') : $t('posts.edit.post_now') }}
-                </Button>
+                        <Tooltip>
+                            <TooltipTrigger as-child>
+                                <span tabindex="0">
+                                    <Button
+                                        type="button"
+                                        :disabled="isPostActionDisabled"
+                                        @click="emit('submit', hasPickedTime ? PostStatus.Scheduled : PostStatus.Publishing)"
+                                    >
+                                        {{ hasPickedTime ? $t('posts.edit.schedule') : $t('posts.edit.post_now') }}
+                                    </Button>
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent v-if="postActionTooltip" class="max-w-xs whitespace-pre-line">
+                                {{ postActionTooltip }}
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+                <InputError :message="scheduledAtError" />
             </div>
         </template>
     </header>

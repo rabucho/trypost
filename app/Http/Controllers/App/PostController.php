@@ -197,7 +197,7 @@ class PostController extends Controller
 
         $this->authorize('view', $post);
 
-        if (in_array($post->status, [PostStatus::Draft, PostStatus::Scheduled, PostStatus::Failed], true)) {
+        if (in_array($post->status, [PostStatus::Draft, PostStatus::Scheduled], true)) {
             return redirect()->route('app.posts.edit', $post);
         }
 
@@ -219,7 +219,7 @@ class PostController extends Controller
 
         $this->authorize('update', $post);
 
-        if (in_array($post->status, [PostStatus::Publishing, PostStatus::Published, PostStatus::PartiallyPublished], true)) {
+        if (in_array($post->status, [PostStatus::Publishing, PostStatus::Published, PostStatus::PartiallyPublished, PostStatus::Failed], true)) {
             return redirect()->route('app.posts.show', $post);
         }
 
@@ -282,8 +282,8 @@ class PostController extends Controller
 
         $action = data_get($result, 'action');
 
-        if ($action === PostAction::AlreadyPublished) {
-            session()->flash('flash.banner', __('posts.flash.cannot_edit_published'));
+        if ($action === PostAction::Finalized) {
+            session()->flash('flash.banner', __('posts.flash.cannot_edit_finalized'));
             session()->flash('flash.bannerStyle', 'danger');
 
             return back();

@@ -37,6 +37,7 @@ import dayjs from '@/dayjs';
 import debounce from '@/debounce';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { copyToClipboard } from '@/lib/utils';
+import { PostStatus } from '@/types/post';
 interface SocialAccount {
     id: string;
     platform: string;
@@ -136,7 +137,10 @@ const getEnabledPlatforms = (post: Post) => post.post_platforms.filter((pp) => p
 const getPostPreview = (post: Post): string =>
     post.content?.trim() || trans('calendar.no_content');
 
-const canEdit = (post: Post): boolean => ['draft', 'scheduled', 'failed'].includes(post.status);
+const EDITABLE_STATUSES: readonly string[] = [PostStatus.Draft, PostStatus.Scheduled];
+const DELETABLE_STATUSES: readonly string[] = [PostStatus.Draft, PostStatus.Scheduled, PostStatus.Failed];
+const canEdit = (post: Post): boolean => EDITABLE_STATUSES.includes(post.status);
+const canDelete = (post: Post): boolean => DELETABLE_STATUSES.includes(post.status);
 
 const postUrl = (post: Post): string =>
     canEdit(post) ? editPost.url(post.id) : showPost.url(post.id);
@@ -301,7 +305,7 @@ useWorkspaceEcho(
                                                 <IconCopy class="size-4" />
                                                 {{ $t('posts.actions.copy_id') }}
                                             </DropdownMenuItem>
-                                            <template v-if="canEdit(post)">
+                                            <template v-if="canDelete(post)">
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
                                                     variant="destructive"

@@ -11,15 +11,18 @@ import PostEditorComposer from '@/components/posts/editor/PostEditorComposer.vue
 import PostEditorHeader from '@/components/posts/editor/PostEditorHeader.vue';
 import PostEditorSidebar from '@/components/posts/editor/PostEditorSidebar.vue';
 import { usePostEcho } from '@/composables/echo/usePostEcho';
-import { getMediaItemIssue } from '@/composables/useMedia';
-import { getMediaRulesForContentType } from '@/composables/useMediaRules';
-import { getPlatformLabel } from '@/composables/usePlatformLogo';
+import {
+    firstCompatibleVariant,
+    getMediaIncompatibilityReason,
+    usePostCompliance,
+} from '@/composables/usePostCompliance';
+import date from '@/date';
 import dayjs from '@/dayjs';
 import debounce from '@/debounce';
-import { Platform } from '@/enums/platform';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { destroy as destroyPost, update as updatePost } from '@/routes/app/posts';
 import type { PinterestBoard } from '@/types';
+import { PostStatus } from '@/types/post';
 
 interface MediaItem {
     id: string;
@@ -97,10 +100,15 @@ const props = defineProps<{
 }>();
 
 const post = computed(() => props.post);
-// Terminal states the user cannot recover from — delete, navigate, but never edit.
-const isReadOnly = computed(() => ['publishing', 'published', 'partially_published'].includes(post.value.status));
-const isPublishing = computed(() => post.value.status === 'publishing');
-const isScheduled = computed(() => post.value.status === 'scheduled');
+const READONLY_STATUSES: readonly string[] = [
+    PostStatus.Publishing,
+    PostStatus.Published,
+    PostStatus.PartiallyPublished,
+    PostStatus.Failed,
+];
+const isReadOnly = computed(() => READONLY_STATUSES.includes(post.value.status));
+const isPublishing = computed(() => post.value.status === PostStatus.Publishing);
+const isScheduled = computed(() => post.value.status === PostStatus.Scheduled);
 // Locked states — terminal + scheduled. Field edits and auto-save suppressed;
 // user must unschedule to re-enter draft and edit.
 const isLocked = computed(() => isReadOnly.value || isScheduled.value);
@@ -132,219 +140,25 @@ const updatePlatformContentType = (platformId: string, contentType: string) => {
     platformContentTypes.value = { ...platformContentTypes.value, [platformId]: contentType };
 };
 
-const platformLimits = computed(() => {
-    const seen = new Set<string>();
-    const result: { platform: string; maxLength: number }[] = [];
-    for (const pp of post.value.post_platforms) {
-        if (! selectedPlatformIds.value.includes(pp.id)) continue;
-        if (seen.has(pp.platform)) continue;
-        const accountId = pp.social_account_id;
-        const max = accountId ? props.platformConfigs[accountId]?.maxContentLength : null;
-        if (typeof max === 'number' && max > 0) {
-            seen.add(pp.platform);
-            result.push({ platform: pp.platform, maxLength: max });
-        }
-    }
-    return result;
-});
-
-const mediaIssues = computed(() => {
-    const result: Record<string, { platform: string; reason: string }[]> = {};
-    for (const item of media.value) {
-        const issues: { platform: string; reason: string }[] = [];
-        const seen = new Set<string>();
-        for (const pp of post.value.post_platforms) {
-            if (! selectedPlatformIds.value.includes(pp.id)) continue;
-            if (seen.has(pp.platform)) continue;
-            const contentType = platformContentTypes.value[pp.id] ?? pp.content_type ?? '';
-            const reason = getMediaItemIssue(item, contentType);
-            if (reason) {
-                seen.add(pp.platform);
-                issues.push({ platform: pp.platform, reason });
-            }
-        }
-        if (issues.length > 0) result[item.id] = issues;
-    }
-    return result;
-});
-
-const getMediaIncompatibilityReason = (contentType: string, mediaItems: MediaItem[]): string | null => {
-    const rules = getMediaRulesForContentType(contentType);
-    const videos = mediaItems.filter((m) => m.type === 'video' || m.mime_type?.startsWith('video/'));
-    const images = mediaItems.filter((m) => m.type === 'image' || m.mime_type?.startsWith('image/'));
-    const gifs = mediaItems.filter((m) => m.mime_type === 'image/gif');
-    const total = mediaItems.length;
-
-    // Order matters: type-mismatch errors (image vs video vs gif) are more
-    // fundamental than count errors. Telling the user "YouTube doesn't accept
-    // images" is more actionable than "too many files" when they're mixing types.
-    if (rules.requiresMedia && total === 0) return trans('posts.edit.compliance.requires_media');
-    if (!rules.acceptVideos && videos.length > 0) return trans('posts.edit.compliance.no_videos');
-    if (!rules.acceptImages && images.length > 0) return trans('posts.edit.compliance.no_images');
-    if (!rules.acceptsGif && gifs.length > 0) return trans('posts.edit.compliance.no_gifs');
-    if (total > rules.maxFiles) return trans('posts.edit.compliance.too_many_files', { max: String(rules.maxFiles) });
-    if (rules.minFiles && total < rules.minFiles) return trans('posts.edit.compliance.too_few_files', { min: String(rules.minFiles) });
-
-    for (const m of mediaItems) {
-        const isVideo = m.type === 'video' || m.mime_type?.startsWith('video/');
-        const size = m.size ?? 0;
-        const duration = m.meta?.duration ?? 0;
-        const width = m.meta?.width ?? 0;
-        const height = m.meta?.height ?? 0;
-
-        if (isVideo) {
-            if (rules.maxVideoBytes && size > 0 && size > rules.maxVideoBytes) return trans('posts.edit.compliance.video_too_large');
-            if (rules.maxVideoDurationSec && duration > 0 && duration > rules.maxVideoDurationSec) {
-                return trans('posts.edit.compliance.video_too_long', { seconds: String(rules.maxVideoDurationSec) });
-            }
-        } else if (rules.maxImageBytes && size > 0 && size > rules.maxImageBytes) {
-            return trans('posts.edit.compliance.image_too_large');
-        }
-
-        if (width > 0 && height > 0 && (rules.aspectRatioMin || rules.aspectRatioMax)) {
-            const ratio = width / height;
-            if (rules.aspectRatioMin && ratio < rules.aspectRatioMin) return trans('posts.edit.compliance.aspect_ratio_invalid');
-            if (rules.aspectRatioMax && ratio > rules.aspectRatioMax) return trans('posts.edit.compliance.aspect_ratio_invalid');
-        }
-    }
-
-    return null;
-};
-
-// Platforms whose default content_type doesn't accept every media type,
-// so the tile would otherwise block silently when the user attaches the
-// "wrong" kind. List the variants that should be considered at the tile
-// level — togglePlatform snaps content_type to whichever fits the media.
-//
-// Instagram/Facebook/LinkedIn are intentionally NOT here: their defaults
-// already accept image and video, and their secondary variants (Reel,
-// Carousel) are picked manually by the user. Including them would hide
-// real picker errors (e.g. Reel + image incompatibility) at the tile level.
-const PLATFORM_VARIANTS: Record<string, string[]> = {
-    [Platform.TikTok]: ['tiktok_video', 'tiktok_photo'],
-    [Platform.Pinterest]: ['pinterest_pin', 'pinterest_video_pin', 'pinterest_carousel'],
-};
-
-const firstCompatibleVariant = (platform: string, mediaItems: MediaItem[]): string | null => {
-    const variants = PLATFORM_VARIANTS[platform];
-    if (!variants) return null;
-    return variants.find((ct) => !getMediaIncompatibilityReason(ct, mediaItems)) ?? null;
-};
-
-const platformIssues = computed<Record<string, string>>(() => {
-    const issues: Record<string, string> = {};
-
-    for (const pp of post.value.post_platforms) {
-        const contentType = platformContentTypes.value[pp.id];
-        if (!contentType) {
-            issues[pp.id] = trans('posts.edit.compliance.no_content_type');
-            continue;
-        }
-
-        // For platforms that expose multiple content types via a variant picker,
-        // the tile is only blocked when no variant fits — togglePlatform will
-        // switch to a compatible variant on selection.
-        if (PLATFORM_VARIANTS[pp.platform]) {
-            if (!firstCompatibleVariant(pp.platform, media.value)) {
-                issues[pp.id] = getMediaIncompatibilityReason(contentType, media.value) ?? '';
-            }
-            continue;
-        }
-
-        const reason = getMediaIncompatibilityReason(contentType, media.value);
-        if (reason) issues[pp.id] = reason;
-    }
-
-    return issues;
-});
-
-const mediaCompliancePerPlatformValid = computed(
-    () => selectedPlatformIds.value.every((id) => !platformIssues.value[id]),
-);
-
-// TikTok compliance per docs:
-// - privacy_level must be explicitly selected
-// - if disclosure toggle is ON, at least one sub-toggle must be selected
-const tiktokComplianceValid = computed(() => {
-    const tiktokPlatforms = post.value.post_platforms.filter(
-        (pp) => pp.platform === Platform.TikTok && selectedPlatformIds.value.includes(pp.id),
-    );
-    return tiktokPlatforms.every((pp) => {
-        const meta = platformMeta.value[pp.id] ?? {};
-        if (!meta.privacy_level) return false;
-        if (meta.disclose && !meta.brand_organic_toggle && !meta.brand_content_toggle) return false;
-        return true;
-    });
-});
-
-// Pinterest needs a board_id selected to publish (the API rejects without it).
-const pinterestComplianceValid = computed(() => {
-    const pinterestPlatforms = post.value.post_platforms.filter(
-        (pp) => pp.platform === Platform.Pinterest && selectedPlatformIds.value.includes(pp.id),
-    );
-    return pinterestPlatforms.every((pp) => Boolean(platformMeta.value[pp.id]?.board_id));
-});
-
-const contentLengthOverflows = computed(() => {
-    const len = content.value.length;
-    return platformLimits.value
-        .filter((p) => len > p.maxLength)
-        .map((p) => ({ platform: p.platform, limit: p.maxLength, over: len - p.maxLength }));
-});
-
-const canSchedule = computed(
-    () => mediaCompliancePerPlatformValid.value
-        && tiktokComplianceValid.value
-        && pinterestComplianceValid.value
-        && contentLengthOverflows.value.length === 0,
-);
-
-const postActionTooltip = computed(() => {
-    if (canSchedule.value) return '';
-
-    const mediaReasons = post.value.post_platforms
-        .filter((pp) => selectedPlatformIds.value.includes(pp.id) && platformIssues.value[pp.id])
-        .map((pp) => `${pp.platform_name ?? pp.platform}: ${platformIssues.value[pp.id]}`);
-
-    const lengthReasons = contentLengthOverflows.value.map((overflow) => trans('posts.form.content_exceeds_platform', {
-        platform: getPlatformLabel(overflow.platform),
-        limit: String(overflow.limit),
-        over: String(overflow.over),
-    }));
-
-    const reasons = [...mediaReasons, ...lengthReasons];
-
-    if (reasons.length > 0) return reasons.join('\n');
-
-    // No media issues — the only remaining blocker is TikTok compliance.
-    // Surface the exact TikTok-required tooltip when the disclosure toggle
-    // is on without a sub-selection (UX Guideline Point 3a). For other TikTok
-    // cases (e.g. missing privacy_level), fall back to the generic message.
-    const tiktokDisclosureIncomplete = post.value.post_platforms.some((pp) => {
-        if (pp.platform !== Platform.TikTok) return false;
-        if (!selectedPlatformIds.value.includes(pp.id)) return false;
-        const meta = platformMeta.value[pp.id] ?? {};
-        return Boolean(meta.disclose) && !meta.brand_organic_toggle && !meta.brand_content_toggle;
-    });
-
-    if (tiktokDisclosureIncomplete) {
-        return trans('posts.form.tiktok.compliance_incomplete');
-    }
-
-    if (!pinterestComplianceValid.value) {
-        return trans('posts.form.pinterest.board_required');
-    }
-
-    return trans('posts.edit.compliance_incomplete');
+const {
+    platformLimits,
+    mediaIssues,
+    platformIssues,
+    canSchedule,
+    postActionTooltip,
+} = usePostCompliance({
+    post,
+    content,
+    media,
+    selectedPlatformIds,
+    platformContentTypes,
+    platformMeta,
+    platformConfigs: props.platformConfigs,
 });
 
 // Schedule
-const getLocalSchedule = () => {
-    if (!post.value.scheduled_at) return '';
-    return dayjs.utc(post.value.scheduled_at).local().format('YYYY-MM-DDTHH:mm:00');
-};
-const scheduledDateTime = ref(getLocalSchedule());
-const hasPickedTime = ref(post.value.status === 'scheduled' && !! post.value.scheduled_at);
+const scheduledDateTime = ref(date.formatUtcForDateTimeLocalInput(post.value.scheduled_at));
+const hasPickedTime = ref(post.value.status === PostStatus.Scheduled && !! post.value.scheduled_at);
 
 const pickTimeLabel = computed(() => {
     if (! hasPickedTime.value || ! scheduledDateTime.value) {
@@ -384,21 +198,28 @@ const activeTab = ref(initialTabFromQuery);
 const deleteModal = ref<InstanceType<typeof ConfirmDeleteModal> | null>(null);
 const editorSidebarRef = ref<InstanceType<typeof PostEditorSidebar> | null>(null);
 
+const snapToCompatibleVariant = (platformId: string) => {
+    const pp = post.value.post_platforms.find((p) => p.id === platformId);
+    const current = platformContentTypes.value[platformId];
+    if (!pp || !current) return;
+    if (!getMediaIncompatibilityReason(current, media.value)) return;
+
+    const fallback = firstCompatibleVariant(pp.platform, media.value);
+    if (!fallback) return;
+
+    platformContentTypes.value = { ...platformContentTypes.value, [platformId]: fallback };
+};
+
 const togglePlatform = (platformId: string) => {
     if (isLocked.value) return;
-    const index = selectedPlatformIds.value.indexOf(platformId);
-    if (index === -1) {
-        // For platforms with a variant picker, snap the post-platform's
-        // content_type to one that fits the current media before selection.
-        const pp = post.value.post_platforms.find((p) => p.id === platformId);
-        const variant = pp ? firstCompatibleVariant(pp.platform, media.value) : null;
-        if (variant && platformContentTypes.value[platformId] !== variant) {
-            platformContentTypes.value = { ...platformContentTypes.value, [platformId]: variant };
-        }
-        selectedPlatformIds.value.push(platformId);
-    } else {
-        selectedPlatformIds.value.splice(index, 1);
+
+    if (selectedPlatformIds.value.includes(platformId)) {
+        selectedPlatformIds.value = selectedPlatformIds.value.filter((id) => id !== platformId);
+        return;
     }
+
+    snapToCompatibleVariant(platformId);
+    selectedPlatformIds.value.push(platformId);
 };
 
 // Save logic
@@ -415,9 +236,7 @@ const getSubmitData = () => {
         content: content.value,
         media: media.value,
         platforms,
-        scheduled_at: scheduledDateTime.value
-            ? dayjs(scheduledDateTime.value).utc().format()
-            : null,
+        scheduled_at: date.formatLocalDateTimeForApi(scheduledDateTime.value),
         label_ids: selectedLabelIds.value,
     };
 };
@@ -462,7 +281,7 @@ onUnmounted(() => {
     debouncedSave.cancel();
 });
 
-const submit = (status: string = 'scheduled') => {
+const submit = (status: string = PostStatus.Scheduled) => {
     if (isSubmitting.value || isReadOnly.value) return;
     debouncedSave.cancel();
 
@@ -499,13 +318,9 @@ const unschedulePost = () => {
     debouncedSave.cancel();
     scheduledDateTime.value = '';
     hasPickedTime.value = false;
-    submit('draft');
+    submit(PostStatus.Draft);
 };
 
-// Echo: listen for real-time platform status updates.
-// Event fires when any post_platform completes publishing (success or fail).
-// Full reload of the post prop so the new status + post_platforms propagate and
-// the overlay dismisses.
 usePostEcho(post.value.id, '.post.platform.status.updated', () => {
     router.reload({ only: ['post'] });
 });

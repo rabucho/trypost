@@ -47,8 +47,8 @@ class PublishPostTool extends Tool
             'scheduled_at' => $scheduledAt,
         ]);
 
-        if (data_get($result, 'action') === PostAction::AlreadyPublished) {
-            return Response::error('Post is already published.');
+        if (data_get($result, 'action') === PostAction::Finalized) {
+            return Response::error('Post is already published or in a terminal state.');
         }
 
         /** @var Post $updated */
