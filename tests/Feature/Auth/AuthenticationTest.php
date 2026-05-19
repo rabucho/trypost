@@ -12,6 +12,26 @@ test('login screen can be rendered', function () {
     $response->assertOk();
 });
 
+test('login page exposes selfHosted as false when SELF_HOSTED is off', function () {
+    config()->set('trypost.self_hosted', false);
+
+    $response = $this->get(route('login'));
+
+    $response->assertOk();
+    $page = $response->original->getData()['page'];
+    expect($page['props']['selfHosted'])->toBeFalse();
+});
+
+test('login page exposes selfHosted as true when SELF_HOSTED is on', function () {
+    config()->set('trypost.self_hosted', true);
+
+    $response = $this->get(route('login'));
+
+    $response->assertOk();
+    $page = $response->original->getData()['page'];
+    expect($page['props']['selfHosted'])->toBeTrue();
+});
+
 test('users can authenticate using the login screen', function () {
     $user = User::factory()->create();
 
