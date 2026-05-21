@@ -15,11 +15,11 @@ import {
     ComboboxTrigger,
 } from '@/components/ui/combobox';
 import { getMediaValidationWarning } from '@/composables/useMedia';
-import type { MediaItem } from '@/types/media';
 import { usePageErrors } from '@/composables/usePageErrors';
 import { getPlatformLogo } from '@/composables/usePlatformLogo';
 import { ContentType } from '@/enums/content-type';
 import type { PinterestBoard } from '@/types';
+import type { MediaItem } from '@/types/media';
 
 interface SocialAccount {
     id: string;

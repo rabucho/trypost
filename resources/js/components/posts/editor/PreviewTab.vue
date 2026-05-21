@@ -6,8 +6,8 @@ import PhoneMockup from '@/components/PhoneMockup.vue';
 import { PlatformPreview } from '@/components/posts/previews';
 import { Avatar } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { MediaItem } from '@/types/media';
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
+import type { MediaItem } from '@/types/media';
 
 interface SocialAccount {
     id: string;

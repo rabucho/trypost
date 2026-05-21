@@ -4,8 +4,8 @@ import { computed, ref } from 'vue';
 
 import { Avatar } from '@/components/ui/avatar';
 import { getMediaValidationWarning } from '@/composables/useMedia';
-import type { MediaItem } from '@/types/media';
 import { getPlatformLogo } from '@/composables/usePlatformLogo';
+import type { MediaItem } from '@/types/media';
 
 interface SocialAccount {
     id: string;

@@ -14,8 +14,8 @@ import {
 import { computed } from 'vue';
 
 import PostMediaPreview from '@/components/posts/previews/PostMediaPreview.vue';
-import type { MediaItem } from '@/types/media';
 import { ContentType } from '@/enums/content-type';
+import type { MediaItem } from '@/types/media';
 
 interface SocialAccount {
     id: string;
