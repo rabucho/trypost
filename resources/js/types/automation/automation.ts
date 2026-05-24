@@ -1,0 +1,20 @@
+import type { Node } from '@vue-flow/core';
+
+import type { RawConnection } from './raw-connection';
+
+/**
+ * Domain shape of an Automation as it flows between the Inertia backend and
+ * the Vue pages. Many fields are optional because different pages hydrate
+ * different subsets (Index needs `created_at`, Show needs `activated_at`,
+ * Form needs `nodes` / `connections`).
+ */
+export interface Automation {
+    id: string;
+    name: string;
+    status: string;
+    nodes?: Node[];
+    connections?: RawConnection[];
+    activated_at?: string | null;
+    paused_at?: string | null;
+    created_at?: string;
+}

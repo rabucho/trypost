@@ -4,8 +4,8 @@ import { computed, type ComputedRef, type Ref } from 'vue';
 import { getMediaItemIssue } from '@/composables/useMedia';
 import { getMediaRulesForContentType } from '@/composables/useMediaRules';
 import { getPlatformLabel } from '@/composables/usePlatformLogo';
-import { ContentType } from '@/enums/content-type';
-import { Platform } from '@/enums/platform';
+import { ContentType } from '@/types/content-type';
+import { Platform } from '@/types/platform';
 import type { MediaItem } from '@/types/media';
 
 export interface CompliancePostPlatform {

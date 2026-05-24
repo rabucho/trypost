@@ -20,10 +20,12 @@ interface Props {
     contentType: string;
     media: MediaItem[];
     disabled?: boolean;
+    previewOnly?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     disabled: false,
+    previewOnly: false,
 });
 
 const emit = defineEmits<{
@@ -100,7 +102,7 @@ const warning = computed(() => getMediaValidationWarning(props.contentType, prop
             </div>
 
             <p
-                v-if="warning"
+                v-if="warning && !previewOnly"
                 class="flex items-start gap-2 rounded-lg border-2 border-foreground bg-rose-50 p-2 text-xs font-semibold text-rose-700"
             >
                 <IconAlertTriangle class="mt-0.5 size-3.5 shrink-0" />

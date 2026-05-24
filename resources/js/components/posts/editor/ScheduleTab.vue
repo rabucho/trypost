@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageErrors } from '@/composables/usePageErrors';
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
-import { Platform } from '@/enums/platform';
+import { Platform } from '@/types/platform';
 import type { PinterestBoard } from '@/types';
 import type { MediaItem } from '@/types/media';
 import { PostPlatformStatus } from '@/types/post';

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 return [
+    'back' => 'Voltar',
+
     'confirm_modal' => [
         'cannot_be_undone' => 'Esta ação não pode ser desfeita.',
         'type' => 'Digite',
@@ -47,4 +49,9 @@ return [
     'clear' => 'Limpar',
     'close' => 'Fechar',
     'loading_more' => 'Carregando mais...',
+
+    'actions' => [
+        'copy' => 'Copiar',
+        'copied' => 'Copiado',
+    ],
 ];

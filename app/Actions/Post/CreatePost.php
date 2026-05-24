@@ -31,7 +31,7 @@ class CreatePost
      *     media?: array<int, mixed>,
      *     date?: ?string,
      *     scheduled_at?: ?string,
-     *     platforms?: array<int, array{social_account_id: string, content_type?: string}>,
+     *     platforms?: array<int, array{social_account_id: string, content_type?: string, meta?: array<string, mixed>}>,
      *     label_ids?: array<int, string>
      * }  $data
      */
@@ -60,6 +60,17 @@ class CreatePost
 
                 if ($contentType = data_get($platformData, 'content_type')) {
                     $updates['content_type'] = $contentType;
+                }
+
+                $meta = data_get($platformData, 'meta');
+                if (is_array($meta) && $meta !== []) {
+                    $existing = $post->postPlatforms()
+                        ->where('social_account_id', $accountId)
+                        ->first();
+
+                    if ($existing) {
+                        $updates['meta'] = array_merge($existing->meta ?? [], $meta);
+                    }
                 }
 
                 $post->postPlatforms()

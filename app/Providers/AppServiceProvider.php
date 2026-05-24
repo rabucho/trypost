@@ -8,6 +8,8 @@ use App\Listeners\StripeEventListener;
 use App\Models\AccessToken;
 use App\Models\Account;
 use App\Models\AiUsageLog;
+use App\Models\AutomationNodeRun;
+use App\Models\AutomationRun;
 use App\Models\Invite;
 use App\Models\Media;
 use App\Models\Notification;
@@ -24,6 +26,9 @@ use App\Models\Workspace;
 use App\Models\WorkspaceInvite;
 use App\Models\WorkspaceLabel;
 use App\Models\WorkspaceSignature;
+use App\Observers\AutomationNodeRunObserver;
+use App\Observers\AutomationRunObserver;
+use App\Observers\PostObserver;
 use App\Services\PostHogService;
 use App\Services\PostTemplate\Registry as PostTemplateRegistry;
 use App\Socialite\InstagramProvider;
@@ -84,6 +89,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
         $this->configureSocialite();
         $this->configureStripeWebhooks();
+        $this->configureObservers();
 
         Cashier::useCustomerModel(Account::class);
         Cashier::useSubscriptionModel(Subscription::class);
@@ -94,6 +100,13 @@ class AppServiceProvider extends ServiceProvider
         Feature::discover();
 
         $this->configurePassport();
+    }
+
+    protected function configureObservers(): void
+    {
+        Post::observe(PostObserver::class);
+        AutomationRun::observe(AutomationRunObserver::class);
+        AutomationNodeRun::observe(AutomationNodeRunObserver::class);
     }
 
     protected function configurePassport(): void

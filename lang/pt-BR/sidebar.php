@@ -26,6 +26,7 @@ return [
     ],
 
     'analytics' => 'Analytics',
+    'automations' => 'Automações',
     'settings' => 'Configurações',
 
     'posts' => [
