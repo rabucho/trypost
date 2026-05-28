@@ -39,6 +39,69 @@ test('linkedin connect redirects to oauth provider', function () {
     expect(session('social_connect_workspace'))->toBe($this->workspace->id);
 });
 
+test('linkedin connect requests the default scope set when LINKEDIN_EXTRA_SCOPES is unset', function () {
+    config(['services.linkedin.extra_scopes' => null]);
+
+    $captured = [];
+
+    $driverMock = Mockery::mock();
+    $driverMock->shouldReceive('scopes')
+        ->withArgs(function (array $scopes) use (&$captured) {
+            $captured = $scopes;
+
+            return true;
+        })
+        ->andReturnSelf();
+    $driverMock->shouldReceive('redirect')->andReturn(Mockery::mock([
+        'getTargetUrl' => 'https://www.linkedin.com/oauth/v2/authorization?test=1',
+    ]));
+
+    Socialite::shouldReceive('driver')
+        ->with('linkedin')
+        ->andReturn($driverMock);
+
+    $this->actingAs($this->user)
+        ->withHeader('X-Inertia', 'true')
+        ->get(route('app.social.linkedin.connect'));
+
+    expect($captured)->toEqualCanonicalizing([
+        'openid', 'profile', 'email', 'w_member_social',
+    ]);
+});
+
+test('linkedin connect appends LINKEDIN_EXTRA_SCOPES to the default scope set', function () {
+    // Backward-compatibility: ops who have legacy products approved on
+    // their LinkedIn app (e.g. r_basicprofile) opt back in via env.
+    config(['services.linkedin.extra_scopes' => 'r_basicprofile, r_emailaddress']);
+
+    $captured = [];
+
+    $driverMock = Mockery::mock();
+    $driverMock->shouldReceive('scopes')
+        ->withArgs(function (array $scopes) use (&$captured) {
+            $captured = $scopes;
+
+            return true;
+        })
+        ->andReturnSelf();
+    $driverMock->shouldReceive('redirect')->andReturn(Mockery::mock([
+        'getTargetUrl' => 'https://www.linkedin.com/oauth/v2/authorization?test=1',
+    ]));
+
+    Socialite::shouldReceive('driver')
+        ->with('linkedin')
+        ->andReturn($driverMock);
+
+    $this->actingAs($this->user)
+        ->withHeader('X-Inertia', 'true')
+        ->get(route('app.social.linkedin.connect'));
+
+    expect($captured)->toEqualCanonicalizing([
+        'openid', 'profile', 'email', 'w_member_social',
+        'r_basicprofile', 'r_emailaddress',
+    ]);
+});
+
 test('linkedin oauth callback creates account', function () {
     session([
         'social_connect_workspace' => $this->workspace->id,
@@ -99,7 +162,7 @@ test('linkedin oauth callback splits comma-separated approvedScopes before savin
     // splits on space (the OAuth 2.0 default), so approvedScopes lands as
     // a single-element array with the whole CSV inside. The save path
     // must normalize back to individual tokens.
-    $socialiteUser->approvedScopes = ['email,openid,profile,r_basicprofile,w_member_social'];
+    $socialiteUser->approvedScopes = ['email,openid,profile,w_member_social'];
 
     Socialite::shouldReceive('driver')
         ->with('linkedin')
@@ -116,7 +179,7 @@ test('linkedin oauth callback splits comma-separated approvedScopes before savin
 
     $account = SocialAccount::where('platform_user_id', 'abc123xyz')->first();
     expect($account->scopes)->toEqualCanonicalizing([
-        'email', 'openid', 'profile', 'r_basicprofile', 'w_member_social',
+        'email', 'openid', 'profile', 'w_member_social',
     ]);
 });
 

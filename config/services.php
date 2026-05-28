@@ -41,6 +41,12 @@ return [
         'client_id' => env('LINKEDIN_CLIENT_ID'),
         'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
         'redirect' => env('LINKEDIN_CLIENT_REDIRECT'),
+        // Comma-separated list of OAuth scopes to request beyond the defaults
+        // (openid, profile, email, w_member_social). Useful for apps with
+        // legacy or enterprise products approved — e.g. set
+        // `LINKEDIN_EXTRA_SCOPES=r_basicprofile` to re-enable vanityName
+        // lookup via /v2/me.
+        'extra_scopes' => env('LINKEDIN_EXTRA_SCOPES'),
     ],
 
     'linkedin-openid' => [

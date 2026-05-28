@@ -26,7 +26,6 @@ class LinkedInController extends SocialController
         'openid',
         'profile',
         'email',
-        'r_basicprofile',
         'w_member_social',
     ];
 
@@ -42,7 +41,26 @@ class LinkedInController extends SocialController
 
         $this->authorize('manageAccounts', $workspace);
 
-        return $this->redirectToProvider($request, $this->driver, $this->scopes);
+        return $this->redirectToProvider($request, $this->driver, $this->resolveScopes());
+    }
+
+    /**
+     * Merge $this->scopes with any extra scopes the operator configured via
+     * `LINKEDIN_EXTRA_SCOPES` — comma-separated, e.g. `r_basicprofile`. Useful
+     * when the connected LinkedIn dev app has legacy or enterprise products
+     * not covered by the default Sign-In + Share-on-LinkedIn pair.
+     */
+    protected function resolveScopes(): array
+    {
+        $extra = (string) config('services.linkedin.extra_scopes', '');
+
+        if ($extra === '') {
+            return $this->scopes;
+        }
+
+        $extraScopes = array_filter(array_map('trim', explode(',', $extra)));
+
+        return array_values(array_unique([...$this->scopes, ...$extraScopes]));
     }
 
     public function callback(Request $request): View
