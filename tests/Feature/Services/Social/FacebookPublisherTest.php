@@ -684,10 +684,10 @@ test('facebook single image post applies the selected aspect ratio crop and uplo
     '16:9' => ['16:9', 16 / 9],
 ]);
 
-test('facebook multi image post applies the aspect ratio crop to every image', function () {
+test('facebook multi image post applies the chosen aspect ratio crop to every image', function (string $aspectRatio, float $expected) {
     Storage::fake();
 
-    $this->postPlatform->update(['meta' => ['aspect_ratio' => '1:1']]);
+    $this->postPlatform->update(['meta' => ['aspect_ratio' => $aspectRatio]]);
     $this->post->update([
         'media' => [
             ['id' => 'm1', 'path' => 'media/a.jpg', 'url' => 'https://example.com/media/a.jpg', 'mime_type' => 'image/jpeg', 'original_filename' => 'a.jpg'],
@@ -714,12 +714,37 @@ test('facebook multi image post applies the aspect ratio crop to every image', f
         $tempFile = tempnam(sys_get_temp_dir(), 'verify_');
         file_put_contents($tempFile, Storage::get($cropPath));
         $image = $manager->decodePath($tempFile);
-        expect($image->width())->toBe($image->height());
+        expect(abs($image->width() / $image->height() - $expected))->toBeLessThan(0.01);
         @unlink($tempFile);
     }
 
     Http::assertSent(fn ($request) => str_contains($request->url(), '/page_123/photos')
         && str_contains($request['url'] ?? '', 'social-crops/'));
+})->with([
+    '1:1' => ['1:1', 1.0],
+    '4:5' => ['4:5', 4 / 5],
+]);
+
+test('facebook multi image post aborts entirely when one image cannot be downloaded for cropping', function () {
+    Storage::fake();
+
+    $this->postPlatform->update(['meta' => ['aspect_ratio' => '4:5']]);
+    $this->post->update([
+        'media' => [
+            ['id' => 'm1', 'path' => 'media/a.jpg', 'url' => 'https://example.com/media/a.jpg', 'mime_type' => 'image/jpeg', 'original_filename' => 'a.jpg'],
+            ['id' => 'm2', 'path' => 'media/b.jpg', 'url' => 'https://example.com/media/b.jpg', 'mime_type' => 'image/jpeg', 'original_filename' => 'b.jpg'],
+        ],
+    ]);
+
+    Http::fake([
+        'https://example.com/media/a.jpg' => Http::response('', 404),
+        'https://example.com/media/b.jpg' => Http::response(facebookJpegBytes(900, 1600), 200),
+        '*/page_123/photos' => Http::response(['id' => 'up'], 200),
+        '*/page_123/feed' => Http::response(['id' => 'post_1'], 200),
+    ]);
+
+    expect(fn () => $this->publisher->publish($this->postPlatform))
+        ->toThrow(FacebookPublishException::class, 'Failed to download image for cropping');
 });
 
 test('facebook image post throws when the source image cannot be downloaded for cropping', function () {

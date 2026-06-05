@@ -869,10 +869,10 @@ test('feed image without aspect_ratio meta uses original URL', function () {
     });
 });
 
-test('carousel applies aspect ratio crop to every image', function () {
+test('carousel applies the chosen aspect ratio crop to every image', function (string $aspectRatio, float $expected) {
     Storage::fake();
 
-    $this->postPlatform->update(['meta' => ['aspect_ratio' => '1:1']]);
+    $this->postPlatform->update(['meta' => ['aspect_ratio' => $aspectRatio]]);
 
     $this->post->update([
         'media' => [
@@ -905,7 +905,10 @@ test('carousel applies aspect ratio crop to every image', function () {
         $tempFile = tempnam(sys_get_temp_dir(), 'verify_');
         file_put_contents($tempFile, Storage::get($cropPath));
         $image = $manager->decodePath($tempFile);
-        expect($image->width())->toBe($image->height());
+        expect(abs($image->width() / $image->height() - $expected))->toBeLessThan(0.01);
         @unlink($tempFile);
     }
-});
+})->with([
+    '1:1' => ['1:1', 1.0],
+    '4:5' => ['4:5', 4 / 5],
+]);
