@@ -39,9 +39,13 @@ test('linkedin connect redirects to oauth provider', function () {
     expect(session('social_connect_workspace'))->toBe($this->workspace->id);
 });
 
-test('linkedin connect requests the default scope set when LINKEDIN_EXTRA_SCOPES is unset', function () {
-    config(['trypost.platforms.linkedin.extra_scopes' => null]);
-
+/**
+ * Mock the LinkedIn Socialite driver, hit /connect, and return the scopes
+ * the controller requested.
+ *
+ * @return array<int, string>
+ */
+$captureConnectScopes = function (object $test): array {
     $captured = [];
 
     $driverMock = Mockery::mock();
@@ -60,43 +64,27 @@ test('linkedin connect requests the default scope set when LINKEDIN_EXTRA_SCOPES
         ->with('linkedin')
         ->andReturn($driverMock);
 
-    $this->actingAs($this->user)
+    $test->actingAs($test->user)
         ->withHeader('X-Inertia', 'true')
         ->get(route('app.social.linkedin.connect'));
 
-    expect($captured)->toEqualCanonicalizing([
+    return $captured;
+};
+
+test('linkedin connect requests the default scope set when LINKEDIN_EXTRA_SCOPES is unset', function () use ($captureConnectScopes) {
+    config(['trypost.platforms.linkedin.extra_scopes' => null]);
+
+    expect($captureConnectScopes($this))->toEqualCanonicalizing([
         'openid', 'profile', 'email', 'w_member_social',
     ]);
 });
 
-test('linkedin connect appends LINKEDIN_EXTRA_SCOPES to the default scope set', function () {
+test('linkedin connect appends LINKEDIN_EXTRA_SCOPES to the default scope set', function () use ($captureConnectScopes) {
     // Backward-compatibility: ops who have legacy products approved on
     // their LinkedIn app (e.g. r_basicprofile) opt back in via env.
     config(['trypost.platforms.linkedin.extra_scopes' => 'r_basicprofile, r_emailaddress']);
 
-    $captured = [];
-
-    $driverMock = Mockery::mock();
-    $driverMock->shouldReceive('scopes')
-        ->withArgs(function (array $scopes) use (&$captured) {
-            $captured = $scopes;
-
-            return true;
-        })
-        ->andReturnSelf();
-    $driverMock->shouldReceive('redirect')->andReturn(Mockery::mock([
-        'getTargetUrl' => 'https://www.linkedin.com/oauth/v2/authorization?test=1',
-    ]));
-
-    Socialite::shouldReceive('driver')
-        ->with('linkedin')
-        ->andReturn($driverMock);
-
-    $this->actingAs($this->user)
-        ->withHeader('X-Inertia', 'true')
-        ->get(route('app.social.linkedin.connect'));
-
-    expect($captured)->toEqualCanonicalizing([
+    expect($captureConnectScopes($this))->toEqualCanonicalizing([
         'openid', 'profile', 'email', 'w_member_social',
         'r_basicprofile', 'r_emailaddress',
     ]);
