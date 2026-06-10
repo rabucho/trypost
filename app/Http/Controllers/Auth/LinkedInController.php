@@ -22,13 +22,6 @@ class LinkedInController extends SocialController
 
     protected SocialPlatform $platform = SocialPlatform::LinkedIn;
 
-    protected array $scopes = [
-        'openid',
-        'profile',
-        'email',
-        'w_member_social',
-    ];
-
     public function connect(Request $request): Response|RedirectResponse
     {
         $this->ensurePlatformEnabled();
@@ -45,22 +38,29 @@ class LinkedInController extends SocialController
     }
 
     /**
-     * Merge $this->scopes with any extra scopes the operator configured via
-     * `LINKEDIN_EXTRA_SCOPES` — comma-separated, e.g. `r_basicprofile`. Useful
-     * when the connected LinkedIn dev app has legacy or enterprise products
-     * not covered by the default Sign-In + Share-on-LinkedIn pair.
+     * Merge the default LinkedIn scopes with any extra scopes the operator
+     * configured via `LINKEDIN_EXTRA_SCOPES` — comma-separated, e.g.
+     * `r_basicprofile`. Useful when the connected LinkedIn dev app has legacy
+     * or enterprise products not covered by the default Sign-In +
+     * Share-on-LinkedIn pair. Both live under
+     * `config/trypost.php` → `platforms.linkedin`.
+     *
+     * @return array<int, string>
      */
     protected function resolveScopes(): array
     {
-        $extra = (string) config('services.linkedin.extra_scopes', '');
+        /** @var array<int, string> $scopes */
+        $scopes = config('trypost.platforms.linkedin.scopes', []);
+
+        $extra = (string) config('trypost.platforms.linkedin.extra_scopes', '');
 
         if ($extra === '') {
-            return $this->scopes;
+            return $scopes;
         }
 
         $extraScopes = array_filter(array_map('trim', explode(',', $extra)));
 
-        return array_values(array_unique([...$this->scopes, ...$extraScopes]));
+        return array_values(array_unique([...$scopes, ...$extraScopes]));
     }
 
     public function callback(Request $request): View

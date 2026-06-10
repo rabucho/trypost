@@ -40,7 +40,7 @@ test('linkedin connect redirects to oauth provider', function () {
 });
 
 test('linkedin connect requests the default scope set when LINKEDIN_EXTRA_SCOPES is unset', function () {
-    config(['services.linkedin.extra_scopes' => null]);
+    config(['trypost.platforms.linkedin.extra_scopes' => null]);
 
     $captured = [];
 
@@ -72,7 +72,7 @@ test('linkedin connect requests the default scope set when LINKEDIN_EXTRA_SCOPES
 test('linkedin connect appends LINKEDIN_EXTRA_SCOPES to the default scope set', function () {
     // Backward-compatibility: ops who have legacy products approved on
     // their LinkedIn app (e.g. r_basicprofile) opt back in via env.
-    config(['services.linkedin.extra_scopes' => 'r_basicprofile, r_emailaddress']);
+    config(['trypost.platforms.linkedin.extra_scopes' => 'r_basicprofile, r_emailaddress']);
 
     $captured = [];
 

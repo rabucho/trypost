@@ -80,6 +80,18 @@ return [
             'api' => env('LINKEDIN_API', 'https://api.linkedin.com'),
             // OAuth host is different from the data API (api.linkedin.com).
             'oauth_api' => env('LINKEDIN_OAUTH_API', 'https://www.linkedin.com'),
+            // Default OAuth scopes requested on /connect/linkedin. Covers the
+            // two products auto-approved for new apps: Sign In with LinkedIn
+            // (openid, profile, email) + Share on LinkedIn (w_member_social).
+            // `r_basicprofile` is intentionally omitted — it's a 2018-deprecated
+            // legacy scope that new apps can't grant, and requesting it makes
+            // LinkedIn reject the whole authorize request.
+            'scopes' => ['openid', 'profile', 'email', 'w_member_social'],
+            // Comma-separated extra scopes merged onto the defaults above, for
+            // apps with legacy/enterprise products approved — e.g.
+            // `LINKEDIN_EXTRA_SCOPES=r_basicprofile` to re-enable the vanityName
+            // lookup via /v2/me.
+            'extra_scopes' => env('LINKEDIN_EXTRA_SCOPES'),
         ],
         'linkedin-page' => [
             'enabled' => env('LINKEDIN_PAGE_ENABLED', true),
