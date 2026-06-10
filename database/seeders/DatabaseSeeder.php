@@ -15,7 +15,12 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             PlanSeeder::class,
-            PassportSeeder::class,
+            PassportSeeder::class
         ]);
+
+        // If self-hosted, seed the user seeder
+        if(config('trypost.self_hosted')) {
+            $this->call(UserSeeder::class);
+        }
     }
 }
