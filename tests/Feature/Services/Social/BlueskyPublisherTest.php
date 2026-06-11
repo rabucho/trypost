@@ -105,7 +105,10 @@ test('bluesky publisher resolves mentions to DIDs as facets', function () {
     $this->post->update(['content' => 'Shout out to @friend.bsky.social']);
 
     Http::fake([
-        'https://bsky.social/xrpc/com.atproto.identity.resolveHandle*' => Http::response([
+        // Wildcard so the fake matches whichever endpoint resolveHandleToDid()
+        // tries first (the account PDS, public AppView, or bsky.social) and the
+        // test stays isolated from the configured service URL.
+        '*/xrpc/com.atproto.identity.resolveHandle*' => Http::response([
             'did' => 'did:plc:friend456',
         ], 200),
         'https://bsky.social/xrpc/com.atproto.repo.createRecord' => Http::response([
@@ -117,7 +120,7 @@ test('bluesky publisher resolves mentions to DIDs as facets', function () {
     $this->publisher->publish($this->postPlatform);
 
     Http::assertSent(function ($request) {
-        $record = $request['record'] ?? null;
+        $record = $request->data()['record'] ?? null;
 
         if (! $record || ! isset($record['facets'])) {
             return false;
@@ -152,7 +155,7 @@ test('bluesky publisher skips mention facet when handle cannot be resolved', fun
     expect($result['id'])->toBe('3abc123xyz');
 
     Http::assertSent(function ($request) {
-        $record = $request['record'] ?? null;
+        $record = $request->data()['record'] ?? null;
 
         if (! $record) {
             return false;

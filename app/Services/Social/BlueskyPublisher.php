@@ -278,12 +278,18 @@ class BlueskyPublisher
      */
     private function resolveHandleToDid(string $handle, ?string $service = null, ?SocialAccount $account = null): ?string
     {
+        // Normalize so a trailing slash neither produces a double-slash URL nor
+        // breaks the `=== $service` check below (which decides authentication).
+        $service = $service !== null ? rtrim($service, '/') : null;
+
         $endpoints = array_values(array_unique(array_filter([
             $service,
             'https://public.api.bsky.app',
             'https://bsky.social',
         ])));
 
+        $lastError = null;
+        $lastEndpoint = null;
         foreach ($endpoints as $endpoint) {
             try {
                 $request = $this->socialHttp();
@@ -301,13 +307,24 @@ class BlueskyPublisher
                     return $did;
                 }
             } catch (\Throwable $e) {
-                Log::warning('Bluesky handle resolution failed', [
+                // Per-endpoint failures are expected during transient outages;
+                // keep them at debug to avoid noisy logs and surface a single
+                // warning below only when every endpoint has been exhausted.
+                $lastError = $e->getMessage();
+                $lastEndpoint = $endpoint;
+                Log::debug('Bluesky handle resolution attempt failed', [
                     'handle' => $handle,
                     'endpoint' => $endpoint,
                     'error' => $e->getMessage(),
                 ]);
             }
         }
+
+        Log::warning('Bluesky handle resolution failed; mention will be sent as plain text', [
+            'handle' => $handle,
+            'endpoint' => $lastEndpoint,
+            'error' => $lastError,
+        ]);
 
         return null;
     }
