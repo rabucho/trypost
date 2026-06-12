@@ -6,7 +6,6 @@ namespace App\Actions\Automation\Run;
 
 use App\Enums\Automation\Run\Status;
 use App\Enums\Automation\Trigger\Type as TriggerType;
-use App\Jobs\Automation\ProcessAutomationNode;
 use App\Models\Automation;
 use App\Models\AutomationRun;
 use App\Models\Post;
@@ -26,12 +25,16 @@ use App\Models\Post;
  */
 class TestAutomation
 {
+    public function __construct(private AdvanceAutomationRun $advance) {}
+
     public function __invoke(Automation $automation, bool $withRealData = false): AutomationRun
     {
         $triggerNode = collect($automation->nodes ?? [])->firstWhere('type', 'trigger');
         $context = ['trigger' => $this->synthesizePayload($automation, $triggerNode ?? [])];
 
-        $firstNodeId = $this->findFirstRealNodeId($automation, $triggerNode);
+        $targets = $triggerNode !== null
+            ? $this->advance->targetsFor($automation, $triggerNode['id'])
+            : [];
 
         $run = AutomationRun::create([
             'automation_id' => $automation->id,
@@ -41,7 +44,7 @@ class TestAutomation
             'context' => $context,
         ]);
 
-        if ($firstNodeId === null) {
+        if ($targets === []) {
             $run->update([
                 'status' => Status::Failed,
                 'error' => ['message' => __('automations.errors.no_trigger_connection')],
@@ -51,7 +54,7 @@ class TestAutomation
             return $run;
         }
 
-        ProcessAutomationNode::dispatch($run, $firstNodeId);
+        $this->advance->dispatchBranches($run, $targets);
 
         return $run;
     }
@@ -103,20 +106,5 @@ class TestAutomation
                 'published_at' => $post->published_at?->toIso8601String(),
             ],
         ]);
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $triggerNode
-     */
-    private function findFirstRealNodeId(Automation $automation, ?array $triggerNode): ?string
-    {
-        if ($triggerNode === null) {
-            return null;
-        }
-
-        $connection = collect($automation->connections ?? [])
-            ->firstWhere('source', $triggerNode['id']);
-
-        return $connection['target'] ?? null;
     }
 }

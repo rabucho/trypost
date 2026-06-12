@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Automation\Trigger;
 
+use App\Actions\Automation\Run\AdvanceAutomationRun;
 use App\Enums\Automation\Run\Status as RunStatus;
 use App\Enums\Automation\Status as AutomationStatus;
 use App\Enums\Automation\Trigger\Type as TriggerType;
-use App\Jobs\Automation\ProcessAutomationNode;
 use App\Models\Automation;
 use App\Models\AutomationRun;
 use App\Models\Post;
@@ -25,6 +25,8 @@ use App\Models\Post;
  */
 class DispatchPostTriggerAutomations
 {
+    public function __construct(private AdvanceAutomationRun $advance) {}
+
     public function __invoke(Post $post, TriggerType $triggerType): void
     {
         $automations = Automation::query()
@@ -64,12 +66,9 @@ class DispatchPostTriggerAutomations
             'context' => $context,
         ]);
 
-        $connection = collect($automation->connections ?? [])
-            ->firstWhere('source', $triggerNode['id']);
+        $targets = $this->advance->targetsFor($automation, $triggerNode['id']);
 
-        $nextNodeId = $connection['target'] ?? null;
-
-        if ($nextNodeId === null) {
+        if ($targets === []) {
             $run->update([
                 'status' => RunStatus::Failed,
                 'error' => ['message' => __('automations.errors.no_trigger_connection')],
@@ -79,6 +78,6 @@ class DispatchPostTriggerAutomations
             return;
         }
 
-        ProcessAutomationNode::dispatch($run, $nextNodeId);
+        $this->advance->dispatchBranches($run, $targets);
     }
 }

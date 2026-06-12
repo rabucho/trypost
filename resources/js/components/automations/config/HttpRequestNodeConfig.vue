@@ -92,7 +92,6 @@ const removeHeader = (index: number): void => {
 watch(local, (val) => emit('update', val), { deep: true });
 
 const supportsBody = computed(() => ['POST', 'PUT', 'PATCH'].includes(local.value.method));
-const isPollingMode = computed(() => local.value.items_path.trim() !== '');
 
 const isBodyJsonInvalid = computed(() => {
     const value = local.value.body_template.trim();
@@ -183,7 +182,13 @@ const isBodyJsonInvalid = computed(() => {
         <div v-if="supportsBody">
             <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.body_template') }}</label>
             <div class="h-36">
-                <CodeEditor v-model="local.body_template" language="json" placeholder='{"id": "{{ trigger.post.id }}"}' />
+                <CodeEditor
+                    v-model="local.body_template"
+                    language="json"
+                    expandable
+                    :label="$t('automations.config.http_request.body_template')"
+                    placeholder='{"id": "{{ trigger.post.id }}"}'
+                />
             </div>
             <p v-if="isBodyJsonInvalid" class="mt-1 text-xs text-amber-600 dark:text-amber-500">
                 {{ $t('automations.config.invalid_json') }}
@@ -234,21 +239,21 @@ const isBodyJsonInvalid = computed(() => {
                 <div>
                     <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.items_path') }}</label>
                     <Input v-model="local.items_path" placeholder="data.items" />
+                    <p class="mt-1 text-xs text-foreground/50">{{ $t('automations.config.http_request.items_path_hint') }}</p>
                     <InputError :message="errors?.items_path" class="mt-1" />
                 </div>
-                <template v-if="isPollingMode">
-                    <div>
-                        <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.item_key_path') }}</label>
-                        <Input v-model="local.item_key_path" placeholder="id" />
-                        <InputError :message="errors?.item_key_path" class="mt-1" />
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.item_date_path') }}</label>
-                        <Input v-model="local.item_date_path" placeholder="published_at" />
-                        <InputError :message="errors?.item_date_path" class="mt-1" />
-                        <p class="mt-1 text-xs text-foreground/50">{{ $t('automations.config.http_request.item_date_path_hint') }}</p>
-                    </div>
-                </template>
+                <div>
+                    <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.item_date_path') }}</label>
+                    <Input v-model="local.item_date_path" placeholder="published_at" />
+                    <p class="mt-1 text-xs text-foreground/50">{{ $t('automations.config.http_request.item_date_path_hint') }}</p>
+                    <InputError :message="errors?.item_date_path" class="mt-1" />
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.item_key_path') }}</label>
+                    <Input v-model="local.item_key_path" placeholder="id" />
+                    <p class="mt-1 text-xs text-foreground/50">{{ $t('automations.config.http_request.item_key_path_hint') }}</p>
+                    <InputError :message="errors?.item_key_path" class="mt-1" />
+                </div>
             </div>
         </div>
     </div>

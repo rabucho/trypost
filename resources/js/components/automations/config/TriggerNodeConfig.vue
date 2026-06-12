@@ -16,9 +16,9 @@ import {
     normalizeScheduleData,
     timezoneAbbr as getTimezoneAbbr,
     userTimezone as getUserTimezone,
-    type ScheduleData,
 } from '@/components/automations/schedule-summary';
 import { ScheduleField } from '@/types/automation/schedule-field';
+import type { ScheduleData } from '@/types/automation/schedule-data';
 import { TriggerType, type TriggerTypeValue } from '@/types/automation/trigger-type';
 
 const props = defineProps<{

@@ -39,6 +39,16 @@ class AutomationRun extends Model
     }
 
     /**
+     * Id of the run that started this execution. Fan-out forks sibling runs that
+     * all point back at the same root, so callers can treat every branch of one
+     * test/trigger as a single family. The root run points at itself.
+     */
+    public function rootId(): string
+    {
+        return $this->root_run_id ?? $this->id;
+    }
+
+    /**
      * Context for template (`{{ ... }}`) resolution: the run context plus the
      * automation's workflow variables, merged in-memory. Variables are NEVER
      * persisted into the run context (they're encrypted at rest and would

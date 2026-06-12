@@ -38,11 +38,16 @@ class RunWebhookNode
             $headers[$k] = $this->resolver->resolve((string) $v, $context);
         }
 
-        $payloadJson = $this->resolver->resolve($config['payload_template'] ?? '{}', $context);
-        $trimmedPayload = trim($payloadJson);
+        // Parse the template as JSON FIRST, then resolve placeholders in its
+        // string leaves — so a value containing `"`/`&`/newlines can't corrupt
+        // the JSON (the final json_encode escapes it).
+        $template = $config['payload_template'] ?? '{}';
+        $trimmedTemplate = trim($template);
 
-        if ($trimmedPayload !== '' && $trimmedPayload !== 'null') {
-            $decoded = json_decode($payloadJson, true);
+        if ($trimmedTemplate === '' || $trimmedTemplate === 'null') {
+            $payload = [];
+        } else {
+            $decodedTemplate = json_decode($template, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 return NodeRunResult::failed(__('automations.errors.webhook_invalid_payload_json'), [
@@ -50,9 +55,7 @@ class RunWebhookNode
                 ]);
             }
 
-            $payload = $decoded ?? [];
-        } else {
-            $payload = [];
+            $payload = $this->resolver->resolveStructured($decodedTemplate ?? [], $context);
         }
 
         if ($run->is_dry_run) {

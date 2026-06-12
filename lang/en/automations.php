@@ -14,6 +14,7 @@ return [
         'pause' => 'Pause',
         'delete' => 'Delete',
         'retry' => 'Retry',
+        'guide' => 'Guide',
     ],
 
     'tabs' => [
@@ -38,6 +39,44 @@ return [
         'key_placeholder' => 'API_KEY',
         'value_placeholder' => 'Value',
         'add' => 'New variable',
+    ],
+
+    'guide' => [
+        'title' => 'How to use automations',
+        'subtitle' => 'A quick reference for building your flow.',
+        'flow_title' => 'How it works',
+        'flow_text' => 'A trigger (a schedule, or a published/scheduled post) starts the flow. Actions in between fetch data, generate content, or branch on conditions. Output nodes publish posts or call webhooks.',
+        'data_title' => 'Passing data between nodes',
+        'data_text' => 'Reference data from earlier nodes in any field. Type the name in double braces, for example:',
+        'refs' => [
+            'trigger_post' => 'The post that fired a post trigger',
+            'fetched_title' => 'Current RSS item / HTTP response',
+            'fetched_link' => 'Its link',
+            'generated' => 'The AI-generated post',
+            'now' => 'Current date & time',
+        ],
+        'vars_title' => 'Variables',
+        'vars_text' => 'Define reusable values (API keys, base URLs) in the Variables tab, then reference them by key. Secrets are stored encrypted.',
+        'tip_text' => 'Run a Test to see exactly what data each node outputs.',
+    ],
+
+    'expr' => [
+        'trigger_event' => 'Trigger event name',
+        'trigger_fired_at' => 'When the trigger fired',
+        'trigger_post_id' => 'Triggering post ID',
+        'trigger_post_content' => 'Triggering post content',
+        'trigger_post_status' => 'Triggering post status',
+        'trigger_post_scheduled_at' => 'When the post is scheduled',
+        'trigger_post_published_at' => 'When the post was published',
+        'fetched_title' => 'Fetched item title',
+        'fetched_link' => 'Fetched item link',
+        'fetched_description' => 'Fetched item description',
+        'fetched_pubdate' => 'Fetched item publish date',
+        'fetched_http' => 'Fetched HTTP item (append a field)',
+        'generated_content' => 'AI-generated post content',
+        'generated_post_url' => 'AI-generated post URL',
+        'variable' => 'Workflow variable',
+        'now' => 'Current date & time',
     ],
 
     'test' => [
@@ -121,6 +160,9 @@ return [
     'config' => [
         'select_placeholder' => 'Select…',
         'invalid_json' => 'This isn’t valid JSON yet.',
+        'expand_editor' => 'Expand editor',
+        'minimize_editor' => 'Minimize',
+        'editing_in_panel' => 'Editing in the side panel',
 
         'trigger' => [
             'type' => 'Trigger type',
@@ -175,6 +217,7 @@ return [
             'social_accounts_empty' => 'No connected social accounts. Connect one first.',
             'target_slide_count' => 'Slides to generate',
             'prompt_template' => 'Prompt template',
+            'prompt_template_hint' => 'Type {{ to insert data from earlier steps.',
             'include_image' => 'Include image',
             'include_image_hint' => 'Generate an AI image for this post',
         ],
@@ -243,12 +286,14 @@ return [
             'header_name' => 'Header name',
             'header_value' => 'Value',
             'add_header' => 'Add header',
-            'polling_section' => 'Polling (optional)',
-            'polling_hint' => 'Leave blank to use the whole response as a single payload. Fill in to extract an array of items and spawn one run per item.',
+            'polling_section' => 'List & deduplication (optional)',
+            'polling_hint' => 'When the response is a list, each item runs the workflow separately. A single object runs once.',
             'items_path' => 'Items path',
+            'items_path_hint' => 'Leave blank if the response is already an array. Use a dotted path (e.g. data.items) for a nested array, or * for an object keyed by id.',
             'item_key_path' => 'Item key path',
-            'item_date_path' => 'Item date path (optional)',
-            'item_date_path_hint' => 'JSON path to the item timestamp. When set, only items newer than the previous fetch are forwarded — prevents the first fetch from flooding downstream nodes.',
+            'item_key_path_hint' => 'JSON path to a unique id (e.g. id). Items already seen are skipped, so a feed without dates still only forwards new entries.',
+            'item_date_path' => 'Item date path',
+            'item_date_path_hint' => 'JSON path to the item timestamp (e.g. published_at). Preferred over the key path when available. The first poll records the baseline and forwards nothing, so an existing feed never floods on day one.',
         ],
     ],
 

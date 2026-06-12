@@ -28,6 +28,7 @@ use App\Http\Resources\AutomationResource;
 use App\Http\Resources\AutomationRunResource;
 use App\Http\Resources\AutomationTriggerItemResource;
 use App\Models\Automation;
+use App\Models\AutomationNodeRun;
 use App\Models\AutomationRun;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -158,11 +159,21 @@ class AutomationController extends Controller
         $this->authorize('view', $automation);
         abort_unless($run->automation_id === $automation->id, 404);
 
-        $run->load('nodeRuns');
+        // Aggregate the node runs of every branch forked by a fan-out so the test
+        // panel shows the whole execution, not just the branch the root walked.
+        $rootId = $run->rootId();
+
+        $nodeRuns = AutomationNodeRun::query()
+            ->whereHas('run', fn ($query) => $query
+                ->where('id', $rootId)
+                ->orWhere('root_run_id', $rootId))
+            ->orderBy('started_at')
+            ->orderBy('id')
+            ->get();
 
         return response()->json([
             'run' => AutomationRunResource::make($run)->resolve(),
-            'node_runs' => AutomationNodeRunResource::collection($run->nodeRuns)->resolve(),
+            'node_runs' => AutomationNodeRunResource::collection($nodeRuns)->resolve(),
         ]);
     }
 }

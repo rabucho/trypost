@@ -128,7 +128,7 @@ export const humanSchedule = (data: ScheduleData): string => {
         }
         case ScheduleField.Hours: {
             const n = num(data, 'schedule_hours_interval', 1, 1, 23);
-            return transChoice(summaryKey('every_n_hours'), n, { minute });
+            return transChoice(summaryKey('every_n_hours'), n, { minute: pad2(minute) });
         }
         case ScheduleField.Days: {
             const n = num(data, 'schedule_days_interval', 1, 1, 31);

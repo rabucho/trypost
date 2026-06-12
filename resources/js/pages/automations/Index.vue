@@ -110,7 +110,7 @@ const handleCreate = () => {
                                         {{ statusConfig(automation.status).label }}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>{{ formatDate(automation.created_at) }}</TableCell>
+                                <TableCell>{{ automation.created_at ? formatDate(automation.created_at) : '' }}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

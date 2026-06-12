@@ -1,32 +1,76 @@
 <script setup lang="ts">
+import { autocompletion } from '@codemirror/autocomplete';
 import { indentWithTab } from '@codemirror/commands';
 import { json } from '@codemirror/lang-json';
-import { EditorState } from '@codemirror/state';
+import { type Extension, EditorState } from '@codemirror/state';
 import { EditorView, keymap, placeholder as placeholderExt } from '@codemirror/view';
-import { IconCopy } from '@tabler/icons-vue';
+import { IconArrowsMaximize, IconArrowsMinimize, IconCopy } from '@tabler/icons-vue';
 import { basicSetup } from 'codemirror';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, type Ref, ref, watch } from 'vue';
 
+import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+    type ExpressionSuggestion,
+    expressionCompletionSource,
+} from '@/composables/useExpressionCompletions';
 import debounce from '@/debounce';
 import { copyToClipboard } from '@/lib/utils';
 
 const props = withDefaults(
     defineProps<{
         modelValue: string;
-        language?: 'json';
+        language?: 'json' | 'text';
         readOnly?: boolean;
         placeholder?: string;
+        expandable?: boolean;
+        label?: string;
     }>(),
     {
         language: 'json',
         readOnly: false,
         placeholder: '',
+        expandable: false,
+        label: '',
     },
 );
 
 const emit = defineEmits<{
     'update:modelValue': [value: string];
 }>();
+
+// Provided by the automation editor (Form.vue) for the currently selected node.
+// Empty elsewhere, so the editor degrades to a plain field with no `{{ ... }}`
+// suggestions.
+const expressionCompletions = inject<Ref<ExpressionSuggestion[]>>(
+    'automationExpressionCompletions',
+    ref([]),
+);
+
+// Shared with Form.vue: toggling `.active` slides out the side panel (and shifts
+// the sidebar to make room). Null outside the automation editor, so `expandable`
+// only takes effect where Form provides the panel target.
+const expandedPanel = inject<{ active: boolean } | null>('automationExpandedEditor', null);
+
+const isExpanded = ref(false);
+const canExpand = computed(() => props.expandable && expandedPanel !== null);
+
+watch(isExpanded, (open) => {
+    if (expandedPanel) {
+        expandedPanel.active = open;
+    }
+});
+
+const onKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && isExpanded.value) {
+        isExpanded.value = false;
+    }
+};
 
 const editorContainer = ref<HTMLElement>();
 let view: EditorView | null = null;
@@ -35,8 +79,10 @@ const debouncedEmit = debounce((value: string) => {
     emit('update:modelValue', value);
 }, 250);
 
-const languageExtension = () => {
+const languageExtension = (): Extension => {
     switch (props.language) {
+        case 'text':
+            return [];
         case 'json':
         default:
             return json();
@@ -106,6 +152,11 @@ onMounted(() => {
         keymap.of([indentWithTab]),
         languageExtension(),
         EditorView.lineWrapping,
+        autocompletion({
+            override: [expressionCompletionSource(() => expressionCompletions.value)],
+            activateOnTyping: true,
+            icons: false,
+        }),
         lightTheme,
         updateListener,
     ];
@@ -126,6 +177,10 @@ onMounted(() => {
         }),
         parent: editorContainer.value,
     });
+
+    if (props.expandable) {
+        window.addEventListener('keydown', onKeydown);
+    }
 });
 
 watch(
@@ -153,22 +208,89 @@ onBeforeUnmount(() => {
     debouncedEmit.cancel();
     view?.destroy();
     view = null;
+    window.removeEventListener('keydown', onKeydown);
+    // Switching nodes unmounts the editor; make sure the side panel collapses
+    // instead of lingering empty.
+    if (isExpanded.value && expandedPanel) {
+        expandedPanel.active = false;
+    }
 });
 </script>
 
 <template>
-    <div class="relative h-full w-full">
-        <div ref="editorContainer" class="code-editor h-full w-full" />
+    <div class="group relative h-full w-full">
+        <div v-show="!isExpanded" ref="editorContainer" class="code-editor h-full w-full" />
 
+        <!-- While the side panel is open, the inline field collapses to a hint
+             (clicking it closes the panel) instead of duplicating the editor. -->
         <button
-            v-if="modelValue"
+            v-if="isExpanded"
             type="button"
-            class="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-md border-2 border-foreground bg-card shadow-[1px_1px_0_var(--foreground)] transition hover:-translate-x-px hover:-translate-y-px hover:shadow-[2px_2px_0_var(--foreground)] active:translate-x-0 active:translate-y-0 active:shadow-[0_0_0_var(--foreground)]"
-            :title="$t('common.actions.copy')"
-            :aria-label="$t('common.actions.copy')"
-            @click="copyToClipboard(modelValue)"
+            class="flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-foreground/25 bg-card/40 px-3 text-center text-xs font-medium text-foreground/60 transition hover:border-foreground/40 hover:text-foreground/80"
+            @click="isExpanded = false"
         >
-            <IconCopy class="size-3.5" stroke-width="2.5" />
+            <IconArrowsMaximize class="size-4" stroke-width="2.5" />
+            {{ $t('automations.config.editing_in_panel') }}
         </button>
+
+        <TooltipProvider :delay-duration="200">
+            <div
+                v-if="!isExpanded && (canExpand || modelValue)"
+                class="absolute right-2 top-2 z-10 flex gap-0.5 rounded-lg border-2 border-foreground bg-card p-0.5 opacity-0 shadow-[1px_1px_0_var(--foreground)] transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100"
+            >
+                <Tooltip v-if="canExpand">
+                    <TooltipTrigger as-child>
+                        <button
+                            type="button"
+                            class="inline-flex size-6 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                            :aria-label="$t('automations.config.expand_editor')"
+                            @click="isExpanded = true"
+                        >
+                            <IconArrowsMaximize class="size-3.5" stroke-width="2.5" />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{{ $t('automations.config.expand_editor') }}</TooltipContent>
+                </Tooltip>
+
+                <Tooltip v-if="modelValue">
+                    <TooltipTrigger as-child>
+                        <button
+                            type="button"
+                            class="inline-flex size-6 items-center justify-center rounded-md text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                            :aria-label="$t('common.actions.copy')"
+                            @click="copyToClipboard(modelValue)"
+                        >
+                            <IconCopy class="size-3.5" stroke-width="2.5" />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{{ $t('common.actions.copy') }}</TooltipContent>
+                </Tooltip>
+            </div>
+        </TooltipProvider>
+
+        <Teleport v-if="canExpand && isExpanded" to="#automation-expanded-editor">
+            <div class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-foreground/10 px-3 py-3">
+                <span class="truncate text-sm font-bold">{{ label || $t('automations.config.expand_editor') }}</span>
+                <TooltipProvider :delay-duration="200">
+                    <Tooltip>
+                        <TooltipTrigger as-child>
+                            <Button variant="ghost" size="icon-sm" :aria-label="$t('automations.config.minimize_editor')" @click="isExpanded = false">
+                                <IconArrowsMinimize class="size-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{{ $t('automations.config.minimize_editor') }}</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            </div>
+            <div class="min-h-0 flex-1 p-4">
+                <CodeEditor
+                    :model-value="modelValue"
+                    :language="language"
+                    :placeholder="placeholder"
+                    :read-only="readOnly"
+                    @update:model-value="emit('update:modelValue', $event)"
+                />
+            </div>
+        </Teleport>
     </div>
 </template>

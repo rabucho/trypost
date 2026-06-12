@@ -41,6 +41,7 @@ class AutomationRunUpdated implements ShouldBroadcast
     {
         return [
             'run_id' => $this->run->id,
+            'root_run_id' => $this->run->rootId(),
             'automation_id' => $this->run->automation_id,
             'status' => $this->run->status->value,
         ];

@@ -3,11 +3,11 @@ import { usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
 import ChannelConfigurator from '@/components/ChannelConfigurator.vue';
+import CodeEditor from '@/components/CodeEditor.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { getMediaRulesForContentType } from '@/composables/useMediaRules';
 import { getMediaIncompatibilityReason, getPlatformMetaIssue } from '@/composables/usePostCompliance';
 import type { PinterestBoard } from '@/types';
@@ -310,7 +310,16 @@ const channels = computed<Channel[]>(() =>
 
         <div>
             <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.generate.prompt_template') }}</label>
-            <Textarea v-model="local.prompt_template" :rows="6" placeholder="Write a social media post about {{ trigger.title }}…" />
+            <div class="h-40">
+                <CodeEditor
+                    v-model="local.prompt_template"
+                    language="text"
+                    expandable
+                    :label="$t('automations.config.generate.prompt_template')"
+                    placeholder="Write a social media post about {{ trigger.title }}…"
+                />
+            </div>
+            <p class="mt-1 text-xs text-foreground/50">{{ $t('automations.config.generate.prompt_template_hint') }}</p>
             <InputError :message="errors?.prompt_template" class="mt-1" />
         </div>
     </div>

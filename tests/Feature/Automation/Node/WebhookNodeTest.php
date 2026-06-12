@@ -44,6 +44,23 @@ it('sends the branded user-agent header', function () {
     Http::assertSent(fn ($request) => $request->hasHeader('User-Agent', config('trypost.user_agent')));
 });
 
+it('escapes special characters in templated payload values so the JSON stays valid', function () {
+    Http::fake(['1.1.1.1/*' => Http::response(['ok' => true], 200)]);
+
+    $run = AutomationRun::factory()->create([
+        'context' => ['fetched' => ['title' => 'He said "hi" & bye']],
+    ]);
+
+    $result = app(RunWebhookNode::class)($run, [
+        'url' => 'https://1.1.1.1/hook',
+        'method' => 'POST',
+        'payload_template' => '{"title":"{{ fetched.title }}"}',
+    ]);
+
+    expect($result->status)->toBe(Status::Completed);
+    Http::assertSent(fn ($request) => $request['title'] === 'He said "hi" & bye');
+});
+
 it('fails on 5xx response', function () {
     Http::fake(['1.1.1.1/*' => Http::response('err', 500)]);
 

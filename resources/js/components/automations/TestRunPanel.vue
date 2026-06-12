@@ -58,12 +58,14 @@ const fetchRun = async (runId: string): Promise<void> => {
 // Subscribe once to the automation's private channel. The backend broadcasts
 // a tiny `{ run_id, status }` payload on every run/node update; we refetch the
 // full state only when the event is for our active run. Zero polling.
-useAutomationEcho<{ run_id: string; status: string }>(
+useAutomationEcho<{ run_id: string; root_run_id: string; status: string }>(
     props.automationId,
     '.automation.run.updated',
     (payload) => {
-        if (payload.run_id === activeRunId.value) {
-            fetchRun(payload.run_id);
+        // Refetch when any branch of the active test family advances — a fan-out
+        // forks sibling runs whose root_run_id points back at the run we started.
+        if (payload.root_run_id === activeRunId.value) {
+            fetchRun(activeRunId.value);
         }
     },
 );

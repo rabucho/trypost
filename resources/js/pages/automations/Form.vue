@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { IconBolt } from '@tabler/icons-vue';
+import { IconBolt, IconHelp } from '@tabler/icons-vue';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import {
@@ -14,7 +14,7 @@ import {
     type XYPosition,
 } from '@vue-flow/core';
 import { trans } from 'laravel-vue-i18n';
-import { computed, markRaw, ref, watch } from 'vue';
+import { computed, markRaw, provide, reactive, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
 import '@vue-flow/core/dist/style.css';
@@ -23,26 +23,26 @@ import '@vue-flow/controls/dist/style.css';
 
 
 import AutomationConnectionLine from '@/components/automations/AutomationConnectionLine.vue';
-import EndNode from '@/components/automations/nodes/EndNode.vue';
-import HttpRequestNode from '@/components/automations/nodes/HttpRequestNode.vue';
-import FetchRssNode from '@/components/automations/nodes/FetchRssNode.vue';
-import GenerateNode from '@/components/automations/nodes/GenerateNode.vue';
-import PublishNode from '@/components/automations/nodes/PublishNode.vue';
-import TriggerNode from '@/components/automations/nodes/TriggerNode.vue';
-import WebhookNode from '@/components/automations/nodes/WebhookNode.vue';
-
 import ConditionNodeConfig from '@/components/automations/config/ConditionNodeConfig.vue';
 import DelayNodeConfig from '@/components/automations/config/DelayNodeConfig.vue';
 import EndNodeConfig from '@/components/automations/config/EndNodeConfig.vue';
-import HttpRequestNodeConfig from '@/components/automations/config/HttpRequestNodeConfig.vue';
 import FetchRssNodeConfig from '@/components/automations/config/FetchRssNodeConfig.vue';
 import GenerateNodeConfig from '@/components/automations/config/GenerateNodeConfig.vue';
+import HttpRequestNodeConfig from '@/components/automations/config/HttpRequestNodeConfig.vue';
 import PublishNodeConfig from '@/components/automations/config/PublishNodeConfig.vue';
 import TriggerNodeConfig from '@/components/automations/config/TriggerNodeConfig.vue';
 import WebhookNodeConfig from '@/components/automations/config/WebhookNodeConfig.vue';
+import EditorGuide from '@/components/automations/EditorGuide.vue';
 import EditorSidebar from '@/components/automations/EditorSidebar.vue';
 import ConditionNode from '@/components/automations/nodes/ConditionNode.vue';
 import DelayNode from '@/components/automations/nodes/DelayNode.vue';
+import EndNode from '@/components/automations/nodes/EndNode.vue';
+import FetchRssNode from '@/components/automations/nodes/FetchRssNode.vue';
+import GenerateNode from '@/components/automations/nodes/GenerateNode.vue';
+import HttpRequestNode from '@/components/automations/nodes/HttpRequestNode.vue';
+import PublishNode from '@/components/automations/nodes/PublishNode.vue';
+import TriggerNode from '@/components/automations/nodes/TriggerNode.vue';
+import WebhookNode from '@/components/automations/nodes/WebhookNode.vue';
 import { Button } from '@/components/ui/button';
 import { AddEdgeCommand } from '@/composables/history/commands/AddEdgeCommand';
 import { AddNodeCommand } from '@/composables/history/commands/AddNodeCommand';
@@ -53,6 +53,7 @@ import { UpdateNodeDataCommand } from '@/composables/history/commands/UpdateNode
 import { useHistory } from '@/composables/history/useHistory';
 import { usePageErrors } from '@/composables/usePageErrors';
 import { useShortcut } from '@/composables/useShortcut';
+import { buildExpressionCatalog } from '@/composables/useExpressionCompletions';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     show as showAutomation,
@@ -102,6 +103,7 @@ const hydrateEdges = (list: RawConnection[]): Edge[] =>
 const nodes = ref<Node[]>(props.automation.nodes ?? []);
 const edges = ref<Edge[]>(hydrateEdges(props.automation.connections ?? []));
 const selectedNodeId = ref<string | null>(null);
+const selectedEdgeId = ref<string | null>(null);
 const name = ref(props.automation.name);
 const variables = ref<AutomationVariable[]>(props.automation.variables ?? []);
 
@@ -126,6 +128,19 @@ watch(() => props.automation.variables, (newVariables) => {
 });
 
 const selectedNode = computed(() => nodes.value.find((n) => n.id === selectedNodeId.value));
+
+// `{{ ... }}` suggestions available to the selected node's config editors —
+// everything its upstream nodes provide, plus workflow variables and `now`.
+// Injected by every CodeEditor inside this editor (see CodeEditor.vue).
+provide(
+    'automationExpressionCompletions',
+    computed(() => buildExpressionCatalog(selectedNodeId.value, nodes.value, edges.value, variables.value)),
+);
+
+// Toggled by an expandable CodeEditor (see CodeEditor.vue) to slide out the
+// side-by-side editing panel, pushing the sidebar left to make room.
+const expandedEditor = reactive({ active: false });
+provide('automationExpandedEditor', expandedEditor);
 const selectedConfigComponent = computed(() =>
     selectedNode.value ? configByType[selectedNode.value.type as string] : null,
 );
@@ -152,6 +167,8 @@ const history = useHistory();
 
 const {
     onNodeClick,
+    onEdgeClick,
+    onPaneClick,
     onConnect,
     onNodeDragStart,
     onNodeDragStop,
@@ -161,6 +178,18 @@ const {
 
 onNodeClick(({ node }) => {
     selectedNodeId.value = node.id;
+    selectedEdgeId.value = null;
+});
+
+// Selecting a connection closes the node config and arms it for deletion via
+// Backspace/Delete — without removing the nodes it links.
+onEdgeClick(({ edge }) => {
+    selectedEdgeId.value = edge.id;
+    selectedNodeId.value = null;
+});
+
+onPaneClick(() => {
+    selectedEdgeId.value = null;
 });
 
 onConnect((connection: Connection) => {
@@ -303,8 +332,19 @@ const deleteSelectedNode = () => {
     nodes.value = nodes.value.filter((n) => n.id !== node.id);
 };
 
+const deleteSelectedEdge = () => {
+    if (!selectedEdgeId.value) return;
+    const edge = edges.value.find((e) => e.id === selectedEdgeId.value);
+    if (!edge) return;
+
+    history.push(new RemoveEdgeCommand(edge, edges));
+    edges.value = edges.value.filter((e) => e.id !== edge.id);
+    selectedEdgeId.value = null;
+};
+
 const isSaving = ref(false);
 const activeTab = ref('build');
+const isGuideOpen = ref(false);
 
 const sanitizeNodes = (list: Node[]) =>
     list.map((n) => ({
@@ -376,9 +416,11 @@ useShortcut('mod+shift+z', () => {
 });
 useShortcut('backspace', () => {
     if (selectedNode.value) deleteSelectedNode();
+    else if (selectedEdgeId.value) deleteSelectedEdge();
 }, { ignoreOnInput: true });
 useShortcut('delete', () => {
     if (selectedNode.value) deleteSelectedNode();
+    else if (selectedEdgeId.value) deleteSelectedEdge();
 }, { ignoreOnInput: true });
 
 const defaultEdgeOptions = {
@@ -416,6 +458,10 @@ const defaultEdgeOptions = {
                     class="w-72 rounded-md border-2 border-transparent bg-transparent px-3 py-1 text-center text-sm font-semibold text-foreground transition-colors hover:border-foreground/15 focus:border-foreground focus:bg-background focus:outline-none"
                 />
                 <div class="flex items-center justify-end gap-2">
+                    <Button variant="outline" size="sm" @click="isGuideOpen = true">
+                        <IconHelp class="size-4" />
+                        {{ $t('automations.actions.guide') }}
+                    </Button>
                     <Button size="sm" @click="save" :disabled="isSaving">{{ $t('automations.actions.save') }}</Button>
                 </div>
             </header>
@@ -475,14 +521,24 @@ const defaultEdgeOptions = {
                     <template v-if="selectedNode" #config>
                         <component
                             :is="selectedConfigComponent"
+                            :key="selectedNode.id"
                             :data="selectedNode.data"
                             :errors="selectedNodeErrors"
                             @update="updateSelectedConfig"
                         />
                     </template>
                 </EditorSidebar>
+
+                <aside v-show="expandedEditor.active" class="flex w-[30rem] shrink-0 flex-col py-3 pr-3">
+                    <div
+                        id="automation-expanded-editor"
+                        class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border-2 border-foreground bg-card shadow-[3px_3px_0_var(--foreground)]"
+                    />
+                </aside>
             </div>
         </div>
+
+        <EditorGuide v-model:open="isGuideOpen" />
     </AppLayout>
 </template>
 

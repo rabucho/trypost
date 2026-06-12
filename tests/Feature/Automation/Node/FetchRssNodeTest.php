@@ -149,6 +149,40 @@ it('spawns sibling runs down the item edge for each remaining new item', functio
     );
 });
 
+it('fans every spawned item out across all branches wired to the fetch node', function () {
+    Carbon::setTestNow('2026-01-15 10:00:00');
+    Http::fake(['1.1.1.1/*' => Http::response(FETCH_RSS_THREE_NEW, 200)]);
+
+    $automation = Automation::factory()->active()->create([
+        'nodes' => [
+            ['id' => 'trigger_1', 'type' => 'trigger', 'position' => ['x' => 0, 'y' => 0], 'data' => ['trigger_type' => 'schedule']],
+            ['id' => 'fetch_1', 'type' => 'fetch_rss', 'position' => ['x' => 200, 'y' => 0], 'data' => ['feed_url' => 'https://1.1.1.1/feed']],
+            ['id' => 'generate_1', 'type' => 'generate', 'position' => ['x' => 400, 'y' => 0], 'data' => []],
+            ['id' => 'webhook_1', 'type' => 'webhook', 'position' => ['x' => 400, 'y' => 200], 'data' => []],
+        ],
+        'connections' => [
+            ['id' => 'e1', 'source' => 'trigger_1', 'target' => 'fetch_1'],
+            ['id' => 'e2', 'source' => 'fetch_1', 'source_handle' => 'default', 'target' => 'generate_1'],
+            ['id' => 'e3', 'source' => 'fetch_1', 'source_handle' => 'default', 'target' => 'webhook_1'],
+        ],
+    ]);
+
+    AutomationNodeState::create([
+        'automation_id' => $automation->id,
+        'node_id' => 'fetch_1',
+        'data' => ['last_item_date' => '2025-01-01T00:00:00+00:00'],
+    ]);
+
+    $run = AutomationRun::factory()->for($automation)->create(['current_node_id' => 'fetch_1']);
+
+    app(RunFetchRssNode::class)($run, ['feed_url' => 'https://1.1.1.1/feed']);
+
+    // 2 spawned items × 2 branches = 4 dispatches; both branches reached.
+    Bus::assertDispatchedTimes(ProcessAutomationNode::class, 4);
+    Bus::assertDispatched(ProcessAutomationNode::class, fn ($job) => $job->nodeId === 'generate_1');
+    Bus::assertDispatched(ProcessAutomationNode::class, fn ($job) => $job->nodeId === 'webhook_1');
+});
+
 it('does not persist the production watermark on a manual real-data test', function () {
     Carbon::setTestNow('2026-01-15 10:00:00');
     Http::fake(['1.1.1.1/*' => Http::response(FETCH_RSS_MIXED, 200)]);
@@ -165,10 +199,11 @@ it('does not persist the production watermark on a manual real-data test', funct
         ],
     ]);
 
+    // Watermark in the FUTURE: a production run would see zero new items here.
     AutomationNodeState::create([
         'automation_id' => $automation->id,
         'node_id' => 'fetch_1',
-        'data' => ['last_item_date' => '2025-01-01T00:00:00+00:00'],
+        'data' => ['last_item_date' => '2030-01-01T00:00:00+00:00'],
     ]);
 
     $run = AutomationRun::factory()->for($automation)->create([
@@ -179,14 +214,14 @@ it('does not persist the production watermark on a manual real-data test', funct
 
     $result = app(RunFetchRssNode::class)($run, ['feed_url' => 'https://1.1.1.1/feed']);
 
-    // Reads the production watermark, so it finds the newer items.
+    // A manual test IGNORES the watermark, so it always surfaces real data even
+    // when production would have already consumed every item.
     expect($result->status)->toBe(NodeRunStatus::Completed);
     expect($result->output['fetch']['count'])->toBeGreaterThan(0);
 
-    // The persisted watermark stays put — a second identical manual test would
-    // surface the same items.
+    // ...and never advances the persisted watermark.
     $state = AutomationNodeState::for($automation->id, 'fetch_1');
-    expect($state->data['last_item_date'])->toBe('2025-01-01T00:00:00+00:00');
+    expect($state->data['last_item_date'])->toBe('2030-01-01T00:00:00+00:00');
 });
 
 it('advances the production watermark on a non-manual real-data run', function () {

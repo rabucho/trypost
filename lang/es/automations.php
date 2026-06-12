@@ -14,6 +14,7 @@ return [
         'pause' => 'Pausar',
         'delete' => 'Eliminar',
         'retry' => 'Reintentar',
+        'guide' => 'Guía',
     ],
 
     'tabs' => [
@@ -38,6 +39,44 @@ return [
         'key_placeholder' => 'API_KEY',
         'value_placeholder' => 'Valor',
         'add' => 'Nueva variable',
+    ],
+
+    'guide' => [
+        'title' => 'Cómo usar automatizaciones',
+        'subtitle' => 'Una referencia rápida para construir tu flujo.',
+        'flow_title' => 'Cómo funciona',
+        'flow_text' => 'Un disparador (una programación, o un post publicado/programado) inicia el flujo. Las acciones intermedias obtienen datos, generan contenido o se ramifican por condiciones. Los nodos de salida publican posts o llaman webhooks.',
+        'data_title' => 'Pasar datos entre nodos',
+        'data_text' => 'Referencia datos de nodos anteriores en cualquier campo. Escribe el nombre entre llaves dobles, por ejemplo:',
+        'refs' => [
+            'trigger_post' => 'El post que disparó un disparador de post',
+            'fetched_title' => 'Elemento actual del RSS / respuesta HTTP',
+            'fetched_link' => 'Su enlace',
+            'generated' => 'El post generado por IA',
+            'now' => 'Fecha y hora actuales',
+        ],
+        'vars_title' => 'Variables',
+        'vars_text' => 'Define valores reutilizables (API keys, URLs base) en la pestaña Variables y referéncialos por clave. Los secretos se almacenan cifrados.',
+        'tip_text' => 'Ejecuta una Prueba para ver exactamente qué produce cada nodo.',
+    ],
+
+    'expr' => [
+        'trigger_event' => 'Nombre del evento del disparador',
+        'trigger_fired_at' => 'Cuándo se disparó',
+        'trigger_post_id' => 'ID del post que disparó',
+        'trigger_post_content' => 'Contenido del post que disparó',
+        'trigger_post_status' => 'Estado del post que disparó',
+        'trigger_post_scheduled_at' => 'Cuándo está programado el post',
+        'trigger_post_published_at' => 'Cuándo se publicó el post',
+        'fetched_title' => 'Título del ítem obtenido',
+        'fetched_link' => 'Enlace del ítem obtenido',
+        'fetched_description' => 'Descripción del ítem obtenido',
+        'fetched_pubdate' => 'Fecha de publicación del ítem obtenido',
+        'fetched_http' => 'Ítem HTTP obtenido (añade un campo)',
+        'generated_content' => 'Contenido del post generado por IA',
+        'generated_post_url' => 'URL del post generado por IA',
+        'variable' => 'Variable del flujo',
+        'now' => 'Fecha y hora actuales',
     ],
 
     'test' => [
@@ -121,6 +160,9 @@ return [
     'config' => [
         'select_placeholder' => 'Selecciona…',
         'invalid_json' => 'Esto aún no es un JSON válido.',
+        'expand_editor' => 'Expandir editor',
+        'minimize_editor' => 'Minimizar',
+        'editing_in_panel' => 'Editando en el panel lateral',
 
         'trigger' => [
             'type' => 'Tipo de disparador',
@@ -175,6 +217,7 @@ return [
             'social_accounts_empty' => 'Sin cuentas sociales conectadas. Conecta una primero.',
             'target_slide_count' => 'Diapositivas a generar',
             'prompt_template' => 'Plantilla de prompt',
+            'prompt_template_hint' => 'Escribe {{ para insertar datos de pasos anteriores.',
             'include_image' => 'Incluir imagen',
             'include_image_hint' => 'Generar una imagen con IA para esta publicación',
         ],
@@ -243,12 +286,14 @@ return [
             'header_name' => 'Nombre del header',
             'header_value' => 'Valor',
             'add_header' => 'Agregar header',
-            'polling_section' => 'Polling (opcional)',
-            'polling_hint' => 'Deja vacío para usar la respuesta completa como un solo payload. Rellena para extraer un array de ítems y disparar un run por ítem.',
+            'polling_section' => 'Lista y deduplicación (opcional)',
+            'polling_hint' => 'Cuando la respuesta es una lista, cada ítem ejecuta el flujo por separado. Un objeto único se ejecuta una vez.',
             'items_path' => 'Ruta de ítems',
+            'items_path_hint' => 'Deja vacío si la respuesta ya es un array. Usa una ruta con puntos (ej: data.items) para un array anidado, o * para un objeto con claves por id.',
             'item_key_path' => 'Ruta de clave del ítem',
-            'item_date_path' => 'Ruta de fecha del ítem (opcional)',
-            'item_date_path_hint' => 'Ruta JSON al timestamp del ítem. Cuando se define, solo los ítems más nuevos que la última obtención se reenvían — evita que la primera obtención inunde los siguientes nodos.',
+            'item_key_path_hint' => 'Ruta JSON a un id único (ej: id). Los ítems ya vistos se omiten, así un feed sin fechas aún reenvía solo los nuevos.',
+            'item_date_path' => 'Ruta de fecha del ítem',
+            'item_date_path_hint' => 'Ruta JSON al timestamp del ítem (ej: published_at). Preferido sobre la ruta de clave cuando existe. La primera obtención registra el punto de partida y no reenvía nada, así un feed existente nunca inunda el primer día.',
         ],
     ],
 

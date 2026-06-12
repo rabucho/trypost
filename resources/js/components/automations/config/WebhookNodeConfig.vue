@@ -76,7 +76,13 @@ const isPayloadJsonInvalid = computed(() => {
         <div>
             <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.webhook.payload_template') }}</label>
             <div class="h-40">
-                <CodeEditor v-model="local.payload_template" language="json" placeholder='{"content": "{{ post.content }}"}' />
+                <CodeEditor
+                    v-model="local.payload_template"
+                    language="json"
+                    expandable
+                    :label="$t('automations.config.webhook.payload_template')"
+                    placeholder='{"content": "{{ post.content }}"}'
+                />
             </div>
             <p v-if="isPayloadJsonInvalid" class="mt-1 text-xs text-amber-600 dark:text-amber-500">
                 {{ $t('automations.config.invalid_json') }}
