@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { IconBolt, IconHelp } from '@tabler/icons-vue';
+import { IconBolt, IconLifebuoy } from '@tabler/icons-vue';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import {
@@ -33,7 +33,6 @@ import HttpRequestNodeConfig from '@/components/automations/config/HttpRequestNo
 import PublishNodeConfig from '@/components/automations/config/PublishNodeConfig.vue';
 import TriggerNodeConfig from '@/components/automations/config/TriggerNodeConfig.vue';
 import WebhookNodeConfig from '@/components/automations/config/WebhookNodeConfig.vue';
-import EditorGuide from '@/components/automations/EditorGuide.vue';
 import EditorSidebar from '@/components/automations/EditorSidebar.vue';
 import ConditionNode from '@/components/automations/nodes/ConditionNode.vue';
 import DelayNode from '@/components/automations/nodes/DelayNode.vue';
@@ -45,6 +44,7 @@ import PublishNode from '@/components/automations/nodes/PublishNode.vue';
 import TriggerNode from '@/components/automations/nodes/TriggerNode.vue';
 import WebhookNode from '@/components/automations/nodes/WebhookNode.vue';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AddEdgeCommand } from '@/composables/history/commands/AddEdgeCommand';
 import { AddNodeCommand } from '@/composables/history/commands/AddNodeCommand';
 import { MoveNodeCommand } from '@/composables/history/commands/MoveNodeCommand';
@@ -337,7 +337,6 @@ const deleteSelectedEdge = () => {
 
 const isSaving = ref(false);
 const activeTab = ref('build');
-const isGuideOpen = ref(false);
 
 const sanitizeNodes = (list: Node[]) =>
     list.map((n) => ({
@@ -439,10 +438,25 @@ const defaultEdgeOptions = {
         <div class="flex min-h-0 flex-1 flex-col bg-background">
             <AutomationHeader :automation="automation" current="workflow">
                 <template #actions>
-                    <Button variant="outline" size="sm" @click="isGuideOpen = true">
-                        <IconHelp class="size-4" />
-                        {{ $t('automations.actions.guide') }}
-                    </Button>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger as-child>
+                                <Button
+                                    as="a"
+                                    href="https://docs.trypost.it/knowledge-base/automations/introduction"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    variant="outline"
+                                    size="icon-sm"
+                                    class="group"
+                                    :aria-label="$t('automations.actions.guide')"
+                                >
+                                    <IconLifebuoy class="size-4 transition-transform duration-500 group-hover:rotate-180" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{{ $t('automations.actions.guide') }}</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                     <Button size="sm" @click="save" :disabled="isSaving">{{ $t('automations.actions.save') }}</Button>
                 </template>
             </AutomationHeader>
@@ -466,9 +480,9 @@ const defaultEdgeOptions = {
                         class="automations-canvas"
                     >
                         <Background
-                            pattern-color="#9ca3af"
+                            pattern-color="#8b919c"
                             :gap="16"
-                            :size="1"
+                            :size="1.4"
                         />
                         <Controls position="bottom-left" />
                         <template #connection-line="props">
@@ -518,8 +532,6 @@ const defaultEdgeOptions = {
                 </aside>
             </div>
         </div>
-
-        <EditorGuide v-model:open="isGuideOpen" />
     </AppLayout>
 </template>
 

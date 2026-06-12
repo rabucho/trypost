@@ -14,7 +14,7 @@ return [
         'pause' => 'Pausar',
         'delete' => 'Eliminar',
         'retry' => 'Reintentar',
-        'guide' => 'Guía',
+        'guide' => 'Aprende cómo funciona',
     ],
 
     'tabs' => [
@@ -132,32 +132,6 @@ return [
         'key_placeholder' => 'API_KEY',
         'value_placeholder' => 'Valor',
         'add' => 'Nueva variable',
-    ],
-
-    'guide' => [
-        'title' => 'Cómo funcionan las automatizaciones',
-        'subtitle' => 'Construye un flujo y conecta los datos entre nodos.',
-        'tabs' => [
-            'overview' => 'Resumen',
-            'expressions' => 'Expresiones',
-        ],
-        'flow_title' => 'El flujo',
-        'flow_text' => 'Un disparador (una programación, o un post publicado/programado) inicia el flujo. Las acciones intermedias obtienen datos, generan contenido o se ramifican por condiciones. Los nodos de salida publican posts o llaman webhooks.',
-        'scope_title' => 'Qué datos están disponibles',
-        'scope_text' => 'Un nodo solo puede usar datos de nodos conectados antes de él (upstream). En cualquier campo de texto, escribe {{ para autocompletar lo disponible — las referencias desconocidas se señalan.',
-        'data_text' => 'Envuelve la ruta en llaves dobles. Qué rutas existen depende de los nodos que se ejecutan antes:',
-        'groups' => [
-            'trigger_schedule' => 'Disparador programado',
-            'trigger_post' => 'Disparador de post',
-            'fetch_rss' => 'Obtener RSS',
-            'http' => 'Petición HTTP',
-            'generate' => 'Generar contenido',
-            'always' => 'Siempre disponible',
-        ],
-        'http_note' => 'Añade cualquier campo de la respuesta JSON, ej: {{ fetched.data.0.title }}.',
-        'vars_title' => 'Variables',
-        'vars_text' => 'Define valores reutilizables (API keys, URLs base) en la pestaña Variables y referéncialos por clave. Los secretos se almacenan cifrados.',
-        'tip_text' => 'Ejecuta una Prueba para ver exactamente qué produce cada nodo.',
     ],
 
     'expr' => [

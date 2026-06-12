@@ -14,7 +14,7 @@ return [
         'pause' => 'Pausar',
         'delete' => 'Excluir',
         'retry' => 'Tentar novamente',
-        'guide' => 'Guia',
+        'guide' => 'Aprenda como funciona',
     ],
 
     'tabs' => [
@@ -132,32 +132,6 @@ return [
         'key_placeholder' => 'API_KEY',
         'value_placeholder' => 'Valor',
         'add' => 'Nova variável',
-    ],
-
-    'guide' => [
-        'title' => 'Como as automações funcionam',
-        'subtitle' => 'Monte um fluxo e conecte os dados entre os nós.',
-        'tabs' => [
-            'overview' => 'Visão geral',
-            'expressions' => 'Expressões',
-        ],
-        'flow_title' => 'O fluxo',
-        'flow_text' => 'Um trigger (um agendamento, ou um post publicado/agendado) inicia o fluxo. As ações no meio buscam dados, geram conteúdo ou ramificam por condições. Os nós de saída publicam posts ou chamam webhooks.',
-        'scope_title' => 'Quais dados estão disponíveis',
-        'scope_text' => 'Um nó só pode usar dados de nós conectados antes dele (upstream). Em qualquer campo de texto, digite {{ pra autocompletar o que está disponível — referências desconhecidas são sinalizadas.',
-        'data_text' => 'Envolva o caminho em chaves duplas. Quais caminhos existem depende dos nós que rodam antes:',
-        'groups' => [
-            'trigger_schedule' => 'Trigger agendado',
-            'trigger_post' => 'Trigger de post',
-            'fetch_rss' => 'Buscar RSS',
-            'http' => 'Requisição HTTP',
-            'generate' => 'Gerar conteúdo',
-            'always' => 'Sempre disponível',
-        ],
-        'http_note' => 'Adicione qualquer campo da resposta JSON, ex: {{ fetched.data.0.title }}.',
-        'vars_title' => 'Variáveis',
-        'vars_text' => 'Defina valores reutilizáveis (API keys, base URLs) na aba Variáveis e referencie pela chave. Segredos são armazenados encriptados.',
-        'tip_text' => 'Rode um Teste pra ver exatamente o que cada nó produz.',
     ],
 
     'expr' => [

@@ -14,7 +14,7 @@ return [
         'pause' => 'Pause',
         'delete' => 'Delete',
         'retry' => 'Retry',
-        'guide' => 'Guide',
+        'guide' => 'Learn how it works',
     ],
 
     'tabs' => [
@@ -132,32 +132,6 @@ return [
         'key_placeholder' => 'API_KEY',
         'value_placeholder' => 'Value',
         'add' => 'New variable',
-    ],
-
-    'guide' => [
-        'title' => 'How automations work',
-        'subtitle' => 'Build a flow, then wire data between nodes.',
-        'tabs' => [
-            'overview' => 'Overview',
-            'expressions' => 'Expressions',
-        ],
-        'flow_title' => 'The flow',
-        'flow_text' => 'A trigger (a schedule, or a published/scheduled post) starts the flow. Actions in between fetch data, generate content, or branch on conditions. Output nodes publish posts or call webhooks.',
-        'scope_title' => 'What data is in scope',
-        'scope_text' => 'A node can only use data from nodes connected before it (upstream). In any text field, type {{ to autocomplete what is available — unknown references are flagged.',
-        'data_text' => 'Wrap a path in double braces. Which paths exist depends on the nodes running upstream:',
-        'groups' => [
-            'trigger_schedule' => 'Schedule trigger',
-            'trigger_post' => 'Post trigger',
-            'fetch_rss' => 'Fetch RSS',
-            'http' => 'HTTP request',
-            'generate' => 'Generate content',
-            'always' => 'Always available',
-        ],
-        'http_note' => 'Append any field from the JSON response, e.g. {{ fetched.data.0.title }}.',
-        'vars_title' => 'Variables',
-        'vars_text' => 'Define reusable values (API keys, base URLs) in the Variables tab, then reference them by key. Secrets are stored encrypted.',
-        'tip_text' => 'Run a Test to see exactly what data each node outputs.',
     ],
 
     'expr' => [
