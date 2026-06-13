@@ -13,6 +13,7 @@ use App\Services\Social\Concerns\HasSocialHttpClient;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class BlueskyPublisher
 {
@@ -284,8 +285,8 @@ class BlueskyPublisher
 
         $endpoints = array_values(array_unique(array_filter([
             $service,
-            'https://public.api.bsky.app',
-            'https://bsky.social',
+            config('trypost.platforms.bluesky.public_appview'),
+            config('trypost.platforms.bluesky.default_service'),
         ])));
 
         $lastError = null;
@@ -306,7 +307,7 @@ class BlueskyPublisher
                 if (is_string($did) && str_starts_with($did, 'did:')) {
                     return $did;
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 // Per-endpoint failures are expected during transient outages;
                 // keep them at debug to avoid noisy logs and surface a single
                 // warning below only when every endpoint has been exhausted.
