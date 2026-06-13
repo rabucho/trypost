@@ -157,6 +157,36 @@ it('rejects update when an http_request node is missing the url', function () {
         ->assertJsonValidationErrors(['nodes.1.data.url']);
 });
 
+it('rejects a scheduled publish node with no scheduled_offset', function () {
+    $automation = Automation::factory()->for($this->workspace)->create();
+
+    $this->actingAs($this->user)
+        ->putJson(route('app.automations.update', $automation->id), [
+            'nodes' => [
+                ['id' => 'n1', 'type' => 'trigger', 'position' => ['x' => 0, 'y' => 0], 'data' => ['trigger_type' => 'schedule', 'cron' => '0 9 * * *']],
+                ['id' => 'n2', 'type' => 'publish', 'position' => ['x' => 200, 'y' => 0], 'data' => ['mode' => 'scheduled']],
+            ],
+            'connections' => [['id' => 'e1', 'source' => 'n1', 'target' => 'n2']],
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['nodes.1.data.scheduled_offset']);
+});
+
+it('allows a now publish node without scheduled_offset', function () {
+    $automation = Automation::factory()->for($this->workspace)->create();
+
+    $this->actingAs($this->user)
+        ->put(route('app.automations.update', $automation->id), [
+            'nodes' => [
+                ['id' => 'n1', 'type' => 'trigger', 'position' => ['x' => 0, 'y' => 0], 'data' => ['trigger_type' => 'schedule', 'cron' => '0 9 * * *']],
+                ['id' => 'n2', 'type' => 'publish', 'position' => ['x' => 200, 'y' => 0], 'data' => ['mode' => 'now']],
+            ],
+            'connections' => [['id' => 'e1', 'source' => 'n1', 'target' => 'n2']],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+});
+
 it('activates a valid automation', function () {
     $automation = Automation::factory()->for($this->workspace)->withScheduleTrigger()->create();
     $automation->update([

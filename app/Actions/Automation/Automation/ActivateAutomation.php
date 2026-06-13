@@ -8,6 +8,7 @@ use App\Enums\Automation\Node\Type as NodeType;
 use App\Enums\Automation\Status;
 use App\Models\Automation;
 use App\Services\Automation\GenerateNodeValidator;
+use DomainException;
 
 class ActivateAutomation
 {
@@ -33,13 +34,13 @@ class ActivateAutomation
 
         $triggers = collect($nodes)->where('type', 'trigger');
         if ($triggers->count() !== 1) {
-            throw new \DomainException(__('automations.errors.must_have_one_trigger'));
+            throw new DomainException(__('automations.errors.must_have_one_trigger'));
         }
 
         $trigger = $triggers->first();
         $hasTargetFromTrigger = collect($connections)->contains('source', $trigger['id']);
         if (! $hasTargetFromTrigger) {
-            throw new \DomainException(__('automations.errors.trigger_must_be_connected'));
+            throw new DomainException(__('automations.errors.trigger_must_be_connected'));
         }
 
         foreach ($nodes as $node) {
@@ -50,7 +51,7 @@ class ActivateAutomation
             $issue = $this->generateValidator->issueFor((array) data_get($node, 'data', []));
 
             if ($issue !== null) {
-                throw new \DomainException($issue);
+                throw new DomainException($issue);
             }
         }
     }

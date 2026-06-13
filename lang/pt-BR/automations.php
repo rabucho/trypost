@@ -381,5 +381,12 @@ return [
         'url_not_allowed' => 'A URL da requisição aponta para um endereço privado ou inacessível e foi bloqueada.',
         'node_no_longer_exists' => 'O nó :node_id não existe mais nesta automação.',
         'no_trigger_connection' => 'Nenhum nó conectado ao nó de trigger.',
+        'fetch_rss_missing_url' => 'O nó Buscar RSS está sem a URL do feed.',
+        'fetch_rss_request_failed' => 'A requisição do feed RSS falhou.',
+        'fetch_rss_malformed' => 'O feed RSS está malformado.',
+        'http_missing_url' => 'O nó de requisição HTTP está sem a URL.',
+        'http_request_exception' => 'A requisição HTTP lançou uma exceção.',
+        'http_request_failed' => 'A requisição HTTP falhou.',
+        'http_items_path_not_array' => 'O items path não resultou em uma lista.',
     ],
 ];

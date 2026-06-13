@@ -6,6 +6,7 @@ namespace App\Actions\Automation\Node;
 
 use App\DataTransferObjects\Automation\NodeRunResult;
 use App\Models\AutomationRun;
+use InvalidArgumentException;
 
 class RunDelayNode
 {
@@ -18,7 +19,7 @@ class RunDelayNode
             'minutes' => now()->addMinutes($duration),
             'hours' => now()->addHours($duration),
             'days' => now()->addDays($duration),
-            default => throw new \InvalidArgumentException("Unknown delay unit: {$unit}"),
+            default => throw new InvalidArgumentException("Unknown delay unit: {$unit}"),
         };
 
         return NodeRunResult::sleep($until);

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core';
 import { IconGitBranch } from '@tabler/icons-vue';
+import { Handle, Position } from '@vue-flow/core';
 import { computed } from 'vue';
+
+import { ConditionHandle } from '@/types/automation/condition-handle';
 
 const props = defineProps<{
     data: {
@@ -41,7 +43,7 @@ const summary = computed(() => {
             class="!bg-rose-500"
         />
         <Handle
-            id="yes"
+            :id="ConditionHandle.Yes"
             type="source"
             :position="Position.Right"
             class="!bg-emerald-500"
@@ -49,7 +51,7 @@ const summary = computed(() => {
         />
         <span class="pointer-events-none absolute left-full top-[35%] z-10 ml-3 -translate-y-1/2 rounded bg-background px-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">yes</span>
         <Handle
-            id="no"
+            :id="ConditionHandle.No"
             type="source"
             :position="Position.Right"
             class="!bg-rose-500"

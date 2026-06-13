@@ -10,11 +10,11 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ListAutomations
 {
-    public function __invoke(Workspace $workspace, ?int $perPage = null): LengthAwarePaginator
+    public function __invoke(Workspace $workspace): LengthAwarePaginator
     {
         return Automation::query()
             ->where('workspace_id', $workspace->id)
             ->orderByDesc('created_at')
-            ->paginate($perPage ?? (int) config('app.pagination.default'));
+            ->paginate((int) config('app.pagination.default'));
     }
 }

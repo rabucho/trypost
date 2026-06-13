@@ -18,6 +18,7 @@ use App\Services\Automation\ExpressionResolver;
 use App\Services\Automation\GenerateNodeValidator;
 use App\Services\Image\PostImagePipeline;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class RunGenerateNode
 {
@@ -224,7 +225,7 @@ class RunGenerateNode
                 $structured['image_title'] = data_get($humanized, 'image_title', $structured['image_title'] ?? '');
                 $structured['image_body'] = data_get($humanized, 'image_body', $structured['image_body'] ?? '');
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('RunGenerateNode: PostContentHumanizer failed, using generator output as-is', [
                 'error' => $e->getMessage(),
             ]);

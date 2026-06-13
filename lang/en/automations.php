@@ -381,5 +381,12 @@ return [
         'url_not_allowed' => 'The request URL points to a private or unreachable address and was blocked.',
         'node_no_longer_exists' => 'Node :node_id no longer exists in the automation.',
         'no_trigger_connection' => 'No node connected to the Trigger node.',
+        'fetch_rss_missing_url' => 'The Fetch RSS node is missing a feed URL.',
+        'fetch_rss_request_failed' => 'The RSS feed request failed.',
+        'fetch_rss_malformed' => 'The RSS feed is malformed.',
+        'http_missing_url' => 'The HTTP request node is missing a URL.',
+        'http_request_exception' => 'The HTTP request threw an exception.',
+        'http_request_failed' => 'The HTTP request failed.',
+        'http_items_path_not_array' => 'The items path did not resolve to a list.',
     ],
 ];

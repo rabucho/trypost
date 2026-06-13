@@ -46,7 +46,7 @@ class RunFetchRssNode
         $feedUrl = $this->resolver->resolve((string) data_get($config, 'feed_url', ''), $run->resolverContext());
 
         if ($feedUrl === '') {
-            return NodeRunResult::failed('Fetch RSS node missing feed_url.');
+            return NodeRunResult::failed(__('automations.errors.fetch_rss_missing_url'));
         }
 
         try {
@@ -61,7 +61,7 @@ class RunFetchRssNode
         $response = Http::get($feedUrl);
 
         if (! $response->successful()) {
-            return NodeRunResult::failed('Feed request failed.', ['status' => $response->status()]);
+            return NodeRunResult::failed(__('automations.errors.fetch_rss_request_failed'), ['status' => $response->status()]);
         }
 
         try {
@@ -73,7 +73,7 @@ class RunFetchRssNode
                 'error' => $e->getMessage(),
             ]);
 
-            return NodeRunResult::failed('Malformed RSS feed.');
+            return NodeRunResult::failed(__('automations.errors.fetch_rss_malformed'));
         }
 
         $nodeId = (string) $run->current_node_id;

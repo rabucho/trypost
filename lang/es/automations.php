@@ -381,5 +381,12 @@ return [
         'url_not_allowed' => 'La URL de la petición apunta a una dirección privada o inaccesible y fue bloqueada.',
         'node_no_longer_exists' => 'El nodo :node_id ya no existe en la automatización.',
         'no_trigger_connection' => 'Ningún nodo está conectado al nodo disparador.',
+        'fetch_rss_missing_url' => 'Al nodo Obtener RSS le falta la URL del feed.',
+        'fetch_rss_request_failed' => 'La solicitud del feed RSS falló.',
+        'fetch_rss_malformed' => 'El feed RSS está mal formado.',
+        'http_missing_url' => 'Al nodo de petición HTTP le falta la URL.',
+        'http_request_exception' => 'La petición HTTP lanzó una excepción.',
+        'http_request_failed' => 'La petición HTTP falló.',
+        'http_items_path_not_array' => 'El items path no resolvió a una lista.',
     ],
 ];

@@ -52,7 +52,7 @@ class UpdateAutomationRequest extends FormRequest
         if (is_array($nodes)) {
             foreach ($nodes as $i => $node) {
                 $type = data_get($node, 'type');
-                foreach ($this->dataRulesForNodeType($type) as $field => $fieldRules) {
+                foreach ($this->dataRulesForNodeType($type, (int) $i) as $field => $fieldRules) {
                     $rules["nodes.{$i}.data.{$field}"] = $fieldRules;
                 }
             }
@@ -115,12 +115,12 @@ class UpdateAutomationRequest extends FormRequest
     /**
      * @return array<string, array<int, mixed>>
      */
-    private function dataRulesForNodeType(?string $type): array
+    private function dataRulesForNodeType(?string $type, int $i): array
     {
         return match ($type) {
             NodeType::Trigger->value => [
                 'trigger_type' => ['required', Rule::in(array_column(TriggerType::cases(), 'value'))],
-                'cron' => ['required_if:nodes.*.data.trigger_type,'.TriggerType::Schedule->value, 'string'],
+                'cron' => ['required_if:nodes.'.$i.'.data.trigger_type,'.TriggerType::Schedule->value, 'string'],
                 'schedule_field' => ['sometimes', Rule::in(['minutes', 'hours', 'days', 'weeks', 'months'])],
                 'schedule_minutes_interval' => ['sometimes', 'integer', 'min:1', 'max:59'],
                 'schedule_hours_interval' => ['sometimes', 'integer', 'min:1', 'max:23'],
@@ -168,7 +168,7 @@ class UpdateAutomationRequest extends FormRequest
             ],
             NodeType::Publish->value => [
                 'mode' => ['required', Rule::in(array_column(PublishMode::cases(), 'value'))],
-                'scheduled_offset' => ['nullable', 'integer', 'min:0'],
+                'scheduled_offset' => ['required_if:nodes.'.$i.'.data.mode,'.PublishMode::Scheduled->value, 'integer', 'min:0'],
             ],
             NodeType::Webhook->value => [
                 'url' => ['required', 'url'],

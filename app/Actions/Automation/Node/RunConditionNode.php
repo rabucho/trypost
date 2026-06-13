@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Actions\Automation\Node;
 
 use App\DataTransferObjects\Automation\NodeRunResult;
+use App\Enums\Automation\Condition\Handle;
 use App\Enums\Automation\Condition\Operator;
 use App\Models\AutomationRun;
 use App\Services\Automation\ExpressionResolver;
+use Throwable;
 
 class RunConditionNode
 {
@@ -34,7 +36,7 @@ class RunConditionNode
 
         return NodeRunResult::completed(
             output: ['condition' => ['resolved_field' => $field, 'matched' => $matched]],
-            nextHandle: $matched ? 'yes' : 'no',
+            nextHandle: ($matched ? Handle::Yes : Handle::No)->value,
         );
     }
 
@@ -49,7 +51,7 @@ class RunConditionNode
 
         try {
             $result = @preg_match($regex, $subject);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
 

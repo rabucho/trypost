@@ -15,7 +15,7 @@ class RunPublishNode
 {
     public function __invoke(AutomationRun $run, array $config): NodeRunResult
     {
-        $mode = Mode::from($config['mode'] ?? 'now');
+        $mode = Mode::from(data_get($config, 'mode', 'now'));
 
         // Dry runs never have a generated Post (RunGenerateNode skipped
         // persistence). Mirror the call site without touching the DB or
@@ -34,7 +34,7 @@ class RunPublishNode
 
         match ($mode) {
             Mode::Now => $this->publishNow($post),
-            Mode::Scheduled => $this->schedule($post, (int) ($config['scheduled_offset'] ?? 60)),
+            Mode::Scheduled => $this->schedule($post, (int) data_get($config, 'scheduled_offset')),
             Mode::Draft => null,
         };
 

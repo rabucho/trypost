@@ -67,7 +67,7 @@ class RunHttpRequestNode
         $context = $run->resolverContext();
 
         if ($url === '') {
-            return NodeRunResult::failed('HTTP request node missing url.');
+            return NodeRunResult::failed(__('automations.errors.http_missing_url'));
         }
 
         $resolvedUrl = $this->resolver->resolve($url, $context);
@@ -94,7 +94,7 @@ class RunHttpRequestNode
                 default => null,
             };
         } catch (Throwable $e) {
-            return NodeRunResult::failed('HTTP request threw an exception.', ['message' => $e->getMessage()]);
+            return NodeRunResult::failed(__('automations.errors.http_request_exception'), ['message' => $e->getMessage()]);
         }
 
         if ($response === null) {
@@ -102,7 +102,7 @@ class RunHttpRequestNode
         }
 
         if (! $response->successful()) {
-            return NodeRunResult::failed('HTTP request failed.', [
+            return NodeRunResult::failed(__('automations.errors.http_request_failed'), [
                 'status' => $response->status(),
                 'body' => substr($response->body(), 0, 500),
             ]);
@@ -128,7 +128,7 @@ class RunHttpRequestNode
         $resolved = data_get($payload, $itemsPath);
 
         if (! is_array($resolved)) {
-            return NodeRunResult::failed('Items path did not resolve to an array.');
+            return NodeRunResult::failed(__('automations.errors.http_items_path_not_array'));
         }
 
         return $this->processItems($run, $nodeId, $config, array_values($resolved));

@@ -26,6 +26,6 @@ class GetAutomationInvocations
             ->when($status !== null, fn ($query) => $query->where('status', $status))
             ->when($search !== null && $search !== '', fn ($query) => $query->whereLike('id', "%{$search}%"))
             ->latest()
-            ->paginate(25);
+            ->paginate((int) config('app.pagination.default'));
     }
 }
