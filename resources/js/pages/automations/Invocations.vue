@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { InfiniteScroll, router } from '@inertiajs/vue3';
+import { InfiniteScroll, router, useHttp } from '@inertiajs/vue3';
 import { IconChevronRight, IconCopy, IconRefresh } from '@tabler/icons-vue';
 import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
@@ -152,22 +152,15 @@ const expanded = ref<Record<string, boolean>>({});
 const nodeRuns = ref<Record<string, NodeRun[]>>({});
 const loadingRuns = ref<Record<string, boolean>>({});
 
+const runHttp = useHttp<Record<string, never>, { node_runs: NodeRun[] }>({});
+
 const toggleExpand = async (invocation: Invocation) => {
     expanded.value[invocation.id] = !expanded.value[invocation.id];
 
     if (expanded.value[invocation.id] && !nodeRuns.value[invocation.id]) {
         loadingRuns.value[invocation.id] = true;
         try {
-            const response = await fetch(
-                showRunRoute.url({
-                    automation: props.automation.id,
-                    run: invocation.id,
-                }),
-                {
-                    headers: { Accept: 'application/json' },
-                },
-            );
-            const payload = await response.json();
+            const payload = await runHttp.get(showRunRoute.url({ automation: props.automation.id, run: invocation.id }));
             nodeRuns.value[invocation.id] = payload.node_runs ?? [];
         } catch {
             toast.error(trans('automations.invocations.load_error'));

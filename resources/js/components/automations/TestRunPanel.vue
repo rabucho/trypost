@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useHttp } from '@inertiajs/vue3';
 import { IconAlertCircle, IconChevronRight, IconCircleCheck, IconCircleDot, IconInfoCircle, IconLoader2, IconPlayerPlay } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
@@ -42,13 +43,12 @@ const run = ref<Run | null>(null);
 const nodeRuns = ref<NodeRun[]>([]);
 const activeRunId = ref<string | null>(null);
 
+const testHttp = useHttp<{ with_real_data: boolean }, { run_id: string }>({ with_real_data: false });
+const runHttp = useHttp<Record<string, never>, { run: Run; node_runs: NodeRun[] }>({});
+
 const fetchRun = async (runId: string): Promise<void> => {
     try {
-        const response = await fetch(showRunRoute.url({ automation: props.automationId, run: runId }), {
-            headers: { Accept: 'application/json' },
-        });
-        if (!response.ok) return;
-        const data = await response.json();
+        const data = await runHttp.get(showRunRoute.url({ automation: props.automationId, run: runId }));
         run.value = data.run;
         nodeRuns.value = data.node_runs;
     } catch {
@@ -79,25 +79,13 @@ const start = async () => {
     activeRunId.value = null;
 
     try {
-        const response = await fetch(testAutomation.url(props.automationId), {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content ?? '',
-            },
-            body: JSON.stringify({ with_real_data: realData.value }),
-        });
-        if (!response.ok) {
-            const body = await response.json().catch(() => null);
-            throw new Error(body?.message ?? '');
-        }
-        const { run_id: runId } = await response.json();
+        testHttp.with_real_data = realData.value;
+        const { run_id: runId } = await testHttp.post(testAutomation.url(props.automationId));
         activeRunId.value = runId;
         await fetchRun(runId);
-    } catch (error) {
-        const message = error instanceof Error && error.message ? error.message : trans('automations.test.error_starting');
-        toast.error(message);
+    } catch (error: unknown) {
+        const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+        toast.error(message ?? trans('automations.test.error_starting'));
     } finally {
         isStarting.value = false;
     }
