@@ -26,33 +26,40 @@ const inferScheduleFromCron = (cron: string): Partial<ScheduleData> | null => {
     if (parts.length !== 5) return null;
 
     const [minute, hour, dom, month, dow] = parts;
-    const intervalOf = (token: string): number | null =>
-        token.startsWith('*/') && /^\d+$/.test(token.slice(2)) ? Number(token.slice(2)) : null;
-    const isNum = (t: string) => /^\d+$/.test(t);
+    if (month !== '*') return null; // no preset pins a month
 
-    if (minute === '*' && hour === '*' && dom === '*' && month === '*' && dow === '*') {
-        return { schedule_field: ScheduleField.Minutes, schedule_minutes_interval: 1 };
+    const interval = (token: string): number | null => (/^\*\/\d+$/.test(token) ? Number(token.slice(2)) : null);
+    const isNum = (token: string) => /^\d+$/.test(token);
+
+    // Sub-hourly: every minute or every Nth minute, regardless of hour/day.
+    if (hour === '*' && dom === '*' && dow === '*') {
+        const every = minute === '*' ? 1 : interval(minute);
+        return every === null ? null : { schedule_field: ScheduleField.Minutes, schedule_minutes_interval: every };
     }
-    const m = intervalOf(minute);
-    if (m !== null && hour === '*' && dom === '*' && month === '*' && dow === '*') {
-        return { schedule_field: ScheduleField.Minutes, schedule_minutes_interval: m };
+
+    if (!isNum(minute)) return null;
+    const schedule_minute = Number(minute);
+
+    // Hourly: a fixed minute past every Nth hour.
+    const everyHours = interval(hour);
+    if (everyHours !== null && dom === '*' && dow === '*') {
+        return { schedule_field: ScheduleField.Hours, schedule_hours_interval: everyHours, schedule_minute };
     }
-    const h = intervalOf(hour);
-    if (isNum(minute) && h !== null && dom === '*' && month === '*' && dow === '*') {
-        return { schedule_field: ScheduleField.Hours, schedule_hours_interval: h, schedule_minute: Number(minute) };
+
+    if (!isNum(hour)) return null;
+    const clock = { schedule_hour: Number(hour), schedule_minute };
+
+    // Daily: at `clock`, every Nth day (a bare `*` means every day).
+    if (dow === '*' && (dom === '*' || interval(dom) !== null)) {
+        return { schedule_field: ScheduleField.Days, schedule_days_interval: interval(dom) ?? 1, ...clock };
     }
-    const d = intervalOf(dom);
-    if (isNum(minute) && isNum(hour) && d !== null && month === '*' && dow === '*') {
-        return { schedule_field: ScheduleField.Days, schedule_days_interval: d, schedule_hour: Number(hour), schedule_minute: Number(minute) };
+    // Weekly: at `clock`, on the listed weekdays.
+    if (dom === '*' && /^\d+(,\d+)*$/.test(dow)) {
+        return { schedule_field: ScheduleField.Weeks, schedule_weekdays: dow.split(',').map(Number), ...clock };
     }
-    if (isNum(minute) && isNum(hour) && dom === '*' && month === '*' && dow === '*') {
-        return { schedule_field: ScheduleField.Days, schedule_days_interval: 1, schedule_hour: Number(hour), schedule_minute: Number(minute) };
-    }
-    if (isNum(minute) && isNum(hour) && dom === '*' && month === '*' && /^\d+(,\d+)*$/.test(dow)) {
-        return { schedule_field: ScheduleField.Weeks, schedule_weekdays: dow.split(',').map(Number), schedule_hour: Number(hour), schedule_minute: Number(minute) };
-    }
-    if (isNum(minute) && isNum(hour) && isNum(dom) && month === '*' && dow === '*') {
-        return { schedule_field: ScheduleField.Months, schedule_day_of_month: Number(dom), schedule_hour: Number(hour), schedule_minute: Number(minute) };
+    // Monthly: at `clock`, on a fixed day of the month.
+    if (dow === '*' && isNum(dom)) {
+        return { schedule_field: ScheduleField.Months, schedule_day_of_month: Number(dom), ...clock };
     }
     return null;
 };
