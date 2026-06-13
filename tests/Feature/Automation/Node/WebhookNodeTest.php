@@ -124,6 +124,21 @@ it('still validates payload json on a dry run', function () {
     Http::assertNothingSent();
 });
 
+it('fails with a clear error when the url is missing', function () {
+    Http::fake();
+
+    $run = AutomationRun::factory()->create();
+
+    $result = app(RunWebhookNode::class)($run, [
+        'method' => 'POST',
+        'payload_template' => '{}',
+    ]);
+
+    expect($result->status)->toBe(Status::Failed);
+    expect($result->error['reason'])->toBe('missing_url');
+    Http::assertNothingSent();
+});
+
 it('blocks a request to a private or reserved address', function () {
     Http::fake();
 

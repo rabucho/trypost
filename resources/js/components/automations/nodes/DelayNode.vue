@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core';
 import { IconClock } from '@tabler/icons-vue';
+import { Handle, Position } from '@vue-flow/core';
 import { computed } from 'vue';
+
+import { DelayUnit } from '@/types/automation/delay-unit';
 
 const props = defineProps<{
     data: {
@@ -13,7 +15,7 @@ const props = defineProps<{
 
 const summary = computed(() => {
     const duration = props.data.duration ?? 1;
-    const unit = props.data.unit ?? 'hours';
+    const unit = props.data.unit ?? DelayUnit.Hours;
     return `${duration} ${unit}`;
 });
 </script>

@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\App\Automations;
 
+use App\Enums\Automation\AuthType;
 use App\Enums\Automation\Condition\Operator as ConditionOperator;
+use App\Enums\Automation\DelayUnit;
+use App\Enums\Automation\HttpMethod;
 use App\Enums\Automation\Node\Type as NodeType;
 use App\Enums\Automation\Publish\Mode as PublishMode;
+use App\Enums\Automation\ScheduleField;
 use App\Enums\Automation\Trigger\Type as TriggerType;
 use App\Services\Automation\GenerateNodeValidator;
 use Illuminate\Contracts\Validation\Validator;
@@ -121,7 +125,7 @@ class UpdateAutomationRequest extends FormRequest
             NodeType::Trigger->value => [
                 'trigger_type' => ['required', Rule::in(array_column(TriggerType::cases(), 'value'))],
                 'cron' => ['required_if:nodes.'.$i.'.data.trigger_type,'.TriggerType::Schedule->value, 'string'],
-                'schedule_field' => ['sometimes', Rule::in(['minutes', 'hours', 'days', 'weeks', 'months'])],
+                'schedule_field' => ['sometimes', Rule::in(array_column(ScheduleField::cases(), 'value'))],
                 'schedule_minutes_interval' => ['sometimes', 'integer', 'min:1', 'max:59'],
                 'schedule_hours_interval' => ['sometimes', 'integer', 'min:1', 'max:23'],
                 'schedule_days_interval' => ['sometimes', 'integer', 'min:1', 'max:31'],
@@ -137,8 +141,8 @@ class UpdateAutomationRequest extends FormRequest
             ],
             NodeType::HttpRequest->value => [
                 'url' => ['required', 'url'],
-                'method' => ['required', Rule::in(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])],
-                'auth_type' => ['required', Rule::in(['none', 'bearer', 'basic', 'api_key'])],
+                'method' => ['required', Rule::in(array_column(HttpMethod::cases(), 'value'))],
+                'auth_type' => ['required', Rule::in(array_column(AuthType::cases(), 'value'))],
                 'auth_token' => ['nullable', 'string'],
                 'auth_username' => ['nullable', 'string'],
                 'auth_password' => ['nullable', 'string'],
@@ -159,7 +163,7 @@ class UpdateAutomationRequest extends FormRequest
             ],
             NodeType::Delay->value => [
                 'duration' => ['required', 'integer', 'min:1'],
-                'unit' => ['required', Rule::in(['minutes', 'hours', 'days'])],
+                'unit' => ['required', Rule::in(array_column(DelayUnit::cases(), 'value'))],
             ],
             NodeType::Condition->value => [
                 'field' => ['required', 'string'],
@@ -172,7 +176,7 @@ class UpdateAutomationRequest extends FormRequest
             ],
             NodeType::Webhook->value => [
                 'url' => ['required', 'url'],
-                'method' => ['required', Rule::in(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])],
+                'method' => ['required', Rule::in(array_column(HttpMethod::cases(), 'value'))],
                 'payload_template' => ['nullable', 'string'],
                 'headers' => ['nullable', 'array'],
                 'headers.*' => ['string'],

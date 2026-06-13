@@ -34,6 +34,8 @@ class RunFetchRssNode
 {
     private const ITEM_HANDLE = 'default';
 
+    private const NO_ITEMS_HANDLE = 'no_items';
+
     public function __construct(
         private ExpressionResolver $resolver,
         private SafeHttpFetcher $safeHttp,
@@ -90,7 +92,7 @@ class RunFetchRssNode
         }
 
         if ($newItems === []) {
-            return NodeRunResult::completed(['fetch' => ['count' => 0]], nextHandle: 'no_items');
+            return NodeRunResult::completed(['fetch' => ['count' => 0]], nextHandle: self::NO_ITEMS_HANDLE);
         }
 
         $first = array_shift($newItems);

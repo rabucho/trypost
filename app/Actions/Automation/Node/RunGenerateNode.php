@@ -29,7 +29,7 @@ class RunGenerateNode
     public function __invoke(AutomationRun $run, array $config): NodeRunResult
     {
         $context = $run->resolverContext();
-        $prompt = $this->resolver->resolve(data_get($config, 'prompt_template', ''), $context);
+        $prompt = $this->resolver->resolve((string) data_get($config, 'prompt_template', ''), $context);
 
         $accountsConfig = $this->resolveAccountsConfig($config);
         ['format' => $format, 'slide_count' => $slideCount] = $this->deriveFormat($accountsConfig, $config);

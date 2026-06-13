@@ -57,8 +57,13 @@ import { usePageErrors } from '@/composables/usePageErrors';
 import { useShortcut } from '@/composables/useShortcut';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { update as updateAutomation } from '@/routes/app/automations';
+import { AuthType } from '@/types/automation/auth-type';
 import type { Automation, AutomationVariable } from '@/types/automation/automation';
+import { ConditionOperator } from '@/types/automation/condition-operator';
+import { DelayUnit } from '@/types/automation/delay-unit';
+import { HttpMethod } from '@/types/automation/http-method';
 import { NodeType } from '@/types/automation/node-type';
+import { PublishMode } from '@/types/automation/publish-mode';
 import type { RawConnection } from '@/types/automation/raw-connection';
 import { ScheduleField } from '@/types/automation/schedule-field';
 import { TriggerType } from '@/types/automation/trigger-type';
@@ -262,16 +267,16 @@ const defaultConfigFor = (type: string): Record<string, unknown> => {
             schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
         case NodeType.Generate: return { accounts: [], prompt_template: '', target_slide_count: 1 };
-        case NodeType.Delay: return { duration: 1, unit: 'hours' };
-        case NodeType.Condition: return { field: '', operator: 'contains', value: '' };
-        case NodeType.Publish: return { mode: 'now', scheduled_offset: 60 };
-        case NodeType.Webhook: return { url: '', method: 'POST', headers: {}, payload_template: '{}' };
+        case NodeType.Delay: return { duration: 1, unit: DelayUnit.Hours };
+        case NodeType.Condition: return { field: '', operator: ConditionOperator.Contains, value: '' };
+        case NodeType.Publish: return { mode: PublishMode.Now, scheduled_offset: 60 };
+        case NodeType.Webhook: return { url: '', method: HttpMethod.Post, headers: {}, payload_template: '{}' };
         case NodeType.End: return { reason: '' };
         case NodeType.FetchRss: return { feed_url: '' };
         case NodeType.HttpRequest: return {
             url: '',
-            method: 'GET',
-            auth_type: 'none',
+            method: HttpMethod.Get,
+            auth_type: AuthType.None,
             headers: {},
             body_template: '',
             items_path: '',

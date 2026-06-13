@@ -10,9 +10,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { PublishMode, type PublishModeValue } from '@/types/automation/publish-mode';
 
 interface PublishConfig {
-    mode: 'now' | 'scheduled' | 'draft';
+    mode: PublishModeValue;
     scheduled_offset?: number;
 }
 
@@ -23,7 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{ update: [Record<string, unknown>] }>();
 
 const local = ref<PublishConfig>({
-    mode: (props.data.mode as PublishConfig['mode']) ?? 'now',
+    mode: (props.data.mode as PublishConfig['mode']) ?? PublishMode.Now,
     scheduled_offset: (props.data.scheduled_offset as number) ?? 60,
 });
 
@@ -39,15 +40,15 @@ watch(local, (val) => emit('update', val), { deep: true });
                     <SelectValue :placeholder="$t('automations.config.select_placeholder')" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="now">{{ $t('automations.config.publish.modes.now') }}</SelectItem>
-                    <SelectItem value="scheduled">{{ $t('automations.config.publish.modes.scheduled') }}</SelectItem>
-                    <SelectItem value="draft">{{ $t('automations.config.publish.modes.draft') }}</SelectItem>
+                    <SelectItem :value="PublishMode.Now">{{ $t('automations.config.publish.modes.now') }}</SelectItem>
+                    <SelectItem :value="PublishMode.Scheduled">{{ $t('automations.config.publish.modes.scheduled') }}</SelectItem>
+                    <SelectItem :value="PublishMode.Draft">{{ $t('automations.config.publish.modes.draft') }}</SelectItem>
                 </SelectContent>
             </Select>
             <InputError :message="errors?.mode" class="mt-1" />
         </div>
 
-        <div v-if="local.mode === 'scheduled'">
+        <div v-if="local.mode === PublishMode.Scheduled">
             <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.publish.scheduled_offset') }}</label>
             <Input type="number" v-model.number="local.scheduled_offset" placeholder="60" />
             <InputError :message="errors?.scheduled_offset" class="mt-1" />

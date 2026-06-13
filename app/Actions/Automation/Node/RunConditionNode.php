@@ -20,8 +20,8 @@ class RunConditionNode
     public function __invoke(AutomationRun $run, array $config): NodeRunResult
     {
         $context = $run->resolverContext();
-        $field = $this->resolver->resolve(data_get($config, 'field', ''), $context);
-        $operator = Operator::from(data_get($config, 'operator', 'equals'));
+        $field = $this->resolver->resolve((string) data_get($config, 'field', ''), $context);
+        $operator = Operator::from(data_get($config, 'operator', Operator::Equals->value));
         $value = $this->resolver->resolve((string) data_get($config, 'value', ''), $context);
 
         $matched = match ($operator) {

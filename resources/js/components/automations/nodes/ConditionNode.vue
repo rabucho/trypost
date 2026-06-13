@@ -4,6 +4,7 @@ import { Handle, Position } from '@vue-flow/core';
 import { computed } from 'vue';
 
 import { ConditionHandle } from '@/types/automation/condition-handle';
+import { ConditionOperator } from '@/types/automation/condition-operator';
 
 const props = defineProps<{
     data: {
@@ -16,7 +17,7 @@ const props = defineProps<{
 
 const summary = computed(() => {
     const field = props.data.field || '…';
-    const operator = props.data.operator || 'contains';
+    const operator = props.data.operator || ConditionOperator.Contains;
     const value = props.data.value || '…';
     return `${field} ${operator} ${value}`;
 });

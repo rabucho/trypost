@@ -6,6 +6,8 @@ namespace App\Actions\Automation\Node;
 
 use App\Actions\Automation\Run\AdvanceAutomationRun;
 use App\DataTransferObjects\Automation\NodeRunResult;
+use App\Enums\Automation\AuthType;
+use App\Enums\Automation\HttpMethod;
 use App\Enums\Automation\Run\Status as RunStatus;
 use App\Models\AutomationNodeState;
 use App\Models\AutomationRun;
@@ -47,6 +49,8 @@ class RunHttpRequestNode
 {
     private const ITEM_HANDLE = 'default';
 
+    private const NO_ITEMS_HANDLE = 'no_items';
+
     /**
      * Upper bound on the per-node seen-key history. FIFO-evicts the oldest keys
      * once exceeded — matching n8n's capped "history size" for its dedup store.
@@ -62,7 +66,7 @@ class RunHttpRequestNode
     public function __invoke(AutomationRun $run, array $config): NodeRunResult
     {
         $url = (string) data_get($config, 'url', '');
-        $method = strtoupper((string) data_get($config, 'method', 'GET'));
+        $method = strtoupper((string) data_get($config, 'method', HttpMethod::Get->value));
         $nodeId = (string) $run->current_node_id;
         $context = $run->resolverContext();
 
@@ -85,12 +89,12 @@ class RunHttpRequestNode
         $jsonBody = $this->buildJsonBody($method, $config, $context);
 
         try {
-            $response = match ($method) {
-                'GET' => $request->get($resolvedUrl),
-                'DELETE' => $request->delete($resolvedUrl),
-                'POST' => $request->post($resolvedUrl, $jsonBody),
-                'PUT' => $request->put($resolvedUrl, $jsonBody),
-                'PATCH' => $request->patch($resolvedUrl, $jsonBody),
+            $response = match (HttpMethod::tryFrom($method)) {
+                HttpMethod::Get => $request->get($resolvedUrl),
+                HttpMethod::Delete => $request->delete($resolvedUrl),
+                HttpMethod::Post => $request->post($resolvedUrl, $jsonBody),
+                HttpMethod::Put => $request->put($resolvedUrl, $jsonBody),
+                HttpMethod::Patch => $request->patch($resolvedUrl, $jsonBody),
                 default => null,
             };
         } catch (Throwable $e) {
@@ -188,7 +192,7 @@ class RunHttpRequestNode
         // flow, without spawning siblings, advancing watermarks or recording keys.
         if ($run->is_manual || $run->is_dry_run) {
             if ($items === []) {
-                return NodeRunResult::completed(['fetch' => ['count' => 0]], nextHandle: 'no_items');
+                return NodeRunResult::completed(['fetch' => ['count' => 0]], nextHandle: self::NO_ITEMS_HANDLE);
             }
 
             return NodeRunResult::completed([
@@ -206,7 +210,7 @@ class RunHttpRequestNode
         };
 
         if ($newItems === []) {
-            return NodeRunResult::completed(['fetch' => ['count' => 0]], nextHandle: 'no_items');
+            return NodeRunResult::completed(['fetch' => ['count' => 0]], nextHandle: self::NO_ITEMS_HANDLE);
         }
 
         $first = array_shift($newItems);
@@ -333,13 +337,13 @@ class RunHttpRequestNode
             $headers[$k] = $this->resolver->resolve((string) $v, $context);
         }
 
-        $authType = data_get($config, 'auth_type', 'none');
-        if ($authType === 'bearer') {
+        $authType = AuthType::tryFrom((string) data_get($config, 'auth_type', AuthType::None->value));
+        if ($authType === AuthType::Bearer) {
             $token = $this->decrypt((string) data_get($config, 'auth_token', ''));
             if ($token !== '') {
                 $request = $request->withToken($this->resolver->resolve($token, $context));
             }
-        } elseif ($authType === 'basic') {
+        } elseif ($authType === AuthType::Basic) {
             $user = (string) data_get($config, 'auth_username', '');
             $pass = $this->decrypt((string) data_get($config, 'auth_password', ''));
             if ($user !== '' || $pass !== '') {
@@ -348,7 +352,7 @@ class RunHttpRequestNode
                     $this->resolver->resolve($pass, $context),
                 );
             }
-        } elseif ($authType === 'api_key') {
+        } elseif ($authType === AuthType::ApiKey) {
             $headerName = (string) data_get($config, 'auth_header_name', 'X-API-Key');
             $token = $this->decrypt((string) data_get($config, 'auth_token', ''));
             if ($token !== '') {
@@ -370,7 +374,7 @@ class RunHttpRequestNode
      */
     private function buildJsonBody(string $method, array $config, array $context): array
     {
-        if (! in_array($method, ['POST', 'PUT', 'PATCH'], true)) {
+        if (! in_array(HttpMethod::tryFrom($method), HttpMethod::withBody(), true)) {
             return [];
         }
 

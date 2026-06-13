@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Automation\Node;
 
 use App\DataTransferObjects\Automation\NodeRunResult;
+use App\Enums\Automation\HttpMethod;
 use App\Models\AutomationRun;
 use App\Services\Automation\ExpressionResolver;
 use App\Services\Brand\SafeHttpFetcher;
@@ -22,8 +23,14 @@ class RunWebhookNode
     public function __invoke(AutomationRun $run, array $config): NodeRunResult
     {
         $context = $run->resolverContext();
-        $url = $this->resolver->resolve($config['url'] ?? '', $context);
-        $method = strtoupper($config['method'] ?? 'POST');
+        $url = $this->resolver->resolve((string) data_get($config, 'url', ''), $context);
+        $method = strtoupper((string) data_get($config, 'method', HttpMethod::Post->value));
+
+        if ($url === '') {
+            return NodeRunResult::failed(__('automations.errors.webhook_missing_url'), [
+                'reason' => 'missing_url',
+            ]);
+        }
 
         try {
             $this->safeHttp->guardAgainstSsrf($url);

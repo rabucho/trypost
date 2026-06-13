@@ -377,6 +377,7 @@ return [
         'no_generated_post' => 'Nenhum post gerado encontrado para esta execução.',
         'webhook_server_error' => 'Erro no servidor do webhook.',
         'webhook_request_failed' => 'Não foi possível completar a requisição do webhook.',
+        'webhook_missing_url' => 'O nó de webhook está sem a URL.',
         'webhook_invalid_payload_json' => 'O template do payload não é um JSON válido.',
         'url_not_allowed' => 'A URL da requisição aponta para um endereço privado ou inacessível e foi bloqueada.',
         'node_no_longer_exists' => 'O nó :node_id não existe mais nesta automação.',

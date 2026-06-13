@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { IconPlus, IconTrash } from '@tabler/icons-vue';
 import { computed, ref, watch } from 'vue';
 
-import { IconPlus, IconTrash } from '@tabler/icons-vue';
 
 import CodeEditor from '@/components/CodeEditor.vue';
 import InputError from '@/components/InputError.vue';
@@ -15,14 +15,15 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useExpandedEditor } from '@/composables/useExpandedEditor';
+import { AuthType, type AuthTypeValue } from '@/types/automation/auth-type';
+import { HTTP_METHODS, HTTP_METHODS_WITH_BODY, HttpMethod, type HttpMethodValue } from '@/types/automation/http-method';
 
-type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-type AuthType = 'none' | 'bearer' | 'basic' | 'api_key';
+type Method = HttpMethodValue;
 
 interface HttpRequestConfig {
     url: string;
     method: Method;
-    auth_type: AuthType;
+    auth_type: AuthTypeValue;
     auth_token: string;
     auth_username: string;
     auth_password: string;
@@ -42,8 +43,8 @@ const emit = defineEmits<{ update: [Record<string, unknown>] }>();
 
 const local = ref<HttpRequestConfig>({
     url: (props.data.url as string) ?? '',
-    method: (props.data.method as Method) ?? 'GET',
-    auth_type: (props.data.auth_type as AuthType) ?? 'none',
+    method: (props.data.method as Method) ?? HttpMethod.Get,
+    auth_type: (props.data.auth_type as AuthTypeValue) ?? AuthType.None,
     auth_token: (props.data.auth_token as string) ?? '',
     auth_username: (props.data.auth_username as string) ?? '',
     auth_password: (props.data.auth_password as string) ?? '',
@@ -94,7 +95,7 @@ watch(local, (val) => emit('update', val), { deep: true });
 
 const editorExpanded = useExpandedEditor();
 
-const supportsBody = computed(() => ['POST', 'PUT', 'PATCH'].includes(local.value.method));
+const supportsBody = computed(() => HTTP_METHODS_WITH_BODY.includes(local.value.method));
 
 const isBodyJsonInvalid = computed(() => {
     const value = local.value.body_template.trim();
@@ -120,11 +121,7 @@ const isBodyJsonInvalid = computed(() => {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="GET">GET</SelectItem>
-                        <SelectItem value="POST">POST</SelectItem>
-                        <SelectItem value="PUT">PUT</SelectItem>
-                        <SelectItem value="PATCH">PATCH</SelectItem>
-                        <SelectItem value="DELETE">DELETE</SelectItem>
+                        <SelectItem v-for="m in HTTP_METHODS" :key="m" :value="m">{{ m }}</SelectItem>
                     </SelectContent>
                 </Select>
                 <InputError :message="errors?.method" class="mt-1" />
@@ -143,21 +140,21 @@ const isBodyJsonInvalid = computed(() => {
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="none">{{ $t('automations.config.http_request.auth.none') }}</SelectItem>
-                    <SelectItem value="bearer">{{ $t('automations.config.http_request.auth.bearer') }}</SelectItem>
-                    <SelectItem value="basic">{{ $t('automations.config.http_request.auth.basic') }}</SelectItem>
-                    <SelectItem value="api_key">{{ $t('automations.config.http_request.auth.api_key') }}</SelectItem>
+                    <SelectItem :value="AuthType.None">{{ $t('automations.config.http_request.auth.none') }}</SelectItem>
+                    <SelectItem :value="AuthType.Bearer">{{ $t('automations.config.http_request.auth.bearer') }}</SelectItem>
+                    <SelectItem :value="AuthType.Basic">{{ $t('automations.config.http_request.auth.basic') }}</SelectItem>
+                    <SelectItem :value="AuthType.ApiKey">{{ $t('automations.config.http_request.auth.api_key') }}</SelectItem>
                 </SelectContent>
             </Select>
         </div>
 
-        <div v-if="local.auth_type === 'bearer'">
+        <div v-if="local.auth_type === AuthType.Bearer">
             <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.bearer_token') }}</label>
             <Input v-model="local.auth_token" type="password" autocomplete="off" placeholder="sk-…" />
             <InputError :message="errors?.auth_token" class="mt-1" />
         </div>
 
-        <template v-if="local.auth_type === 'basic'">
+        <template v-if="local.auth_type === AuthType.Basic">
             <div>
                 <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.basic_username') }}</label>
                 <Input v-model="local.auth_username" autocomplete="off" />
@@ -170,7 +167,7 @@ const isBodyJsonInvalid = computed(() => {
             </div>
         </template>
 
-        <template v-if="local.auth_type === 'api_key'">
+        <template v-if="local.auth_type === AuthType.ApiKey">
             <div>
                 <label class="mb-1 block text-sm font-medium">{{ $t('automations.config.http_request.api_key_header') }}</label>
                 <Input v-model="local.auth_header_name" placeholder="X-API-Key" />

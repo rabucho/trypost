@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core';
 import { IconSend } from '@tabler/icons-vue';
+import { Handle, Position } from '@vue-flow/core';
 import { computed } from 'vue';
+
+import { PublishMode } from '@/types/automation/publish-mode';
 
 const props = defineProps<{
     data: {
@@ -12,8 +14,8 @@ const props = defineProps<{
 }>();
 
 const summary = computed(() => {
-    const mode = props.data.mode ?? 'now';
-    if (mode === 'scheduled' && props.data.scheduled_offset != null) {
+    const mode = props.data.mode ?? PublishMode.Now;
+    if (mode === PublishMode.Scheduled && props.data.scheduled_offset != null) {
         return `scheduled · +${props.data.scheduled_offset} min`;
     }
     return mode;

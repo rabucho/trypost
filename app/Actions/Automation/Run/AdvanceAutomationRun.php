@@ -42,7 +42,7 @@ class AdvanceAutomationRun
     public function targetsFor(Automation $automation, string $fromNodeId, string $handle = 'default'): array
     {
         return collect($automation->connections ?? [])
-            ->filter(fn ($c) => ($c['source'] ?? null) === $fromNodeId && ($c['source_handle'] ?? 'default') === $handle)
+            ->filter(fn ($c) => data_get($c, 'source') === $fromNodeId && data_get($c, 'source_handle', 'default') === $handle)
             ->pluck('target')
             ->filter()
             ->values()

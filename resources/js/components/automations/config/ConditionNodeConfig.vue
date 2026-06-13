@@ -10,10 +10,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { ConditionOperator, type ConditionOperatorValue } from '@/types/automation/condition-operator';
 
 interface ConditionConfig {
     field: string;
-    operator: string;
+    operator: ConditionOperatorValue;
     value: string;
 }
 
@@ -25,7 +26,7 @@ const emit = defineEmits<{ update: [Record<string, unknown>] }>();
 
 const local = ref<ConditionConfig>({
     field: (props.data.field as string) ?? '',
-    operator: (props.data.operator as string) ?? 'contains',
+    operator: (props.data.operator as ConditionOperatorValue) ?? ConditionOperator.Contains,
     value: (props.data.value as string) ?? '',
 });
 
@@ -47,13 +48,13 @@ watch(local, (val) => emit('update', val), { deep: true });
                     <SelectValue :placeholder="$t('automations.config.select_placeholder')" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="contains">{{ $t('automations.config.condition.operators.contains') }}</SelectItem>
-                    <SelectItem value="not_contains">{{ $t('automations.config.condition.operators.not_contains') }}</SelectItem>
-                    <SelectItem value="equals">{{ $t('automations.config.condition.operators.equals') }}</SelectItem>
-                    <SelectItem value="not_equals">{{ $t('automations.config.condition.operators.not_equals') }}</SelectItem>
-                    <SelectItem value="matches">{{ $t('automations.config.condition.operators.matches') }}</SelectItem>
-                    <SelectItem value="greater_than">{{ $t('automations.config.condition.operators.greater_than') }}</SelectItem>
-                    <SelectItem value="less_than">{{ $t('automations.config.condition.operators.less_than') }}</SelectItem>
+                    <SelectItem :value="ConditionOperator.Contains">{{ $t('automations.config.condition.operators.contains') }}</SelectItem>
+                    <SelectItem :value="ConditionOperator.NotContains">{{ $t('automations.config.condition.operators.not_contains') }}</SelectItem>
+                    <SelectItem :value="ConditionOperator.Equals">{{ $t('automations.config.condition.operators.equals') }}</SelectItem>
+                    <SelectItem :value="ConditionOperator.NotEquals">{{ $t('automations.config.condition.operators.not_equals') }}</SelectItem>
+                    <SelectItem :value="ConditionOperator.Matches">{{ $t('automations.config.condition.operators.matches') }}</SelectItem>
+                    <SelectItem :value="ConditionOperator.GreaterThan">{{ $t('automations.config.condition.operators.greater_than') }}</SelectItem>
+                    <SelectItem :value="ConditionOperator.LessThan">{{ $t('automations.config.condition.operators.less_than') }}</SelectItem>
                 </SelectContent>
             </Select>
             <InputError :message="errors?.operator" class="mt-1" />

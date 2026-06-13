@@ -10,10 +10,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { DelayUnit, type DelayUnitValue } from '@/types/automation/delay-unit';
 
 interface DelayConfig {
     duration: number;
-    unit: 'minutes' | 'hours' | 'days';
+    unit: DelayUnitValue;
 }
 
 const props = defineProps<{
@@ -24,7 +25,7 @@ const emit = defineEmits<{ update: [Record<string, unknown>] }>();
 
 const local = ref<DelayConfig>({
     duration: (props.data.duration as number) ?? 1,
-    unit: (props.data.unit as DelayConfig['unit']) ?? 'hours',
+    unit: (props.data.unit as DelayConfig['unit']) ?? DelayUnit.Hours,
 });
 
 watch(local, (val) => emit('update', val), { deep: true });
@@ -45,9 +46,9 @@ watch(local, (val) => emit('update', val), { deep: true });
                     <SelectValue :placeholder="$t('automations.config.select_placeholder')" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="minutes">{{ $t('automations.config.delay.units.minutes') }}</SelectItem>
-                    <SelectItem value="hours">{{ $t('automations.config.delay.units.hours') }}</SelectItem>
-                    <SelectItem value="days">{{ $t('automations.config.delay.units.days') }}</SelectItem>
+                    <SelectItem :value="DelayUnit.Minutes">{{ $t('automations.config.delay.units.minutes') }}</SelectItem>
+                    <SelectItem :value="DelayUnit.Hours">{{ $t('automations.config.delay.units.hours') }}</SelectItem>
+                    <SelectItem :value="DelayUnit.Days">{{ $t('automations.config.delay.units.days') }}</SelectItem>
                 </SelectContent>
             </Select>
             <InputError :message="errors?.unit" class="mt-1" />

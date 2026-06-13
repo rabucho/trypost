@@ -4,7 +4,6 @@ import { computed, ref, watch } from 'vue';
 import CodeEditor from '@/components/CodeEditor.vue';
 import InputError from '@/components/InputError.vue';
 import { Input } from '@/components/ui/input';
-import { useExpandedEditor } from '@/composables/useExpandedEditor';
 import {
     Select,
     SelectContent,
@@ -12,10 +11,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useExpandedEditor } from '@/composables/useExpandedEditor';
+import { HTTP_METHODS, HttpMethod, type HttpMethodValue } from '@/types/automation/http-method';
 
 interface WebhookConfig {
     url: string;
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    method: HttpMethodValue;
     headers?: Record<string, string>;
     payload_template: string;
 }
@@ -30,7 +31,7 @@ const editorExpanded = useExpandedEditor();
 
 const local = ref<WebhookConfig>({
     url: (props.data.url as string) ?? '',
-    method: (props.data.method as WebhookConfig['method']) ?? 'POST',
+    method: (props.data.method as WebhookConfig['method']) ?? HttpMethod.Post,
     headers: (props.data.headers as Record<string, string>) ?? {},
     payload_template: (props.data.payload_template as string) ?? '{}',
 });
@@ -66,11 +67,7 @@ const isPayloadJsonInvalid = computed(() => {
                     <SelectValue :placeholder="$t('automations.config.select_placeholder')" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="GET">GET</SelectItem>
-                    <SelectItem value="POST">POST</SelectItem>
-                    <SelectItem value="PUT">PUT</SelectItem>
-                    <SelectItem value="PATCH">PATCH</SelectItem>
-                    <SelectItem value="DELETE">DELETE</SelectItem>
+                    <SelectItem v-for="m in HTTP_METHODS" :key="m" :value="m">{{ m }}</SelectItem>
                 </SelectContent>
             </Select>
             <InputError :message="errors?.method" class="mt-1" />

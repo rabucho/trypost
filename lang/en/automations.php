@@ -377,6 +377,7 @@ return [
         'no_generated_post' => 'No generated post found on run.',
         'webhook_server_error' => 'Webhook server error.',
         'webhook_request_failed' => 'The webhook request could not be completed.',
+        'webhook_missing_url' => 'The webhook node is missing a URL.',
         'webhook_invalid_payload_json' => 'The payload template is not valid JSON.',
         'url_not_allowed' => 'The request URL points to a private or unreachable address and was blocked.',
         'node_no_longer_exists' => 'Node :node_id no longer exists in the automation.',

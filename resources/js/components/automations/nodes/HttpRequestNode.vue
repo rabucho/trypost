@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core';
 import { IconWorld } from '@tabler/icons-vue';
+import { Handle, Position } from '@vue-flow/core';
 import { computed } from 'vue';
+
+import { HttpMethod } from '@/types/automation/http-method';
 
 const props = defineProps<{
     data: {
@@ -12,7 +14,7 @@ const props = defineProps<{
 }>();
 
 const summary = computed(() => {
-    const method = (props.data.method ?? 'GET').toUpperCase();
+    const method = (props.data.method ?? HttpMethod.Get).toUpperCase();
     const url = props.data.url;
     if (!url) return method;
     let host = url;

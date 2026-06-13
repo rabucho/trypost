@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Automation\Automation;
 
+use App\Enums\Automation\ScheduleField;
 use App\Enums\Automation\Status;
 use App\Enums\Automation\Trigger\Type as TriggerType;
 use App\Models\Automation;
@@ -41,7 +42,7 @@ class CreateAutomation
             'data' => [
                 'trigger_type' => TriggerType::Schedule->value,
                 'cron' => '0 9 * * *',
-                'schedule_field' => 'days',
+                'schedule_field' => ScheduleField::Days->value,
                 'schedule_days_interval' => 1,
                 'schedule_hour' => 9,
                 'schedule_minute' => 0,
