@@ -211,12 +211,7 @@ class BlueskyPublisher
             $mention = $match[0];
             $handle = substr($mention, 1); // Remove @
 
-            // A mention facet requires the target's DID, not the handle. Bluesky
-            // does NOT resolve a handle placed in the `did` field — sending one
-            // makes the whole record invalid (InvalidRequest / "Invalid post
-            // data"), so every post containing a mention fails to publish.
-            // Resolve the handle to a DID here; if it can't be resolved, skip the
-            // facet so the post still publishes with the @handle as plain text.
+            // A mention facet needs the target's DID, not the handle; skip it if unresolvable.
             $did = $didCache[$handle] ?? ($didCache[$handle] = $this->resolveHandleToDid($handle, $service, $account));
             if ($did === null) {
                 continue;
