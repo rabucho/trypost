@@ -3,18 +3,16 @@ import { IconWebhook } from '@tabler/icons-vue';
 import { Handle, Position } from '@vue-flow/core';
 import { computed } from 'vue';
 
-import { HttpMethod } from '@/types/automation/http-method';
-
 const props = defineProps<{
     data: {
         url?: string;
-        method?: string;
+        method: string;
     };
     selected?: boolean;
 }>();
 
 const summary = computed(() => {
-    const method = (props.data.method ?? HttpMethod.Post).toUpperCase();
+    const method = props.data.method.toUpperCase();
     const url = props.data.url || 'https://…';
     return `${method} · ${url}`;
 });
