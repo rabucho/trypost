@@ -62,7 +62,7 @@ const sampleReactions = [
         <!-- Chat area -->
         <div class="flex-1 overflow-y-auto px-3 py-4">
             <div
-                class="max-w-[90%] overflow-hidden rounded-2xl rounded-bl-sm bg-white shadow-sm dark:bg-[#182533]"
+                class="max-w-[90%] overflow-hidden rounded-2xl rounded-bl-sm bg-white shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:bg-[#182533]"
             >
                 <!-- Media -->
                 <div v-if="media.length > 0">
