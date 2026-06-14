@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Social;
+namespace App\Services\Social\Telegram;
 
 use App\Models\PostPlatform;
 use App\Models\SocialAccount;

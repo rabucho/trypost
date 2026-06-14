@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\SocialAccount;
 
-use App\Services\Social\TelegramApi;
+use App\Services\Social\Telegram\TelegramApi;
 use Illuminate\Support\Facades\Http;
 use InvalidArgumentException;
 use RuntimeException;

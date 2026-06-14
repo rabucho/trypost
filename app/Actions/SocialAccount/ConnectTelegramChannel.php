@@ -10,7 +10,7 @@ use App\Events\TelegramChannelConnected;
 use App\Features\SocialAccountLimit;
 use App\Models\SocialAccount;
 use App\Models\Workspace;
-use App\Services\Social\TelegramApi;
+use App\Services\Social\Telegram\TelegramApi;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Laravel\Pennant\Feature;

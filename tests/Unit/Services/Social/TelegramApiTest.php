@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Services\Social\TelegramApi;
+use App\Services\Social\Telegram\TelegramApi;
 
 beforeEach(function () {
     config([

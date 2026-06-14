@@ -25,7 +25,7 @@ use App\Services\Social\LinkedInPagePublisher;
 use App\Services\Social\LinkedInPublisher;
 use App\Services\Social\MastodonPublisher;
 use App\Services\Social\PinterestPublisher;
-use App\Services\Social\TelegramPublisher;
+use App\Services\Social\Telegram\TelegramPublisher;
 use App\Services\Social\ThreadsPublisher;
 use App\Services\Social\TikTokPublisher;
 use App\Services\Social\XPublisher;

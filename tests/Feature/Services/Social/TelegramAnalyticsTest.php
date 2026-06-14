@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Enums\SocialAccount\Platform;
 use App\Models\PostPlatform;
 use App\Models\SocialAccount;
-use App\Services\Social\TelegramAnalytics;
+use App\Services\Social\Telegram\TelegramAnalytics;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {

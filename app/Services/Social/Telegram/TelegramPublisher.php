@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Social;
+namespace App\Services\Social\Telegram;
 
 use App\DataTransferObjects\MediaItem;
 use App\Exceptions\Social\TelegramPublishException;
 use App\Models\PostPlatform;
 use App\Models\SocialAccount;
 use App\Services\Social\Concerns\HasSocialHttpClient;
+use App\Services\Social\ContentSanitizer;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 

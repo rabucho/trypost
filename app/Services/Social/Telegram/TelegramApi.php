@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Social;
+namespace App\Services\Social\Telegram;
 
 /**
  * Builds Telegram Bot API URLs from the configured token + host, so the

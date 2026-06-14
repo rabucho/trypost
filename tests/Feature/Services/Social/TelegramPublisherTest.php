@@ -10,7 +10,7 @@ use App\Models\PostPlatform;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Services\Social\TelegramPublisher;
+use App\Services\Social\Telegram\TelegramPublisher;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {

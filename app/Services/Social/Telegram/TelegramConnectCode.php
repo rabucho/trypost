@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Services\Social;
+namespace App\Services\Social\Telegram;
 
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Encryption\DecryptException;

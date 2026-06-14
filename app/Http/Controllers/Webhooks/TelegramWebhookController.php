@@ -8,7 +8,7 @@ use App\Actions\SocialAccount\ConnectTelegramChannel;
 use App\Actions\SocialAccount\StoreTelegramReactions;
 use App\Http\Controllers\Controller;
 use App\Models\Workspace;
-use App\Services\Social\TelegramConnectCode;
+use App\Services\Social\Telegram\TelegramConnectCode;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;

@@ -13,7 +13,7 @@ use App\Services\Social\InstagramAnalytics;
 use App\Services\Social\LinkedInPageAnalytics;
 use App\Services\Social\MastodonAnalytics;
 use App\Services\Social\PinterestAnalytics;
-use App\Services\Social\TelegramAnalytics;
+use App\Services\Social\Telegram\TelegramAnalytics;
 use App\Services\Social\ThreadsAnalytics;
 use App\Services\Social\XAnalytics;
 use App\Services\Social\YouTubeAnalytics;
