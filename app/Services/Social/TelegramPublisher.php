@@ -1,0 +1,186 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Social;
+
+use App\DataTransferObjects\MediaItem;
+use App\Exceptions\Social\TelegramPublishException;
+use App\Models\PostPlatform;
+use App\Models\SocialAccount;
+use App\Services\Social\Concerns\HasSocialHttpClient;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Collection;
+
+class TelegramPublisher
+{
+    use HasSocialHttpClient;
+
+    /**
+     * Telegram caps media captions at 1024 chars (a text-only message allows
+     * 4096). When the post is longer than a caption, the media is sent first and
+     * the full text follows as its own message.
+     */
+    private const CAPTION_LIMIT = 1024;
+
+    private const ALBUM_CHUNK = 10;
+
+    public function publish(PostPlatform $postPlatform): array
+    {
+        $this->validateContentLength($postPlatform);
+
+        $account = $postPlatform->socialAccount;
+        $chatId = (string) data_get($account->meta, 'chat_id');
+
+        $content = $postPlatform->post->content
+            ? app(ContentSanitizer::class)->sanitize($postPlatform->post->content, $postPlatform->platform)
+            : '';
+
+        $media = $postPlatform->post->mediaItems->take(self::ALBUM_CHUNK);
+
+        $messageId = $media->isEmpty()
+            ? $this->sendText($chatId, $content)
+            : $this->sendWithMedia($chatId, $content, $media);
+
+        return [
+            'id' => (string) $messageId,
+            'url' => $this->buildPostUrl($account, $messageId),
+        ];
+    }
+
+    private function sendText(string $chatId, string $text): int
+    {
+        $response = $this->call('sendMessage', [
+            'chat_id' => $chatId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+        ]);
+
+        return (int) data_get($response->json(), 'result.message_id');
+    }
+
+    private function sendWithMedia(string $chatId, string $content, Collection $media): int
+    {
+        $fitsCaption = mb_strlen($content) <= self::CAPTION_LIMIT;
+        $caption = $fitsCaption ? $content : '';
+
+        $items = $media->map(fn (MediaItem $item) => $this->telegramMedia($item))->values()->all();
+
+        $messageId = count($items) === 1
+            ? $this->sendSingleMedia($chatId, $items[0], $caption)
+            : $this->sendMediaGroup($chatId, $items, $caption);
+
+        // Long text can't ride along as a caption — send it as a follow-up message.
+        if (! $fitsCaption) {
+            $this->sendText($chatId, $content);
+        }
+
+        return $messageId;
+    }
+
+    /**
+     * @param  array{type: string, url: string}  $item
+     */
+    private function sendSingleMedia(string $chatId, array $item, string $caption): int
+    {
+        $method = match ($item['type']) {
+            'photo' => 'sendPhoto',
+            'video' => 'sendVideo',
+            default => 'sendDocument',
+        };
+
+        $response = $this->call($method, [
+            'chat_id' => $chatId,
+            $item['type'] => $item['url'],
+            'caption' => $caption,
+            'parse_mode' => 'HTML',
+        ]);
+
+        return (int) data_get($response->json(), 'result.message_id');
+    }
+
+    /**
+     * @param  array<int, array{type: string, url: string}>  $items
+     */
+    private function sendMediaGroup(string $chatId, array $items, string $caption): int
+    {
+        $firstMessageId = 0;
+
+        foreach (array_chunk($items, self::ALBUM_CHUNK) as $chunkIndex => $chunk) {
+            $group = [];
+
+            foreach ($chunk as $itemIndex => $item) {
+                $entry = [
+                    // Documents can't be mixed into an album; send them as photos/videos only.
+                    'type' => $item['type'] === 'document' ? 'document' : $item['type'],
+                    'media' => $item['url'],
+                ];
+
+                if ($chunkIndex === 0 && $itemIndex === 0 && $caption !== '') {
+                    $entry['caption'] = $caption;
+                    $entry['parse_mode'] = 'HTML';
+                }
+
+                $group[] = $entry;
+            }
+
+            $response = $this->call('sendMediaGroup', [
+                'chat_id' => $chatId,
+                'media' => json_encode($group),
+            ]);
+
+            if ($chunkIndex === 0) {
+                $firstMessageId = (int) data_get($response->json(), 'result.0.message_id');
+            }
+        }
+
+        return $firstMessageId;
+    }
+
+    /**
+     * @return array{type: string, url: string}
+     */
+    private function telegramMedia(MediaItem $media): array
+    {
+        $type = match (true) {
+            $media->isImage() => 'photo',
+            $media->isVideo() => 'video',
+            default => 'document',
+        };
+
+        return ['type' => $type, 'url' => $media->url];
+    }
+
+    private function call(string $method, array $payload): Response
+    {
+        $token = (string) config('trypost.platforms.telegram.bot_token');
+        $api = rtrim((string) config('trypost.platforms.telegram.api'), '/');
+
+        $response = $this->socialHttp()->post("{$api}/bot{$token}/{$method}", $payload);
+
+        if ($response->failed() || data_get($response->json(), 'ok') !== true) {
+            $this->handleApiError($response);
+        }
+
+        return $response;
+    }
+
+    private function buildPostUrl(SocialAccount $account, int $messageId): string
+    {
+        $username = (string) data_get($account->meta, 'username');
+
+        if ($username !== '') {
+            return "https://t.me/{$username}/{$messageId}";
+        }
+
+        // Private channels: t.me/c/<id without the -100 prefix>/<message_id>.
+        $internalId = preg_replace('/^-100/', '', (string) data_get($account->meta, 'chat_id'));
+
+        return "https://t.me/c/{$internalId}/{$messageId}";
+    }
+
+    private function handleApiError(Response $response): never
+    {
+        throw TelegramPublishException::fromApiResponse($response);
+    }
+}
