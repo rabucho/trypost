@@ -12,6 +12,7 @@ use App\Models\Workspace;
 use App\Services\Social\TelegramConnectCode;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Pennant\Feature;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
@@ -56,6 +57,11 @@ class TelegramWebhookController extends Controller
             ->exists();
 
         if ($isNewAccount && $this->workspaceAtAccountLimit($workspace)) {
+            return response()->noContent();
+        }
+
+        // Consume the code once so a leaked code can't be replayed to link another chat.
+        if (! Cache::add("telegram:connect:{$payload['nonce']}", true, now()->addMinutes(15))) {
             return response()->noContent();
         }
 

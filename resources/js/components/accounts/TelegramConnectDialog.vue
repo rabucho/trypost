@@ -57,7 +57,9 @@ const poll = async () => {
     if (phase.value !== 'ready') return;
 
     try {
-        const response = await httpStatus.get(telegramStatus.url());
+        const response = await httpStatus.get(
+            telegramStatus.url({ query: { code: code.value } }),
+        );
 
         if (response?.status === 'connected') {
             phase.value = 'connected';
@@ -123,7 +125,7 @@ onUnmounted(stopPolling);
             <DialogHeader>
                 <div class="flex items-center gap-3">
                     <img
-                        src="/images/accounts/telegram.svg"
+                        src="/images/accounts/telegram.png"
                         alt="Telegram"
                         class="size-10"
                     />

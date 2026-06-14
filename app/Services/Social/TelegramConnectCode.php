@@ -28,11 +28,11 @@ class TelegramConnectCode
 
     /**
      * Decode and validate a code, returning its payload or null when the code is
-     * missing, tampered with, or expired.
+     * missing, tampered with, malformed, or expired.
      *
      * @return array{workspace_id: string, nonce: string, expires_at: int}|null
      */
-    public static function decode(?string $code): ?array
+    public static function decode(mixed $code): ?array
     {
         if (! is_string($code) || $code === '') {
             return null;
@@ -44,7 +44,12 @@ class TelegramConnectCode
             return null;
         }
 
-        if (! is_array($payload) || now()->getTimestamp() > (int) data_get($payload, 'expires_at')) {
+        if (
+            ! is_array($payload)
+            || ! is_string(data_get($payload, 'workspace_id'))
+            || ! is_string(data_get($payload, 'nonce'))
+            || now()->getTimestamp() > (int) data_get($payload, 'expires_at')
+        ) {
             return null;
         }
 

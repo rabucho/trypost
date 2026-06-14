@@ -15,8 +15,6 @@ class TelegramController extends SocialController
 {
     protected SocialPlatform $platform = SocialPlatform::Telegram;
 
-    private const SESSION_KEY = 'telegram_connect_code';
-
     /**
      * Start a connection: issue a signed one-off code the user posts in their
      * channel (`/connect <code>`). The code carries the workspace, so the webhook
@@ -33,26 +31,23 @@ class TelegramController extends SocialController
         $this->ensureSocialAccountLimit($workspace);
 
         $expiresAt = now()->addMinutes(15);
-        $code = TelegramConnectCode::issue($workspace->id, $expiresAt);
-
-        $request->session()->put(self::SESSION_KEY, $code);
 
         return response()->json([
-            'code' => $code,
+            'code' => TelegramConnectCode::issue($workspace->id, $expiresAt),
             'bot_username' => config('trypost.platforms.telegram.bot_username'),
             'expires_at' => $expiresAt->toIso8601String(),
         ]);
     }
 
     /**
-     * Poll whether the channel issued in this session has been linked yet.
+     * Poll whether the channel for the given code has been linked yet.
      */
     public function status(Request $request): JsonResponse
     {
         $workspace = $request->user()->currentWorkspace;
         abort_if($workspace === null, SymfonyResponse::HTTP_CONFLICT, 'No active workspace.');
 
-        $payload = TelegramConnectCode::decode($request->session()->get(self::SESSION_KEY));
+        $payload = TelegramConnectCode::decode($request->query('code'));
 
         if ($payload === null) {
             return response()->json(['status' => TelegramConnectStatus::Unknown->value]);

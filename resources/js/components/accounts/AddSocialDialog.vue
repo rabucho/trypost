@@ -101,7 +101,7 @@ const platformTheme: Record<
     telegram: {
         bg: 'bg-sky-200',
         rotate: '-rotate-2',
-        image: '/images/accounts/telegram.svg',
+        image: '/images/accounts/telegram.png',
     },
 };
 
@@ -130,7 +130,7 @@ const connectPlatform = (platformValue: string) => {
 <template>
     <div>
         <Dialog v-model:open="open">
-            <DialogContent class="sm:max-w-3xl">
+            <DialogContent class="sm:max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>{{
                         $t('accounts.add_social_title')
@@ -140,7 +140,7 @@ const connectPlatform = (platformValue: string) => {
                     </DialogDescription>
                 </DialogHeader>
                 <div
-                    class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+                    class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5"
                 >
                     <div
                         v-for="platform in platforms"
