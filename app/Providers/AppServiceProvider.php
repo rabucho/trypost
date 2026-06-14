@@ -88,6 +88,7 @@ class AppServiceProvider extends ServiceProvider
         Cashier::useCustomerModel(Account::class);
         Cashier::useSubscriptionModel(Subscription::class);
         Cashier::useSubscriptionItemModel(SubscriptionItem::class);
+        Cashier::keepPastDueSubscriptionsActive();
 
         Feature::resolveScopeUsing(fn () => auth()->user()?->account);
         Feature::useMorphMap();
