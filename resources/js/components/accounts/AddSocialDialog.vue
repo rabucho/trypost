@@ -2,8 +2,9 @@
 import { router } from '@inertiajs/vue3';
 import { IconPlus } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
+import TelegramConnectDialog from '@/components/accounts/TelegramConnectDialog.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -32,23 +33,91 @@ const getPlatformDescription = (platform: string): string =>
 // + ink 2px border + slight rotation per platform, real PNG logo inside.
 // `linkedin-page` / `instagram-facebook` fall back to the base brand
 // image and same color since they're variants of the same network.
-const platformTheme: Record<string, { bg: string; rotate: string; image: string }> = {
-    instagram: { bg: 'bg-pink-200', rotate: '-rotate-2', image: '/images/accounts/instagram.png' },
-    'instagram-facebook': { bg: 'bg-pink-200', rotate: '-rotate-2', image: '/images/accounts/instagram.png' },
-    facebook: { bg: 'bg-sky-200', rotate: 'rotate-1', image: '/images/accounts/facebook.png' },
-    linkedin: { bg: 'bg-blue-200', rotate: '-rotate-1', image: '/images/accounts/linkedin.png' },
-    'linkedin-page': { bg: 'bg-blue-200', rotate: '-rotate-1', image: '/images/accounts/linkedin.png' },
-    x: { bg: 'bg-amber-200', rotate: 'rotate-2', image: '/images/accounts/x.png' },
-    tiktok: { bg: 'bg-fuchsia-200', rotate: '-rotate-1', image: '/images/accounts/tiktok.png' },
-    youtube: { bg: 'bg-red-200', rotate: 'rotate-1', image: '/images/accounts/youtube.png' },
-    pinterest: { bg: 'bg-rose-200', rotate: '-rotate-2', image: '/images/accounts/pinterest.png' },
-    threads: { bg: 'bg-emerald-200', rotate: 'rotate-2', image: '/images/accounts/threads.png' },
-    bluesky: { bg: 'bg-cyan-200', rotate: '-rotate-1', image: '/images/accounts/bluesky.png' },
-    mastodon: { bg: 'bg-violet-200', rotate: 'rotate-1', image: '/images/accounts/mastodon.png' },
+const platformTheme: Record<
+    string,
+    { bg: string; rotate: string; image: string }
+> = {
+    instagram: {
+        bg: 'bg-pink-200',
+        rotate: '-rotate-2',
+        image: '/images/accounts/instagram.png',
+    },
+    'instagram-facebook': {
+        bg: 'bg-pink-200',
+        rotate: '-rotate-2',
+        image: '/images/accounts/instagram.png',
+    },
+    facebook: {
+        bg: 'bg-sky-200',
+        rotate: 'rotate-1',
+        image: '/images/accounts/facebook.png',
+    },
+    linkedin: {
+        bg: 'bg-blue-200',
+        rotate: '-rotate-1',
+        image: '/images/accounts/linkedin.png',
+    },
+    'linkedin-page': {
+        bg: 'bg-blue-200',
+        rotate: '-rotate-1',
+        image: '/images/accounts/linkedin.png',
+    },
+    x: {
+        bg: 'bg-amber-200',
+        rotate: 'rotate-2',
+        image: '/images/accounts/x.png',
+    },
+    tiktok: {
+        bg: 'bg-fuchsia-200',
+        rotate: '-rotate-1',
+        image: '/images/accounts/tiktok.png',
+    },
+    youtube: {
+        bg: 'bg-red-200',
+        rotate: 'rotate-1',
+        image: '/images/accounts/youtube.png',
+    },
+    pinterest: {
+        bg: 'bg-rose-200',
+        rotate: '-rotate-2',
+        image: '/images/accounts/pinterest.png',
+    },
+    threads: {
+        bg: 'bg-emerald-200',
+        rotate: 'rotate-2',
+        image: '/images/accounts/threads.png',
+    },
+    bluesky: {
+        bg: 'bg-cyan-200',
+        rotate: '-rotate-1',
+        image: '/images/accounts/bluesky.png',
+    },
+    mastodon: {
+        bg: 'bg-violet-200',
+        rotate: 'rotate-1',
+        image: '/images/accounts/mastodon.png',
+    },
+    telegram: {
+        bg: 'bg-sky-200',
+        rotate: '-rotate-2',
+        image: '/images/accounts/telegram.svg',
+    },
 };
 
 const themeFor = (value: string) =>
     platformTheme[value] ?? { bg: 'bg-muted', rotate: '', image: '' };
+
+const telegramOpen = ref(false);
+
+const connectPlatform = (platformValue: string) => {
+    if (platformValue === 'telegram') {
+        open.value = false;
+        telegramOpen.value = true;
+        return;
+    }
+
+    openOAuthPopup(platformValue);
+};
 
 const openOAuthPopup = (platformValue: string) => {
     const url = `/connect/${platformValue}`;
@@ -84,64 +153,76 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Dialog v-model:open="open">
-        <DialogContent class="sm:max-w-3xl">
-            <DialogHeader>
-                <DialogTitle>{{ $t('accounts.add_social_title') }}</DialogTitle>
-                <DialogDescription>
-                    {{ $t('accounts.add_social_description') }}
-                </DialogDescription>
-            </DialogHeader>
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+    <div>
+        <Dialog v-model:open="open">
+            <DialogContent class="sm:max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>{{
+                        $t('accounts.add_social_title')
+                    }}</DialogTitle>
+                    <DialogDescription>
+                        {{ $t('accounts.add_social_description') }}
+                    </DialogDescription>
+                </DialogHeader>
                 <div
-                    v-for="platform in platforms"
-                    :key="platform.value"
-                    class="group relative flex flex-col items-center gap-3 rounded-xl border-2 border-foreground bg-card p-4 text-center shadow-xs transition-shadow hover:shadow-md"
+                    class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
                 >
-                    <!-- "+" sticker badge appears only on hover so the grid doesn't feel cluttered. -->
-                    <span
-                        class="pointer-events-none absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full border-2 border-foreground bg-violet-200 text-foreground opacity-0 shadow-2xs transition-all group-hover:rotate-90 group-hover:scale-110 group-hover:opacity-100"
-                        aria-hidden="true"
-                    >
-                        <IconPlus class="size-3.5" stroke-width="3" />
-                    </span>
-
                     <div
-                        :class="[
-                            themeFor(platform.value).bg,
-                            themeFor(platform.value).rotate,
-                            'inline-flex size-16 items-center justify-center rounded-2xl border-2 border-foreground shadow-sm transition-transform group-hover:!rotate-0',
-                        ]"
+                        v-for="platform in platforms"
+                        :key="platform.value"
+                        class="group relative flex flex-col items-center gap-3 rounded-xl border-2 border-foreground bg-card p-4 text-center shadow-xs transition-shadow hover:shadow-md"
                     >
-                        <img
-                            :src="themeFor(platform.value).image"
-                            :alt="platform.label"
-                            class="size-9 rounded-lg"
-                            loading="lazy"
-                        />
-                    </div>
-
-                    <div class="flex-1">
-                        <span class="block text-sm font-semibold text-foreground">
-                            <template v-if="platform.label.includes('(')">
-                                {{ platform.label.split('(')[0].trim() }}
-                            </template>
-                            <template v-else>{{ platform.label }}</template>
+                        <!-- "+" sticker badge appears only on hover so the grid doesn't feel cluttered. -->
+                        <span
+                            class="pointer-events-none absolute -top-2 -right-2 inline-flex size-6 items-center justify-center rounded-full border-2 border-foreground bg-violet-200 text-foreground opacity-0 shadow-2xs transition-all group-hover:scale-110 group-hover:rotate-90 group-hover:opacity-100"
+                            aria-hidden="true"
+                        >
+                            <IconPlus class="size-3.5" stroke-width="3" />
                         </span>
-                        <p class="mt-0.5 line-clamp-2 text-xs leading-tight text-foreground/60">
-                            {{ getPlatformDescription(platform.value) }}
-                        </p>
-                    </div>
 
-                    <Button
-                        size="sm"
-                        class="mt-auto w-full"
-                        @click="openOAuthPopup(platform.value)"
-                    >
-                        {{ $t('accounts.connect_cta') }}
-                    </Button>
+                        <div
+                            :class="[
+                                themeFor(platform.value).bg,
+                                themeFor(platform.value).rotate,
+                                'inline-flex size-16 items-center justify-center rounded-2xl border-2 border-foreground shadow-sm transition-transform group-hover:!rotate-0',
+                            ]"
+                        >
+                            <img
+                                :src="themeFor(platform.value).image"
+                                :alt="platform.label"
+                                class="size-9 rounded-lg"
+                                loading="lazy"
+                            />
+                        </div>
+
+                        <div class="flex-1">
+                            <span
+                                class="block text-sm font-semibold text-foreground"
+                            >
+                                <template v-if="platform.label.includes('(')">
+                                    {{ platform.label.split('(')[0].trim() }}
+                                </template>
+                                <template v-else>{{ platform.label }}</template>
+                            </span>
+                            <p
+                                class="mt-0.5 line-clamp-2 text-xs leading-tight text-foreground/60"
+                            >
+                                {{ getPlatformDescription(platform.value) }}
+                            </p>
+                        </div>
+
+                        <Button
+                            size="sm"
+                            class="mt-auto w-full"
+                            @click="connectPlatform(platform.value)"
+                        >
+                            {{ $t('accounts.connect_cta') }}
+                        </Button>
+                    </div>
                 </div>
-            </div>
-        </DialogContent>
-    </Dialog>
+            </DialogContent>
+        </Dialog>
+
+        <TelegramConnectDialog v-model:open="telegramOpen" />
+    </div>
 </template>
