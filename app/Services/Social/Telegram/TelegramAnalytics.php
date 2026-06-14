@@ -46,19 +46,25 @@ class TelegramAnalytics
      * Post-level metrics. Reaction counts are pushed by the webhook and stored
      * on the post platform's meta (the Bot API offers no post views to bots).
      *
-     * @return array<int, array{label: string, value: int}>
+     * @return array<int, array{label: string, value: int, kind?: string}>
      */
     public function fetchPostMetrics(PostPlatform $postPlatform): array
     {
+        $account = $postPlatform->socialAccount;
+        $metrics = $account ? $this->getMetrics($account) : [];
+
         $reactions = data_get($postPlatform->meta, 'reactions', []);
 
-        if (! is_array($reactions)) {
-            return [];
+        if (is_array($reactions)) {
+            foreach ($reactions as $reaction) {
+                $metrics[] = [
+                    'label' => (string) data_get($reaction, 'type'),
+                    'value' => (int) data_get($reaction, 'count'),
+                    'kind' => 'reaction',
+                ];
+            }
         }
 
-        return array_values(array_map(fn (array $reaction): array => [
-            'label' => (string) data_get($reaction, 'type'),
-            'value' => (int) data_get($reaction, 'count'),
-        ], $reactions));
+        return $metrics;
     }
 }
