@@ -14,6 +14,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { copyToClipboard } from '@/lib/utils';
 import {
     connect as connectTelegram,
@@ -203,18 +209,33 @@ onUnmounted(stopPolling);
                             <span>{{
                                 $t('accounts.telegram.step_command')
                             }}</span>
-                            <button
-                                type="button"
-                                class="group flex w-full items-center justify-between gap-2 rounded-lg border bg-muted px-3 py-2 text-left font-mono text-sm transition-colors hover:bg-muted/70"
-                                @click="copyCommand"
-                            >
-                                <span class="min-w-0 truncate"
-                                    >/connect {{ code }}</span
-                                >
-                                <IconCopy
-                                    class="size-4 shrink-0 text-muted-foreground group-hover:text-foreground"
-                                />
-                            </button>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <button
+                                            type="button"
+                                            class="group flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg border bg-muted px-3 py-2 text-left font-mono text-sm transition-colors hover:bg-muted/70"
+                                            @click="copyCommand"
+                                        >
+                                            <span class="min-w-0 truncate"
+                                                >/connect {{ code }}</span
+                                            >
+                                            <IconCopy
+                                                class="size-4 shrink-0 text-muted-foreground group-hover:text-foreground"
+                                            />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>
+                                            {{
+                                                $t(
+                                                    'accounts.telegram.copy_tooltip',
+                                                )
+                                            }}
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     </li>
                 </ol>

@@ -92,6 +92,7 @@ return [
         'connected' => 'Channel connected!',
         'connected_toast' => 'Telegram channel connected successfully!',
         'copied_toast' => 'Command copied to clipboard',
+        'copy_tooltip' => 'Copy command',
         'expired' => 'This code has expired. Generate a new one to try again.',
         'new_code' => 'Generate a new code',
         'retry' => 'Try again',

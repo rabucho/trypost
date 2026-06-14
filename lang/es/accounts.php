@@ -92,6 +92,7 @@ return [
         'connected' => '¡Canal conectado!',
         'connected_toast' => '¡Canal de Telegram conectado correctamente!',
         'copied_toast' => 'Comando copiado al portapapeles',
+        'copy_tooltip' => 'Copiar comando',
         'expired' => 'Este código ha caducado. Genera uno nuevo para volver a intentarlo.',
         'new_code' => 'Generar un nuevo código',
         'retry' => 'Reintentar',

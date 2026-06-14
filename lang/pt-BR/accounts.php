@@ -92,6 +92,7 @@ return [
         'connected' => 'Canal conectado!',
         'connected_toast' => 'Canal do Telegram conectado com sucesso!',
         'copied_toast' => 'Comando copiado para a área de transferência',
+        'copy_tooltip' => 'Copiar comando',
         'expired' => 'Este código expirou. Gere um novo para tentar de novo.',
         'new_code' => 'Gerar um novo código',
         'retry' => 'Tentar novamente',
