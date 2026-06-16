@@ -83,6 +83,7 @@ class UpdatePostRequest extends FormRequest
             'platforms.*.meta.brand_organic_toggle' => ['sometimes', 'boolean'],
             'platforms.*.meta.board_id' => ['sometimes', 'nullable', 'string'],
             'platforms.*.meta.channel_id' => ['sometimes', 'nullable', 'string'],
+            'platforms.*.meta.channel_name' => ['sometimes', 'nullable', 'string'],
             'platforms.*.meta.mentions' => ['sometimes', 'nullable', 'array'],
             'platforms.*.meta.mentions.*.token' => ['required', 'string'],
             'platforms.*.meta.mentions.*.label' => ['sometimes', 'nullable', 'string'],

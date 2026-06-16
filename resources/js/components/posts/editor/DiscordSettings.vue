@@ -100,6 +100,16 @@ const channelOptions = computed<DiscordChannel[]>(() => {
 
 const channelSelectOptions = computed(() => channelOptions.value.map((channel) => ({ value: channel.id, label: `#${channel.name}` })));
 
+// Persist the channel NAME alongside the id (display-only, for the preview) and
+// keep it fresh as the live list loads or the channel is renamed.
+watch([channelId, channels], () => {
+    const name = channels.value.find((channel) => channel.id === channelId.value)?.name;
+
+    if (name && props.meta?.channel_name !== name) {
+        updateMeta({ channel_name: name });
+    }
+}, { immediate: true });
+
 const errors = usePageErrors();
 const channelError = computed<string | undefined>(() => {
     if (props.meta?.channel_id) {

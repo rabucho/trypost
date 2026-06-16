@@ -21,6 +21,11 @@ interface EmbedDraft {
     color?: string;
 }
 
+interface MentionChip {
+    token: string;
+    label: string;
+}
+
 const props = defineProps<{
     socialAccount: SocialAccount;
     content: string;
@@ -29,14 +34,16 @@ const props = defineProps<{
 }>();
 
 const embeds = computed<EmbedDraft[]>(() => (Array.isArray(props.meta?.embeds) ? (props.meta!.embeds as EmbedDraft[]) : []));
+const channelName = computed<string>(() => (props.meta?.channel_name as string) || 'channel');
+const mentions = computed<MentionChip[]>(() => (Array.isArray(props.meta?.mentions) ? (props.meta!.mentions as MentionChip[]) : []));
 </script>
 
 <template>
-    <div class="flex h-full w-full flex-col overflow-hidden bg-[#313338]">
+    <div class="flex h-full w-full flex-col overflow-hidden bg-white">
         <!-- Channel header -->
-        <div class="flex items-center gap-2 border-b border-black/20 px-4 py-2.5 text-[#f2f3f5]">
+        <div class="flex items-center gap-2 border-b border-black/10 px-4 py-2.5 text-[#313338]">
             <span class="text-xl leading-none text-[#80848e]">#</span>
-            <span class="truncate text-[15px] font-semibold">{{ socialAccount.display_name || 'channel' }}</span>
+            <span class="truncate text-[15px] font-semibold">{{ channelName }}</span>
         </div>
 
         <!-- Message -->
@@ -57,12 +64,23 @@ const embeds = computed<EmbedDraft[]>(() => (Array.isArray(props.meta?.embeds) ?
 
                 <div class="min-w-0 flex-1">
                     <div class="flex items-baseline gap-2">
-                        <span class="text-[15px] font-medium text-white">{{ socialAccount.display_name || 'TryPost' }}</span>
+                        <span class="text-[15px] font-medium text-[#060607]">{{ socialAccount.display_name || 'TryPost' }}</span>
                         <span class="rounded bg-[#5865F2] px-1 text-[10px] font-bold uppercase tracking-wide text-white">Bot</span>
-                        <span class="text-[11px] text-[#949ba4]">Today at 4:30 PM</span>
+                        <span class="text-[11px] text-[#5c5e66]">Today at 4:30 PM</span>
                     </div>
 
-                    <p v-if="content" class="mt-0.5 whitespace-pre-wrap text-[15px] leading-[1.375] text-[#dbdee1]">{{ content }}</p>
+                    <p v-if="content" class="mt-0.5 whitespace-pre-wrap text-[15px] leading-[1.375] text-[#313338]">{{ content }}</p>
+
+                    <!-- Mentions (Discord renders them as blurple pills) -->
+                    <div v-if="mentions.length" class="mt-0.5 flex flex-wrap gap-1">
+                        <span
+                            v-for="mention in mentions"
+                            :key="mention.token"
+                            class="rounded bg-[#e6e9ff] px-1 text-[15px] font-medium text-[#444ec1]"
+                        >
+                            {{ mention.label }}
+                        </span>
+                    </div>
 
                     <!-- Media -->
                     <div
@@ -96,11 +114,11 @@ const embeds = computed<EmbedDraft[]>(() => (Array.isArray(props.meta?.embeds) ?
                     <div
                         v-for="(embed, index) in embeds"
                         :key="index"
-                        class="mt-2 max-w-md overflow-hidden rounded border-l-4 bg-[#2b2d31] p-3"
+                        class="mt-2 max-w-md overflow-hidden rounded border-l-4 bg-[#f2f3f5] p-3"
                         :style="{ borderColor: embed.color || '#5865F2' }"
                     >
-                        <p v-if="embed.title" class="text-[15px] font-semibold text-[#00a8fc]">{{ embed.title }}</p>
-                        <p v-if="embed.description" class="mt-1 whitespace-pre-wrap text-[14px] leading-[1.3] text-[#dbdee1]">{{ embed.description }}</p>
+                        <p v-if="embed.title" class="text-[15px] font-semibold text-[#0866d8]">{{ embed.title }}</p>
+                        <p v-if="embed.description" class="mt-1 whitespace-pre-wrap text-[14px] leading-[1.3] text-[#313338]">{{ embed.description }}</p>
                         <img v-if="embed.image" :src="embed.image" alt="" class="mt-2 max-h-48 rounded object-cover" />
                     </div>
                 </div>
