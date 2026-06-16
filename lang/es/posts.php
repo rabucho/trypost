@@ -167,6 +167,8 @@ return [
             'channel' => 'Canal',
             'select_channel' => 'Selecciona un canal',
             'loading_channels' => 'Cargando canales…',
+            'search_channel' => 'Buscar canales…',
+            'no_channels' => 'No se encontraron canales.',
             'channel_required' => 'Selecciona un canal de Discord para publicar este post.',
             'mentions' => 'Menciones',
             'search_mention' => 'Menciona un rol o miembro…',

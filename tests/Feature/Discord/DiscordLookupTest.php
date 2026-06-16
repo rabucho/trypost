@@ -6,9 +6,11 @@ use App\Enums\UserWorkspace\Role;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
+    Cache::flush(); // channel list is cached per guild — isolate between tests
     config(['trypost.platforms.discord.bot_token' => 'BOTTOKEN']);
 
     $this->user = User::factory()->create();

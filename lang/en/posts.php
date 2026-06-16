@@ -167,6 +167,8 @@ return [
             'channel' => 'Channel',
             'select_channel' => 'Select a channel',
             'loading_channels' => 'Loading channels…',
+            'search_channel' => 'Search channels…',
+            'no_channels' => 'No channels found.',
             'channel_required' => 'Select a Discord channel to publish this post.',
             'mentions' => 'Mentions',
             'search_mention' => 'Mention a role or member…',

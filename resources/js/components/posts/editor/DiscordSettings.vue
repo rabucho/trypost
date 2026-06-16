@@ -5,6 +5,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { channels as channelsRoute, mentions as mentionsRoute } from '@/actions/App/Http/Controllers/App/DiscordController';
 import InputError from '@/components/InputError.vue';
+import SearchableSelect from '@/components/SearchableSelect.vue';
 import { Avatar } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { usePageErrors } from '@/composables/usePageErrors';
@@ -96,6 +97,8 @@ const channelOptions = computed<DiscordChannel[]>(() => {
 
     return channels.value;
 });
+
+const channelSelectOptions = computed(() => channelOptions.value.map((channel) => ({ value: channel.id, label: `#${channel.name}` })));
 
 const errors = usePageErrors();
 const channelError = computed<string | undefined>(() => {
@@ -203,17 +206,15 @@ const updateEmbed = (index: number, patch: Partial<EmbedDraft>) =>
             <!-- Channel -->
             <div class="space-y-2">
                 <p class="text-[11px] font-black uppercase tracking-widest text-foreground/60">{{ $t('posts.form.discord.channel') }}</p>
-                <select
+                <SearchableSelect
                     v-model="channelId"
+                    :options="channelSelectOptions"
+                    :placeholder="channelsLoading ? $t('posts.form.discord.loading_channels') : $t('posts.form.discord.select_channel')"
+                    :search-placeholder="$t('posts.form.discord.search_channel')"
+                    :empty-text="$t('posts.form.discord.no_channels')"
                     :disabled="disabled || channelsLoading"
-                    class="w-full rounded-lg border-2 bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                    :class="channelError ? 'border-rose-500' : 'border-foreground/30 hover:border-foreground'"
-                >
-                    <option value="">
-                        {{ channelsLoading ? $t('posts.form.discord.loading_channels') : $t('posts.form.discord.select_channel') }}
-                    </option>
-                    <option v-for="channel in channelOptions" :key="channel.id" :value="channel.id">#{{ channel.name }}</option>
-                </select>
+                    :invalid="!!channelError"
+                />
                 <InputError :message="channelError" />
             </div>
 

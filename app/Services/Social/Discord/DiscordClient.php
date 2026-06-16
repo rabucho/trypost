@@ -8,6 +8,7 @@ use App\Exceptions\PlatformUnavailableException;
 use App\Services\Social\Concerns\HasSocialHttpClient;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Read-side Discord API calls made with the global bot token (channel listing,
@@ -21,6 +22,8 @@ class DiscordClient
      * Text-postable channel types: 0 = text, 5 = announcement, 15 = forum.
      */
     private const POSTABLE_CHANNEL_TYPES = [0, 5, 15];
+
+    private const CHANNELS_TTL = 300;
 
     public function baseUrl(): string
     {
@@ -38,26 +41,32 @@ class DiscordClient
      */
     public function channels(string $guildId): array
     {
-        $response = $this->bot()->get("{$this->baseUrl()}/guilds/{$guildId}/channels");
+        // Cached per guild for 5 minutes — channels change rarely and this runs
+        // both in the composer picker and on every publish (the channel guard),
+        // all against the shared, rate-limited bot token. A transient failure
+        // throws and is NOT cached, so the next call retries.
+        return Cache::remember("discord:channels:{$guildId}", self::CHANNELS_TTL, function () use ($guildId) {
+            $response = $this->bot()->get("{$this->baseUrl()}/guilds/{$guildId}/channels");
 
-        if ($response->failed()) {
-            throw new PlatformUnavailableException("Discord channel lookup failed ({$response->status()}).", $response->status());
-        }
+            if ($response->failed()) {
+                throw new PlatformUnavailableException("Discord channel lookup failed ({$response->status()}).", $response->status());
+            }
 
-        $channels = $response->json();
+            $channels = $response->json();
 
-        if (! is_array($channels)) {
-            return [];
-        }
+            if (! is_array($channels)) {
+                return [];
+            }
 
-        return collect($channels)
-            ->filter(fn ($channel) => in_array((int) data_get($channel, 'type'), self::POSTABLE_CHANNEL_TYPES, true))
-            ->map(fn ($channel) => [
-                'id' => (string) data_get($channel, 'id'),
-                'name' => (string) data_get($channel, 'name'),
-            ])
-            ->values()
-            ->all();
+            return collect($channels)
+                ->filter(fn ($channel) => in_array((int) data_get($channel, 'type'), self::POSTABLE_CHANNEL_TYPES, true))
+                ->map(fn ($channel) => [
+                    'id' => (string) data_get($channel, 'id'),
+                    'name' => (string) data_get($channel, 'name'),
+                ])
+                ->values()
+                ->all();
+        });
     }
 
     /**
