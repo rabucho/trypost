@@ -90,6 +90,31 @@ test('AI single feed generation stores the post as an instagram feed', function 
     expect($platform->content_type)->toBe(ContentType::InstagramFeed);
 });
 
+test('tweet_card template stores the tweet_text as post content and attaches a media item', function () {
+    PostContentGenerator::fake([[
+        'tweet_text' => 'Hello world\n\nSecond para.',
+    ]]);
+
+    $minimalPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+    Image::fake([base64_encode($minimalPng)]);
+
+    (new StreamPostCreation(
+        userId: $this->user->id,
+        creationId: (string) Str::uuid(),
+        workspaceId: $this->workspace->id,
+        format: 'x_twitter',
+        socialAccountId: $this->account->id,
+        imageCount: 1,
+        prompt: 'A punchy take on productivity',
+        template: 'tweet_card',
+    ))->handle();
+
+    $post = $this->user->currentWorkspace->posts()->latest()->first();
+
+    expect($post->content)->toBe('Hello world\n\nSecond para.')
+        ->and($post->media)->toHaveCount(1);
+});
+
 test('the humanizer is given the same platform context as the generator so the rewrite honours the character cap', function () {
     PostContentGenerator::fake([[
         'content' => 'A single productivity tip',

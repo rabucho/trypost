@@ -51,6 +51,11 @@ class PostContentGenerator implements Agent, HasStructuredOutput
 
         $budget = $this->platformCopyBudget($this->platformContext);
 
+        if ($this->template?->generatorFormat() === 'tweet_card') {
+            $budget['hard_max_chars'] = 560;
+            $budget['target_chars'] = 280;
+        }
+
         $view = $this->template?->promptView() ?? 'prompts.post_content.generator';
 
         return view($view, [

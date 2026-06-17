@@ -109,6 +109,10 @@ class StreamPostCreation implements ShouldQueue
      */
     private function humanize(Workspace $workspace, array $structured, string $format): array
     {
+        if ($format === 'tweet_card') {
+            return $structured;
+        }
+
         try {
             $input = $format === 'carousel'
                 ? [
