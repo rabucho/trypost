@@ -260,6 +260,20 @@ return [
                 'not_ai_media' => 'Só é possível regenerar mídia gerada por IA.',
             ],
         ],
+        'templates' => [
+            'image_card' => [
+                'name' => 'Post com imagem',
+                'description' => 'Imagem com IA, título e legenda.',
+            ],
+            'carousel' => [
+                'name' => 'Carrossel',
+                'description' => 'Carrossel de vários slides com legenda.',
+            ],
+            'tweet_card' => [
+                'name' => 'Card de tweet',
+                'description' => 'Seu post no estilo de um post do X/Twitter.',
+            ],
+        ],
     ],
 
     'show' => [

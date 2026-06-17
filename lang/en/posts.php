@@ -260,6 +260,20 @@ return [
                 'not_ai_media' => 'Only AI-generated media can be regenerated.',
             ],
         ],
+        'templates' => [
+            'image_card' => [
+                'name' => 'Image post',
+                'description' => 'AI image with a headline and caption.',
+            ],
+            'carousel' => [
+                'name' => 'Carousel',
+                'description' => 'Multi-slide carousel with a caption.',
+            ],
+            'tweet_card' => [
+                'name' => 'Tweet card',
+                'description' => 'Your post styled as an X/Twitter post.',
+            ],
+        ],
     ],
 
     'show' => [
