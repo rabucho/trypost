@@ -2,22 +2,42 @@
 
 declare(strict_types=1);
 
-use App\Ai\Templates\CarouselTemplate;
 use App\Ai\Templates\ImageCardTemplate;
-use App\Enums\PostPlatform\ContentType;
+use App\Ai\Templates\TemplateContext;
+use App\Models\Workspace;
+use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 
 test('image card template exposes its identity', function () {
     $t = new ImageCardTemplate;
+    $workspace = Workspace::factory()->create();
+    $context = new TemplateContext($workspace, null, 'instagram_feed', 0, false);
+
     expect($t->key())->toBe('image_card')
         ->and($t->needsAccount())->toBeFalse()
         ->and($t->generatorFormat())->toBe('single')
-        ->and($t->promptView())->toBe('prompts.post_content.generator')
+        ->and($t->promptView($context))->toBe('prompts.post_content.generator')
         ->and($t->supportedFormats())->toBe([]);
 });
 
-test('carousel template exposes its identity', function () {
-    $t = new CarouselTemplate;
-    expect($t->key())->toBe('carousel')
-        ->and($t->generatorFormat())->toBe('carousel')
-        ->and($t->supportedFormats())->toContain(ContentType::CAROUSEL_FORMAT);
+test('image card carousel context returns carousel schema shape', function () {
+    $t = new ImageCardTemplate;
+    $workspace = Workspace::factory()->create();
+    $context = new TemplateContext($workspace, null, 'instagram_carousel', 3, true);
+
+    $schema = new JsonSchemaTypeFactory;
+    $result = $t->schema($schema, $context);
+
+    expect($result)->toHaveKeys(['caption', 'slides'])
+        ->and($t->promptView($context))->toBe('prompts.post_content.generator');
+});
+
+test('image card single context returns single schema shape', function () {
+    $t = new ImageCardTemplate;
+    $workspace = Workspace::factory()->create();
+    $context = new TemplateContext($workspace, null, 'instagram_feed', 1, false);
+
+    $schema = new JsonSchemaTypeFactory;
+    $result = $t->schema($schema, $context);
+
+    expect($result)->toHaveKeys(['content', 'image_title', 'image_body', 'image_keywords']);
 });

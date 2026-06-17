@@ -98,6 +98,28 @@ class PostImagePipeline
     }
 
     /**
+     * Render one tweet-card image per slide text and return the media-item array.
+     * Slides that render nothing are skipped.
+     *
+     * @param  array<int, string>  $slideTexts
+     * @return array<int, array<string, mixed>>
+     */
+    public function forTweetCardCarousel(Workspace $workspace, SocialAccount $account, array $slideTexts): array
+    {
+        $media = [];
+
+        foreach ($slideTexts as $tweetText) {
+            $rendered = $this->generator->renderTweetCard($workspace, $account, $tweetText);
+
+            if ($rendered) {
+                $media[] = $this->buildAiMediaItem($workspace, $rendered);
+            }
+        }
+
+        return $media;
+    }
+
+    /**
      * Resolve the AI image dimensions for the given content type, falling back
      * to the generator defaults (4:5 portrait) when no content type is known.
      *

@@ -31,7 +31,7 @@ beforeEach(function () {
     ]);
 });
 
-function runStreamPostCreation(string $format, SocialAccount $account, int $imageCount): void
+function runStreamPostCreation(string $format, SocialAccount $account, int $imageCount, string $template = 'image_card'): void
 {
     (new StreamPostCreation(
         userId: $account->workspace->user_id,
@@ -41,12 +41,11 @@ function runStreamPostCreation(string $format, SocialAccount $account, int $imag
         socialAccountId: $account->id,
         imageCount: $imageCount,
         prompt: 'Five tips about productivity',
+        template: $template,
     ))->handle();
 }
 
 test('AI carousel generation stores the post as an instagram feed, never instagram_carousel', function () {
-    // Empty image_keywords make TemplateImageGenerator::render() return null, so
-    // the storage decision is exercised without touching the image pipeline.
     PostContentGenerator::fake([[
         'caption' => 'Swipe to see the tips',
         'slides' => [
@@ -62,7 +61,7 @@ test('AI carousel generation stores the post as an instagram feed, never instagr
         ],
     ]]);
 
-    runStreamPostCreation('instagram_carousel', $this->account, 2);
+    runStreamPostCreation('instagram_carousel', $this->account, 2, 'image_card');
 
     $platform = PostPlatform::where('social_account_id', $this->account->id)->firstOrFail();
 
@@ -117,6 +116,40 @@ test('tweet_card template stores the tweet_text as post content and attaches a m
     $platform = PostPlatform::where('social_account_id', $this->account->id)->firstOrFail();
 
     expect($platform->content_type)->toBe(ContentType::XPost);
+
+    PostContentHumanizer::assertNeverPrompted();
+});
+
+test('tweet_card carousel produces caption as content and N media items without calling AI image client', function () {
+    PostContentGenerator::fake([[
+        'caption' => 'A carousel of punchy takes',
+        'slides' => [
+            ['tweet_text' => 'First take on productivity.'],
+            ['tweet_text' => 'Second take on deep work.'],
+        ],
+    ]]);
+
+    (new StreamPostCreation(
+        userId: $this->user->id,
+        creationId: (string) Str::uuid(),
+        workspaceId: $this->workspace->id,
+        format: 'instagram_carousel',
+        socialAccountId: $this->account->id,
+        imageCount: 2,
+        prompt: 'Punchy productivity takes',
+        template: 'tweet_card',
+    ))->handle();
+
+    $post = $this->user->currentWorkspace->posts()->latest()->first();
+
+    expect($post->content)->toBe('A carousel of punchy takes')
+        ->and($post->media)->toHaveCount(2);
+
+    $platform = PostPlatform::where('social_account_id', $this->account->id)->firstOrFail();
+
+    expect($platform->content_type)->toBe(ContentType::InstagramFeed);
+
+    Image::assertNothingGenerated();
 
     PostContentHumanizer::assertNeverPrompted();
 });

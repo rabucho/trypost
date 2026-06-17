@@ -11,7 +11,6 @@ class AiTemplateRegistry
     /** @var array<int, class-string<AiContentTemplate>> */
     private const TEMPLATES = [
         ImageCardTemplate::class,
-        CarouselTemplate::class,
         TweetCardTemplate::class,
     ];
 

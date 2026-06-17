@@ -17,5 +17,6 @@ class TemplateContext
         public ?SocialAccount $socialAccount,
         public string $format,
         public int $imageCount,
+        public bool $isCarousel = false,
     ) {}
 }

@@ -34,7 +34,7 @@ interface AiContentTemplate
     public function generatorFormat(): string;
 
     /** The Blade view path for the generator prompt. */
-    public function promptView(): string;
+    public function promptView(TemplateContext $context): string;
 
     /**
      * The structured-output schema for the generator.

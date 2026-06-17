@@ -56,7 +56,9 @@ class PostContentGenerator implements Agent, HasStructuredOutput
             $budget['target_chars'] = 280;
         }
 
-        $view = $this->template?->promptView() ?? 'prompts.post_content.generator';
+        $view = $this->template !== null && $this->templateContext !== null
+            ? $this->template->promptView($this->templateContext)
+            : 'prompts.post_content.generator';
 
         return view($view, [
             'brand_name' => $this->workspace->name ?? '',

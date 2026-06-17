@@ -50,18 +50,26 @@ class StreamPostCreation implements ShouldQueue
         $workspace = Workspace::findOrFail($this->workspaceId);
         $socialAccount = $this->socialAccountId ? SocialAccount::find($this->socialAccountId) : null;
 
-        $template = app(AiTemplateRegistry::class)->find($this->template);
-        $context = new TemplateContext($workspace, $socialAccount, $this->format, $this->imageCount);
+        $style = app(AiTemplateRegistry::class)->find($this->template);
 
-        $isCarousel = $template->generatorFormat() === 'carousel';
+        $isCarousel = $this->format === ContentType::CAROUSEL_FORMAT;
+        $agentFormat = $isCarousel ? 'carousel' : 'single';
         $slideCount = $isCarousel && $this->imageCount > 0 ? $this->imageCount : 1;
+
+        $context = new TemplateContext(
+            workspace: $workspace,
+            socialAccount: $socialAccount,
+            format: $this->format,
+            imageCount: $this->imageCount,
+            isCarousel: $isCarousel,
+        );
 
         $agent = new PostContentGenerator(
             workspace: $workspace,
-            format: $template->generatorFormat(),
+            format: $agentFormat,
             slideCount: $slideCount,
             platformContext: $this->format,
-            template: $template,
+            template: $style,
             templateContext: $context,
         );
 
@@ -80,9 +88,10 @@ class StreamPostCreation implements ShouldQueue
 
             $structured = $response->structured ?? [];
 
-            $structured = $this->humanize($workspace, $structured, $template->generatorFormat());
+            $humanizeFormat = $isCarousel ? 'carousel' : $agentFormat;
+            $structured = $this->humanize($workspace, $structured, $humanizeFormat);
 
-            $generated = $template->assemble($structured, $context);
+            $generated = $style->assemble($structured, $context);
             $post = $this->createPostFromGenerated($workspace, $generated, $socialAccount);
             $this->notifyReady($workspace, $post);
         } catch (\Throwable $e) {
