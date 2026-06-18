@@ -305,7 +305,7 @@ const channels = computed<Channel[]>(() =>
 
         <div class="space-y-2">
             <Label class="text-sm font-bold">{{ $t('automations.config.generate.style') }}</Label>
-            <ContentStylePicker v-model="local.style" :styles="contentStyles" />
+            <ContentStylePicker v-model="local.style" :styles="contentStyles" mini />
         </div>
 
         <div v-if="imageCountCap >= 1" class="space-y-2">
