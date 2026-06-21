@@ -22,9 +22,6 @@ class Plan extends Model
         'name',
         'stripe_monthly_price_id',
         'stripe_yearly_price_id',
-        'social_account_limit',
-        'member_limit',
-        'workspace_limit',
         'monthly_credits_limit',
         'sort',
         'is_archived',
@@ -35,9 +32,6 @@ class Plan extends Model
         return [
             'slug' => Slug::class,
             'is_archived' => 'boolean',
-            'social_account_limit' => 'integer',
-            'member_limit' => 'integer',
-            'workspace_limit' => 'integer',
             'monthly_credits_limit' => 'integer',
             'sort' => 'integer',
         ];

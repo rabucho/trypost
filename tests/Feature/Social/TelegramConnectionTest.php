@@ -117,10 +117,13 @@ it('links a private channel that has no username', function () {
     expect(data_get($account->meta, 'username'))->toBeNull();
 });
 
-it('does not create a new telegram account when the workspace is at its limit', function () {
+it('does not connect a second telegram channel when one is already connected', function () {
     config(['trypost.self_hosted' => false]);
 
-    SocialAccount::factory()->count(5)->create(['workspace_id' => $this->workspace->id]);
+    SocialAccount::factory()->telegram()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform_user_id' => '-1009999999999',
+    ]);
 
     $code = TelegramConnectCode::issue($this->workspace->id, now()->addMinutes(15));
 
@@ -128,17 +131,37 @@ it('does not create a new telegram account when the workspace is at its limit', 
         ->postJson(route('telegram.webhook'), telegramUpdate($code))
         ->assertNoContent();
 
-    expect($this->workspace->socialAccounts()->count())->toBe(5);
+    expect($this->workspace->socialAccounts()->count())->toBe(1);
     expect(
         SocialAccount::where('platform', Platform::Telegram)->where('platform_user_id', '-1001234567890')->exists()
     )->toBeFalse();
 });
 
-it('still reconnects an existing telegram channel even at the account limit', function () {
+it('connects a second telegram channel in self-hosted mode', function () {
+    Http::fake();
+    config(['trypost.self_hosted' => true]);
+
+    SocialAccount::factory()->telegram()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform_user_id' => '-1009999999999',
+    ]);
+
+    $code = TelegramConnectCode::issue($this->workspace->id, now()->addMinutes(15));
+
+    $this->withHeader('X-Telegram-Bot-Api-Secret-Token', 'shh-secret')
+        ->postJson(route('telegram.webhook'), telegramUpdate($code))
+        ->assertNoContent();
+
+    expect($this->workspace->socialAccounts()->count())->toBe(2);
+    expect(
+        SocialAccount::where('platform', Platform::Telegram)->where('platform_user_id', '-1001234567890')->exists()
+    )->toBeTrue();
+});
+
+it('reconnects an existing telegram channel', function () {
     Http::fake();
     config(['trypost.self_hosted' => false]);
 
-    SocialAccount::factory()->count(4)->create(['workspace_id' => $this->workspace->id]);
     SocialAccount::factory()->telegram()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => '-1001234567890',
@@ -150,7 +173,7 @@ it('still reconnects an existing telegram channel even at the account limit', fu
         ->postJson(route('telegram.webhook'), telegramUpdate($code))
         ->assertNoContent();
 
-    expect($this->workspace->socialAccounts()->count())->toBe(5);
+    expect($this->workspace->socialAccounts()->count())->toBe(1);
     expect(
         SocialAccount::where('platform', Platform::Telegram)->where('platform_user_id', '-1001234567890')->count()
     )->toBe(1);

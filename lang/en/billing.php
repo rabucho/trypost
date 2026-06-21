@@ -9,23 +9,10 @@ return [
         'cta' => 'Update payment',
     ],
 
-    'upgrade_dialog' => [
-        'title' => 'Upgrade your plan',
-        'description' => 'Pick a plan that fits your needs.',
-        'current_plan' => 'Current plan',
-        'current_short' => 'Current',
-        'current_badge' => 'Current',
-        'subscribe' => 'Subscribe',
-        'switch' => 'Switch to this plan',
-        'switch_short' => 'Switch',
-        'switch_to_yearly' => 'Switch to yearly',
-        'switch_to_monthly' => 'Switch to monthly',
-        'unavailable' => 'Unavailable',
-        'reasons' => [
-            'workspace_limit' => 'You\'ve reached the workspace limit on your current plan. Upgrade to create more workspaces.',
-            'social_account_limit' => 'You\'ve reached the social account limit on your current plan. Upgrade to connect more accounts.',
-            'member_limit' => 'You\'ve reached the team member limit on your current plan. Upgrade to invite more people.',
-        ],
+    'annual_banner' => [
+        'title' => 'Save 2 months with annual billing',
+        'description' => 'Switch to annual and get 2 months free — pay less every month.',
+        'cta' => 'Upgrade to annual',
     ],
 
     'subscribe' => [
@@ -47,30 +34,25 @@ return [
         'start_trial' => 'Start :days-day free trial',
         'subscribe_cta' => 'Subscribe',
         'prices' => [
-            'starter' => ['monthly' => '$19', 'yearly_per_month' => '$16', 'yearly' => '$190'],
-            'plus' => ['monthly' => '$29', 'yearly_per_month' => '$24', 'yearly' => '$290'],
-            'pro' => ['monthly' => '$49', 'yearly_per_month' => '$41', 'yearly' => '$490'],
-            'max' => ['monthly' => '$99', 'yearly_per_month' => '$83', 'yearly' => '$990'],
+            'workspace' => ['monthly' => '$12', 'yearly_per_month' => '$10', 'yearly' => '$120'],
         ],
         'features' => [
-            'social_accounts' => ':count social accounts',
-            'workspaces' => ':count workspaces',
-            'members' => ':count team members',
-            'credits' => ':count AI credits/mo',
+            'per_workspace_credits' => ':count AI credits per workspace/mo',
+            'one_per_network' => 'One account per social network',
+            'unlimited_members' => 'Unlimited team members',
+            'all_platforms' => 'Publish to every supported platform',
         ],
         'credit_tooltips' => [
-            'starter' => 'Roughly 150 medium-length posts plus 5 AI images per month.',
-            'plus' => 'Roughly 300 medium-length posts plus 10 AI images per month.',
-            'pro' => 'Roughly 700 medium-length posts plus 30 AI images per month.',
-            'max' => 'Roughly 2,000 medium-length posts plus 100 AI images per month.',
+            'workspace' => 'Each workspace includes 2,500 AI credits per month — about 160 AI images or 280 AI text generations.',
         ],
     ],
 
     'plan' => [
         'title' => 'Plan',
         'description' => 'Manage your subscription plan.',
-        'change' => 'Change plan',
         'label' => 'Plan',
+        'workspaces' => '{1}:count workspace|[2,*]:count workspaces',
+        'per_workspace' => 'per workspace',
         'price' => 'Price',
         'month' => 'month',
         'trial' => 'Trial',
@@ -99,13 +81,10 @@ return [
 
     'flash' => [
         'plan_changed' => 'You are now on the :plan plan.',
+        'switched_to_yearly' => 'You\'re now on annual billing.',
         'cannot_manage' => 'Only the account owner can manage billing.',
-        'cannot_downgrade' => [
-            'workspaces' => 'Cannot switch to :plan: you have :count workspaces but the plan only allows :limit.',
-            'social_accounts' => 'Cannot switch to :plan: you have :count social accounts but the plan only allows :limit.',
-            'members' => 'Cannot switch to :plan: you have :count team members (including invites) but the plan only allows :limit.',
-        ],
         'credits_exhausted' => 'Out of AI credits — your monthly :limit allowance has been used. Upgrade your plan or wait until next month.',
+        'subscription_required' => 'An active subscription is required to use AI features.',
     ],
 
     'processing' => [

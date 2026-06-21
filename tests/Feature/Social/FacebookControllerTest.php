@@ -159,7 +159,9 @@ test('facebook callback fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple facebook accounts', function () {
+test('user can connect multiple facebook accounts in self-hosted mode', function () {
+    config(['trypost.self_hosted' => true]);
+
     SocialAccount::factory()->facebook()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => 'page_existing',

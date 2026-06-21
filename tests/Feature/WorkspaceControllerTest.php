@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Ai\Agents\BrandAnalyzer;
 use App\Enums\UserWorkspace\Role;
 use App\Models\Account;
+use App\Models\AiUsageLog;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Brand\LogoAttacher;
@@ -405,6 +407,10 @@ test('destroy workspace requires authentication', function () {
 });
 
 test('destroy workspace deletes the workspace', function () {
+    Workspace::factory()->create([
+        'account_id' => $this->user->account_id,
+        'user_id' => $this->user->id,
+    ]);
     $workspaceId = $this->workspace->id;
 
     $response = $this->actingAs($this->user)->delete(route('app.workspaces.destroy', $this->workspace));
@@ -414,10 +420,41 @@ test('destroy workspace deletes the workspace', function () {
 });
 
 test('destroy workspace clears current workspace if deleting current', function () {
+    Workspace::factory()->create([
+        'account_id' => $this->user->account_id,
+        'user_id' => $this->user->id,
+    ]);
+
     $this->actingAs($this->user)->delete(route('app.workspaces.destroy', $this->workspace));
 
     $this->user->refresh();
     expect($this->user->current_workspace_id)->toBeNull();
+});
+
+test('destroy workspace is blocked when it is the only workspace', function () {
+    config(['trypost.self_hosted' => false]);
+    $this->user->account->subscriptions()->create([
+        'type' => Account::SUBSCRIPTION_NAME,
+        'stripe_id' => 'sub_test_'.fake()->uuid(),
+        'stripe_status' => 'active',
+        'stripe_price' => 'price_123',
+    ]);
+    $workspaceId = $this->workspace->id;
+
+    $response = $this->actingAs($this->user)->delete(route('app.workspaces.destroy', $this->workspace));
+
+    $response->assertSessionHas('flash.error', __('workspaces.cannot_delete_last'));
+    expect(Workspace::find($workspaceId))->not->toBeNull();
+});
+
+test('destroy workspace allows deleting the only workspace in self-hosted mode', function () {
+    config(['trypost.self_hosted' => true]);
+    $workspaceId = $this->workspace->id;
+
+    $response = $this->actingAs($this->user)->delete(route('app.workspaces.destroy', $this->workspace));
+
+    $response->assertRedirect(route('app.workspaces.index'));
+    expect(Workspace::find($workspaceId))->toBeNull();
 });
 
 test('destroy workspace returns 403 for non-owner', function () {
@@ -465,6 +502,57 @@ test('autofillBrand returns metadata without persisting anything', function () {
     $response->assertJsonStructure(['name', 'brand_description', 'content_language', 'logo_url']);
 
     expect(Workspace::count())->toBe($initialWorkspaceCount);
+});
+
+test('autofillBrand is always allowed even without a subscription', function () {
+    config(['trypost.self_hosted' => false]);
+
+    $account = Account::factory()->create(['trial_ends_at' => null]);
+    $user = User::factory()->create(['account_id' => $account->id]);
+    $account->update(['owner_id' => $user->id]);
+
+    expect($account->subscribed(Account::SUBSCRIPTION_NAME))->toBeFalse();
+
+    Http::fake([
+        'example.com/*' => Http::response(
+            '<html><head><title>Acme</title><meta name="description" content="We sell rockets." /></head><body></body></html>',
+            200,
+            ['Content-Type' => 'text/html'],
+        ),
+        'example.com' => Http::response(
+            '<html><head><title>Acme</title><meta name="description" content="We sell rockets." /></head><body></body></html>',
+            200,
+            ['Content-Type' => 'text/html'],
+        ),
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('app.workspaces.autofill'), ['url' => 'https://example.com'])
+        ->assertOk();
+});
+
+test('autofillBrand never records AI usage even when the LLM runs', function () {
+    config(['trypost.self_hosted' => false]);
+    config()->set('services.gemini.api_key', 'fake-key');
+    config()->set('ai.default', 'gemini');
+
+    Http::fake([
+        'example.com' => Http::response(
+            '<html lang="en"><head><title>Acme</title><meta name="description" content="Terse." /></head><body><main><p>Acme ships rockets fast.</p></main></body></html>',
+            200,
+            ['Content-Type' => 'text/html'],
+        ),
+    ]);
+
+    BrandAnalyzer::fake([
+        ['description' => 'Acme ships rockets fast.', 'language' => 'en'],
+    ]);
+
+    $this->actingAs($this->user)
+        ->postJson(route('app.workspaces.autofill'), ['url' => 'https://example.com'])
+        ->assertOk();
+
+    expect(AiUsageLog::count())->toBe(0);
 });
 
 test('autofillBrand validates url is required', function () {

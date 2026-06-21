@@ -28,7 +28,6 @@ class TelegramController extends SocialController
         abort_if($workspace === null, SymfonyResponse::HTTP_CONFLICT, 'No active workspace.');
 
         $this->authorize('manageAccounts', $workspace);
-        $this->ensureSocialAccountLimit($workspace);
 
         $expiresAt = now()->addMinutes(15);
         $code = TelegramConnectCode::issue($workspace->id, $expiresAt);

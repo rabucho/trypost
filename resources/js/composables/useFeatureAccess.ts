@@ -10,9 +10,6 @@ interface Plan {
 }
 
 interface Features {
-    workspaceLimit: number;
-    socialAccountLimit: number;
-    memberLimit: number;
     monthlyCreditsLimit: number;
 }
 
@@ -24,28 +21,11 @@ export const useFeatureAccess = () => {
     const usage = computed<Usage | null>(() => (page.props.usage as Usage | null) ?? null);
     const features = computed<Features | null>(() => (page.props.features as Features | null) ?? null);
 
-    const workspaceLimit = computed(() => features.value?.workspaceLimit ?? 1);
-    const socialAccountLimit = computed(() => features.value?.socialAccountLimit ?? 1);
-    const memberLimit = computed(() => features.value?.memberLimit ?? 1);
     const monthlyCreditsLimit = computed(() => features.value?.monthlyCreditsLimit ?? 0);
 
-    const canCreateWorkspace = computed(() => {
-        if (isSelfHosted.value) return true;
-        if (!usage.value) return true;
-        return usage.value.workspaceCount < workspaceLimit.value;
-    });
-
-    const canConnectSocialAccount = computed(() => {
-        if (isSelfHosted.value) return true;
-        if (!usage.value) return true;
-        return usage.value.socialAccountCount < socialAccountLimit.value;
-    });
-
-    const canInviteMember = computed(() => {
-        if (isSelfHosted.value) return true;
-        if (!usage.value) return true;
-        return usage.value.memberCount + usage.value.pendingInviteCount < memberLimit.value;
-    });
+    const canCreateWorkspace = computed(() => true);
+    const canConnectSocialAccount = computed(() => true);
+    const canInviteMember = computed(() => true);
 
     const hasCreditsLeft = computed(() => {
         if (isSelfHosted.value) return true;
@@ -58,9 +38,6 @@ export const useFeatureAccess = () => {
         usage,
         features,
         isSelfHosted,
-        workspaceLimit,
-        socialAccountLimit,
-        memberLimit,
         monthlyCreditsLimit,
         canCreateWorkspace,
         canConnectSocialAccount,

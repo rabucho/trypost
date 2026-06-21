@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\User\CreateUser;
+use App\Enums\Plan\Slug;
 use Database\Seeders\PlanSeeder;
 
 beforeEach(function () {
@@ -36,6 +37,6 @@ test('new signup creates generic trial when card is not required', function () {
         'registration_ip' => '127.0.0.1',
     ]);
 
-    expect($user->account->plan_id)->not->toBeNull();
+    expect($user->account->plan->slug)->toBe(Slug::Workspace);
     expect($user->account->trial_ends_at)->not->toBeNull();
 });

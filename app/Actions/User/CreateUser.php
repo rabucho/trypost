@@ -29,7 +29,7 @@ class CreateUser
             ];
 
             if (! $requiresCardForTrial) {
-                $accountAttributes['plan_id'] = Plan::where('slug', Slug::Starter)->value('id');
+                $accountAttributes['plan_id'] = Plan::where('slug', Slug::Workspace)->value('id');
                 $accountAttributes['trial_ends_at'] = now()->addDays(config('cashier.trial_days', 7));
             }
 

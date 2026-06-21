@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Features;
 
 use App\Models\Account;
+use App\Support\BillingCycle;
 
 class MonthlyCreditsLimit
 {
@@ -12,6 +13,6 @@ class MonthlyCreditsLimit
 
     public function resolve(Account $scope): int
     {
-        return $scope->plan?->monthly_credits_limit ?? 1000;
+        return BillingCycle::for($scope)->creditAllotment();
     }
 }

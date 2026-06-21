@@ -37,6 +37,9 @@ class CreateWorkspace
         $workspace->members()->attach($user->id, ['role' => Role::Admin->value]);
         $user->switchWorkspace($workspace);
 
+        $user->account?->forgetPlanFeatureCache();
+        $user->account?->syncWorkspaceQuantity();
+
         return $workspace;
     }
 }

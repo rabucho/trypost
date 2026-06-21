@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\App\Settings;
 
-use App\Features\MemberLimit;
 use App\Features\MonthlyCreditsLimit;
-use App\Features\SocialAccountLimit;
-use App\Features\WorkspaceLimit;
 use App\Http\Controllers\App\Controller;
-use App\Models\AiUsageLog;
+use App\Support\BillingCycle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,12 +37,9 @@ class UsageController extends Controller
             'plan' => $account->plan,
             'usage' => [
                 'workspaceCount' => $account->workspaces()->count(),
-                'workspaceLimit' => Feature::for($account)->value(WorkspaceLimit::class),
                 'socialAccountCount' => $totalSocialAccounts,
-                'socialAccountLimit' => Feature::for($account)->value(SocialAccountLimit::class),
                 'memberCount' => $totalMembers,
-                'memberLimit' => Feature::for($account)->value(MemberLimit::class),
-                'creditsUsed' => AiUsageLog::monthlyCredits($account->id),
+                'creditsUsed' => BillingCycle::for($account)->usedCredits(),
                 'monthlyCreditsLimit' => Feature::for($account)->value(MonthlyCreditsLimit::class),
             ],
         ]);

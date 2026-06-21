@@ -241,6 +241,13 @@ Vue components must have a single root element.
 - Put system/instruction text in Blade under `resources/views/prompts/` (e.g. `prompts.post_content.generator`, `prompts.post_image.regenerator`).
 - In `instructions()`, return `view('prompts....', [...])->render()` and pass only the variables the Blade file needs — same pattern as `PostContentStreamer`, `PostContentReviewer`, and `BrandAnalyzer`.
 
+## System AI (always allowed, never metered)
+
+- The brand analyzer / workspace autofill (`App\Services\Brand\BrandAnalyzerRunner`, `App\Actions\Ai\AutofillBrand`, `WorkspaceController::autofillBrand`) is a **system** feature, not the user's AI usage. It runs during workspace creation, before the user has AI access.
+- It MUST always be allowed: NEVER gate it behind the `useAi` policy, an active subscription, or a credit check.
+- It MUST NOT deduct anything: NEVER call `RecordAiUsage` (or otherwise consume the account's credits) for brand analysis. Cost is the platform's, not the user's.
+- Any future "system" AI helper (runs as part of the platform, not on behalf of a workspace's metered quota) follows the same rule: ungated and unmetered.
+
 ## Icons (@tabler/icons-vue)
 
 - This project uses `@tabler/icons-vue` for all icons. NEVER use `lucide-vue-next`.

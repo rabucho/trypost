@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\Plan\Slug;
 use App\Models\Account;
 use App\Models\Invite;
 use App\Models\Plan;
@@ -43,17 +44,19 @@ test('usage returns correct counts across the account', function () {
     ]);
 });
 
-test('featureLimits returns plan-resolved limits', function () {
-    $plan = Plan::where('slug', 'plus')->first();
+test('featureLimits returns the monthly credits allotment', function () {
+    $plan = Plan::where('slug', Slug::Workspace)->first();
     $this->account->update(['plan_id' => $plan->id]);
+
+    Workspace::factory()->count(2)->create([
+        'account_id' => $this->account->id,
+        'user_id' => $this->owner->id,
+    ]);
 
     $limits = $this->account->featureLimits();
 
     expect($limits)->toBe([
-        'workspaceLimit' => $plan->workspace_limit,
-        'socialAccountLimit' => $plan->social_account_limit,
-        'memberLimit' => $plan->member_limit,
-        'monthlyCreditsLimit' => $plan->monthly_credits_limit,
+        'monthlyCreditsLimit' => 5000,
     ]);
 });
 

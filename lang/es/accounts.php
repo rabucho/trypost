@@ -142,6 +142,7 @@ return [
         'connected' => '¡Cuenta conectada!',
         'reconnected' => '¡Cuenta reconectada!',
         'error_connecting' => 'Error al conectar la cuenta. Inténtalo de nuevo.',
+        'network_taken' => 'Este workspace ya tiene una cuenta para esta red. Desconéctala primero.',
         'error_connecting_page' => 'Error al conectar la página. Inténtalo de nuevo.',
         'error_connecting_channel' => 'Error al conectar el canal. Inténtalo de nuevo.',
         'session_expired' => 'Sesión expirada. Inténtalo de nuevo.',

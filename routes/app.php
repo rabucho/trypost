@@ -10,6 +10,7 @@ use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\DiscordController as AppDiscordController;
 use App\Http\Controllers\App\GiphyController;
 use App\Http\Controllers\App\NotificationController;
+use App\Http\Controllers\App\OnboardingController;
 use App\Http\Controllers\App\PostAiCreateController;
 use App\Http\Controllers\App\PostAiGenerateController;
 use App\Http\Controllers\App\PostAiRegenerateMediaController;
@@ -55,6 +56,8 @@ Route::middleware(['auth'])->group(function () {
     })->name('app.home');
 
     Route::get('subscribe', [BillingController::class, 'subscribe'])->name('app.subscribe');
+    Route::get('onboarding', [OnboardingController::class, 'index'])->name('app.onboarding');
+    Route::post('onboarding', [OnboardingController::class, 'store'])->name('app.onboarding.store');
     Route::post('billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('app.billing.checkout');
     Route::get('billing/processing', [BillingController::class, 'processing'])->name('app.billing.processing');
 
@@ -254,7 +257,7 @@ Route::middleware(['auth', EnsureAccountReady::class])->group(function () {
     // Billing
     Route::get('settings/account/billing', [BillingController::class, 'index'])->name('app.billing.index');
     Route::get('settings/account/billing/portal', [BillingController::class, 'portal'])->name('app.billing.portal');
-    Route::post('settings/account/billing/swap/{plan}', [BillingController::class, 'swap'])->name('app.billing.swap');
+    Route::post('settings/account/billing/swap-to-yearly', [BillingController::class, 'swapToYearly'])->name('app.billing.swap-to-yearly');
 
 });
 

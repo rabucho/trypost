@@ -1,0 +1,121 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Support;
+
+use App\Models\Account;
+use App\Models\AiUsageLog;
+use Carbon\CarbonImmutable;
+use Laravel\Cashier\Subscription;
+
+/**
+ * Resolves an account's current AI credit cycle: the allotment it is entitled to
+ * and the time window usage is measured against. The window follows the Stripe
+ * billing cycle (monthly or yearly), anchored on the subscription date — so an
+ * annual subscriber receives twelve months of credits upfront and resets on
+ * their renewal date, while a monthly subscriber resets each anniversary day.
+ */
+class BillingCycle
+{
+    private function __construct(private readonly Account $account) {}
+
+    public static function for(Account $account): self
+    {
+        return new self($account);
+    }
+
+    public function intervalMonths(): int
+    {
+        $subscription = $this->subscription();
+        $plan = $this->account->plan;
+
+        if ($subscription !== null
+            && $plan?->stripe_yearly_price_id !== null
+            && $subscription->stripe_price === $plan->stripe_yearly_price_id
+        ) {
+            return 12;
+        }
+
+        return 1;
+    }
+
+    public function creditAllotment(): int
+    {
+        $base = (int) ($this->account->plan?->monthly_credits_limit ?? 0);
+        $months = $this->onTrial() ? 1 : $this->intervalMonths();
+
+        return $base * $this->account->workspaces()->count() * $months;
+    }
+
+    public function usedCredits(): int
+    {
+        return AiUsageLog::creditsUsedBetween(
+            (string) $this->account->id,
+            $this->periodStart(),
+            $this->periodEnd(),
+        );
+    }
+
+    public function periodStart(): CarbonImmutable
+    {
+        return $this->window()[0];
+    }
+
+    public function periodEnd(): CarbonImmutable
+    {
+        return $this->window()[1];
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function window(): array
+    {
+        $subscription = $this->subscription();
+
+        if ($subscription !== null && $subscription->onTrial()) {
+            return [
+                CarbonImmutable::parse($subscription->created_at),
+                CarbonImmutable::parse($subscription->trial_ends_at),
+            ];
+        }
+
+        $anchor = $this->anchor();
+        $now = CarbonImmutable::now();
+        $step = $this->intervalMonths();
+
+        $periods = 0;
+
+        while ($anchor->addMonthsNoOverflow(($periods + 1) * $step)->lessThanOrEqualTo($now)) {
+            $periods++;
+        }
+
+        return [
+            $anchor->addMonthsNoOverflow($periods * $step),
+            $anchor->addMonthsNoOverflow(($periods + 1) * $step),
+        ];
+    }
+
+    private function anchor(): CarbonImmutable
+    {
+        $subscription = $this->subscription();
+
+        $anchor = $subscription?->trial_ends_at
+            ?? $subscription?->created_at
+            ?? $this->account->created_at
+            ?? CarbonImmutable::now();
+
+        return CarbonImmutable::parse($anchor);
+    }
+
+    private function onTrial(): bool
+    {
+        return (bool) $this->subscription()?->onTrial();
+    }
+
+    private function subscription(): ?Subscription
+    {
+        return $this->account->subscription(Account::SUBSCRIPTION_NAME);
+    }
+}

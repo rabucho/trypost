@@ -36,7 +36,6 @@ class MastodonController extends SocialController
         }
 
         $this->authorize('manageAccounts', $workspace);
-        $this->ensureSocialAccountLimit($workspace);
 
         return Inertia::render('accounts/MastodonConnect', [
             'errors' => session('errors')?->getBag('default')?->toArray() ?? [],

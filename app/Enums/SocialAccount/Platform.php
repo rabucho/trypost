@@ -23,6 +23,35 @@ enum Platform: string
     case Telegram = 'telegram';
     case Discord = 'discord';
 
+    /**
+     * The social network this platform belongs to. Variants that represent the
+     * same network (LinkedIn profile vs. company page, Instagram standalone vs.
+     * Facebook-linked) collapse to one key so a workspace may connect only one
+     * account per network.
+     */
+    public function network(): string
+    {
+        return match ($this) {
+            self::LinkedIn, self::LinkedInPage => 'linkedin',
+            self::Instagram, self::InstagramFacebook => 'instagram',
+            default => $this->value,
+        };
+    }
+
+    /**
+     * All platform values that share this platform's network, used to enforce
+     * the one-account-per-network rule across variants.
+     *
+     * @return array<int, string>
+     */
+    public function networkPlatformValues(): array
+    {
+        return array_values(array_map(
+            fn (self $platform): string => $platform->value,
+            array_filter(self::cases(), fn (self $platform): bool => $platform->network() === $this->network()),
+        ));
+    }
+
     public function label(): string
     {
         return match ($this) {

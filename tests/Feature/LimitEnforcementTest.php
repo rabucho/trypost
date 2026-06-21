@@ -4,20 +4,13 @@ declare(strict_types=1);
 
 use App\Enums\UserWorkspace\Role;
 use App\Models\Account;
-use App\Models\Plan;
 use App\Models\User;
 use App\Models\Workspace;
 
 beforeEach(function () {
     config(['trypost.self_hosted' => false]);
 
-    $this->plan = Plan::first();
-    $this->plan->update([
-        'workspace_limit' => 5,
-        'member_limit' => 5,
-    ]);
-
-    $this->account = Account::factory()->create(['plan_id' => $this->plan->id]);
+    $this->account = Account::factory()->create();
     $this->user = User::factory()->create([
         'account_id' => $this->account->id,
     ]);
@@ -30,37 +23,7 @@ beforeEach(function () {
     $this->user->update(['current_workspace_id' => $this->workspace->id]);
 });
 
-test('can invite member within limit', function () {
-    expect($this->user->can('inviteMember', $this->workspace))->toBeTrue();
-});
-
-test('cannot invite member beyond limit', function () {
-    $members = User::factory()->count(4)->create([
-        'account_id' => $this->account->id,
-    ]);
-
-    foreach ($members as $member) {
-        $this->workspace->members()->attach($member->id, ['role' => Role::Member->value]);
-    }
-
-    // 1 owner + 4 members = 5, which is the limit
-    expect($this->user->can('inviteMember', $this->workspace))->toBeFalse();
-});
-
-test('self hosted mode bypasses workspace limit', function () {
-    config(['trypost.self_hosted' => true]);
-
-    Workspace::factory()->count(10)->create([
-        'account_id' => $this->account->id,
-        'user_id' => $this->user->id,
-    ]);
-
-    expect($this->user->can('create', Workspace::class))->toBeTrue();
-});
-
-test('self hosted mode bypasses member limit', function () {
-    config(['trypost.self_hosted' => true]);
-
+test('owner can invite members with no count limit', function () {
     $members = User::factory()->count(10)->create([
         'account_id' => $this->account->id,
     ]);
@@ -70,4 +33,11 @@ test('self hosted mode bypasses member limit', function () {
     }
 
     expect($this->user->can('inviteMember', $this->workspace))->toBeTrue();
+});
+
+test('a non-admin member cannot invite members', function () {
+    $member = User::factory()->create(['account_id' => $this->account->id]);
+    $this->workspace->members()->attach($member->id, ['role' => Role::Member->value]);
+
+    expect($member->can('inviteMember', $this->workspace))->toBeFalse();
 });

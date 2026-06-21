@@ -43,6 +43,7 @@ return [
     ],
 
     'limit_reached' => 'You have reached your plan limit for workspaces.',
+    'cannot_delete_last' => 'You cannot delete your only workspace. Cancel your subscription in billing settings to close your account.',
 
     'flash' => [
         'deleted' => 'Workspace deleted successfully.',

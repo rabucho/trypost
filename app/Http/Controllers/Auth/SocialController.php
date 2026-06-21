@@ -8,7 +8,7 @@ use App\Actions\SocialAccount\ToggleSocialAccount;
 use App\Enums\PostPlatform\Status as PostPlatformStatus;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
-use App\Features\SocialAccountLimit;
+use App\Exceptions\SocialAccount\NetworkAlreadyConnectedException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\App\SocialAccountResource;
 use App\Models\SocialAccount;
@@ -19,7 +19,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Pennant\Feature;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
@@ -31,19 +30,6 @@ class SocialController extends Controller
     {
         if (isset($this->platform) && ! $this->platform->isEnabled()) {
             abort(SymfonyResponse::HTTP_FORBIDDEN, 'This platform is currently unavailable.');
-        }
-    }
-
-    protected function ensureSocialAccountLimit(Workspace $workspace): void
-    {
-        if (config('trypost.self_hosted')) {
-            return;
-        }
-
-        $limit = Feature::for($workspace->account)->value(SocialAccountLimit::class);
-
-        if ($workspace->socialAccounts()->count() >= $limit) {
-            abort(SymfonyResponse::HTTP_FORBIDDEN, __('accounts.limit_reached'));
         }
     }
 
@@ -146,8 +132,6 @@ class SocialController extends Controller
             return redirect()->route('app.workspaces.create');
         }
 
-        $this->ensureSocialAccountLimit($workspace);
-
         session(['social_connect_workspace' => $workspace->id]);
         session(['social_connect_onboarding' => $request->boolean('onboarding')]);
 
@@ -201,6 +185,8 @@ class SocialController extends Controller
             );
 
             return $this->popupCallback(true, __('accounts.popup_callback.connected'), $platform->value);
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $platform->value);
         } catch (\Exception $e) {
             Log::error('Social OAuth Error', [
                 'platform' => $platform->value,

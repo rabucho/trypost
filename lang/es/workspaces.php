@@ -43,6 +43,7 @@ return [
     ],
 
     'limit_reached' => 'Has alcanzado el límite de workspaces de tu plan.',
+    'cannot_delete_last' => 'No puedes eliminar tu único workspace. Cancela tu suscripción en la configuración de facturación para cerrar tu cuenta.',
 
     'flash' => [
         'deleted' => 'Workspace eliminado correctamente.',

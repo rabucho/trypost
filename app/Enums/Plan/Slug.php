@@ -10,6 +10,7 @@ enum Slug: string
     case Plus = 'plus';
     case Pro = 'pro';
     case Max = 'max';
+    case Workspace = 'workspace';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum Slug: string
             self::Plus => 'Plus',
             self::Pro => 'Pro',
             self::Max => 'Max',
+            self::Workspace => 'Workspace',
         };
     }
 }

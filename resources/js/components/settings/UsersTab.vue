@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { IconClock, IconDots, IconShield, IconTrash, IconUser } from '@tabler/icons-vue';
-import { trans } from 'laravel-vue-i18n';
 import { ref } from 'vue';
 
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -23,11 +22,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { useFeatureAccess } from '@/composables/useFeatureAccess';
-import { useUpgradeDialog } from '@/composables/useUpgradeDialog';
-import { WorkspaceRole } from '@/types/workspace-role';
 import { destroy as destroyInvite } from '@/routes/app/invites';
 import { remove as removeMemberRoute, updateRole } from '@/routes/app/members';
+import { WorkspaceRole } from '@/types/workspace-role';
 
 interface Member {
     id: string;
@@ -51,14 +48,7 @@ const inviteDialogOpen = ref(false);
 const removeMemberModal = ref<InstanceType<typeof ConfirmDeleteModal> | null>(null);
 const cancelInvitationModal = ref<InstanceType<typeof ConfirmDeleteModal> | null>(null);
 
-const { canInviteMember } = useFeatureAccess();
-const { openUpgrade } = useUpgradeDialog();
-
 const handleInviteClick = () => {
-    if (!canInviteMember.value) {
-        openUpgrade(trans('billing.upgrade_dialog.reasons.member_limit'));
-        return;
-    }
     inviteDialogOpen.value = true;
 };
 

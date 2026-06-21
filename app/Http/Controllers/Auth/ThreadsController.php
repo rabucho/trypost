@@ -36,7 +36,6 @@ class ThreadsController extends SocialController
         }
 
         $this->authorize('manageAccounts', $workspace);
-        $this->ensureSocialAccountLimit($workspace);
 
         session([
             'social_connect_workspace' => $workspace->id,

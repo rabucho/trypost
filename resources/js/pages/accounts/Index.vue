@@ -9,7 +9,6 @@ import {
     IconSearch,
     IconTrash,
 } from '@tabler/icons-vue';
-import { trans } from 'laravel-vue-i18n';
 import { computed, ref, watch } from 'vue';
 
 import { index as accountsIndex } from '@/actions/App/Http/Controllers/Auth/SocialController';
@@ -38,9 +37,7 @@ import {
     TableLoadMore,
     TableRow,
 } from '@/components/ui/table';
-import { useFeatureAccess } from '@/composables/useFeatureAccess';
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
-import { useUpgradeDialog } from '@/composables/useUpgradeDialog';
 import date from '@/date';
 import debounce from '@/debounce';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -79,14 +76,7 @@ const isAddDialogOpen = ref(props.openDialog);
 const deleteModal = ref<InstanceType<typeof ConfirmDeleteModal> | null>(null);
 const searchQuery = ref(props.filters.search);
 
-const { canConnectSocialAccount } = useFeatureAccess();
-const { openUpgrade } = useUpgradeDialog();
-
 const handleAddClick = () => {
-    if (!canConnectSocialAccount.value) {
-        openUpgrade(trans('billing.upgrade_dialog.reasons.social_account_limit'));
-        return;
-    }
     isAddDialogOpen.value = true;
 };
 

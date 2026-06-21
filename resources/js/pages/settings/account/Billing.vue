@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head, usePage } from '@inertiajs/vue3';
-import { IconCreditCard, IconDownload, IconFileText, IconSparkles } from '@tabler/icons-vue';
-import { trans } from 'laravel-vue-i18n';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { IconCreditCard, IconDownload, IconFileText, IconRosetteDiscountCheck, IconSparkles } from '@tabler/icons-vue';
+import { trans, transChoice } from 'laravel-vue-i18n';
 import { computed } from 'vue';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -9,11 +9,10 @@ import PageHeader from '@/components/PageHeader.vue';
 import SettingsTabsNav from '@/components/settings/SettingsTabsNav.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useUpgradeDialog } from '@/composables/useUpgradeDialog';
 import date from '@/date';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { edit as accountEdit } from '@/routes/app/account';
-import { index as billingIndex, portal } from '@/routes/app/billing';
+import { index as billingIndex, portal, swapToYearly } from '@/routes/app/billing';
 import { index as usageIndex } from '@/routes/app/usage';
 import type { AuthPlan } from '@/types';
 
@@ -42,13 +41,13 @@ interface Invoice {
     invoice_pdf: string;
 }
 
-defineProps<{
+const props = defineProps<{
     hasSubscription: boolean;
     onTrial: boolean;
     trialEndsAt: string | null;
     subscription: Subscription | null;
     plan: Plan | null;
-    plans: Plan[];
+    workspaceCount: number;
     invoices: Invoice[];
     defaultPaymentMethod: PaymentMethod | null;
 }>();
@@ -69,7 +68,18 @@ const displayPrice = (slug: string | undefined): string => {
     return trans(`billing.subscribe.prices.${slug}.${key}`);
 };
 
-const { openUpgrade } = useUpgradeDialog();
+const workspacesLabel = computed(() => transChoice('billing.plan.workspaces', props.workspaceCount, { count: props.workspaceCount }));
+
+const monthlyPrice = computed(() => (props.plan ? trans(`billing.subscribe.prices.${props.plan.slug}.monthly`) : ''));
+const yearlyPerMonthPrice = computed(() => (props.plan ? trans(`billing.subscribe.prices.${props.plan.slug}.yearly_per_month`) : ''));
+
+const showAnnualBanner = computed(() => props.hasSubscription && ! isYearly.value);
+
+const upgradeForm = useForm({});
+
+const upgradeToAnnual = (): void => {
+    upgradeForm.post(swapToYearly.url(), { preserveScroll: true });
+};
 </script>
 
 <template>
@@ -85,6 +95,32 @@ const { openUpgrade } = useUpgradeDialog();
             <SettingsTabsNav :tabs="tabs" active="billing" />
 
             <section class="space-y-12">
+                <!-- ───── Annual upgrade banner ───── -->
+                <div
+                    v-if="showAnnualBanner"
+                    class="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-foreground bg-emerald-100 p-5 shadow-2xs"
+                >
+                    <span class="inline-flex size-12 -rotate-3 items-center justify-center rounded-2xl border-2 border-foreground bg-emerald-300 shadow-2xs">
+                        <IconRosetteDiscountCheck class="size-6 text-foreground" stroke-width="2" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-base font-bold text-foreground">
+                            {{ $t('billing.annual_banner.title') }}
+                        </p>
+                        <p class="text-sm text-foreground/70">
+                            {{ $t('billing.annual_banner.description') }}
+                        </p>
+                        <p class="mt-1 text-sm font-semibold text-foreground">
+                            <span class="text-foreground/50 line-through tabular-nums">{{ monthlyPrice }}</span>
+                            <span class="ml-1.5 tabular-nums">{{ yearlyPerMonthPrice }}</span>
+                            <span class="font-medium text-foreground/60">/{{ $t('billing.plan.month') }} · {{ $t('billing.subscribe.billed_yearly') }}</span>
+                        </p>
+                    </div>
+                    <Button class="shrink-0" :disabled="upgradeForm.processing" @click="upgradeToAnnual">
+                        {{ $t('billing.annual_banner.cta') }}
+                    </Button>
+                </div>
+
                 <!-- ───── Current plan hero card ───── -->
                 <div class="space-y-6">
                     <HeadingSmall
@@ -103,7 +139,7 @@ const { openUpgrade } = useUpgradeDialog();
                                         class="text-3xl font-semibold leading-tight text-foreground"
                                         style="font-family: var(--font-display)"
                                     >
-                                        {{ plan?.name ?? 'No plan' }}
+                                        {{ workspacesLabel }}
                                     </h3>
                                     <Badge v-if="onTrial" variant="secondary">{{ $t('billing.plan.trial') }}</Badge>
                                     <Badge v-else-if="subscription?.stripe_status === 'active'" variant="success">{{ $t('billing.plan.active') }}</Badge>
@@ -112,7 +148,7 @@ const { openUpgrade } = useUpgradeDialog();
                                 </div>
                                 <p class="text-base text-foreground/70">
                                     <span class="text-2xl font-bold tabular-nums text-foreground">{{ displayPrice(plan?.slug) }}</span>
-                                    <span class="ml-1">/{{ $t('billing.plan.month') }}</span>
+                                    <span class="ml-1">/{{ $t('billing.plan.month') }} {{ $t('billing.plan.per_workspace') }}</span>
                                 </p>
                                 <p v-if="plan" class="text-xs font-medium text-foreground/60">
                                     {{ isYearly ? $t('billing.subscribe.billed_yearly') : $t('billing.subscribe.billed_monthly') }}
@@ -124,13 +160,10 @@ const { openUpgrade } = useUpgradeDialog();
                                     {{ $t('billing.plan.trial_ends') }}: <span class="text-foreground">{{ date.formatDate(trialEndsAt) }}</span>
                                 </p>
                             </div>
-                            <div class="flex flex-col items-end gap-4 shrink-0">
+                            <div class="flex shrink-0 flex-col items-end gap-4">
                                 <span class="inline-flex size-14 -rotate-3 items-center justify-center rounded-2xl border-2 border-foreground bg-amber-200 shadow-2xs">
                                     <IconSparkles class="size-7 text-foreground" stroke-width="2" />
                                 </span>
-                                <Button @click="openUpgrade()">
-                                    {{ $t('billing.plan.change') }}
-                                </Button>
                             </div>
                         </div>
                     </div>

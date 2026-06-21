@@ -13,14 +13,12 @@ use App\Enums\Workspace\ImageStyle;
 use App\Http\Requests\App\Workspace\StoreWorkspaceRequest;
 use App\Http\Requests\App\Workspace\UpdateWorkspaceRequest;
 use App\Http\Resources\App\WorkspaceMemberResource;
-use App\Models\Account;
 use App\Models\Workspace;
 use App\Services\Brand\LogoAttacher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -70,13 +68,11 @@ class WorkspaceController extends Controller
     {
         $user = $request->user();
 
-        if ($user->ownedWorkspacesCount() > 0 && ! $user->account?->hasActiveSubscription()) {
+        if (! config('trypost.self_hosted')
+            && $user->ownedWorkspacesCount() > 0
+            && ! $user->account?->hasActiveSubscription()) {
             return redirect()->route('app.billing.index')
                 ->with('message', 'Subscribe to create more workspaces.');
-        }
-
-        if ($this->hasReachedWorkspaceLimit($user->account)) {
-            return back()->with('flash.error', __('workspaces.limit_reached'));
         }
 
         return Inertia::render('workspaces/Create', [
@@ -92,15 +88,8 @@ class WorkspaceController extends Controller
             'url' => ['required', 'string', 'max:255'],
         ]);
 
-        $user = $request->user();
-
-        $gate = Gate::inspect('useAi', $user->account);
-        if ($gate->denied()) {
-            return response()->json(['message' => $gate->message()], SymfonyResponse::HTTP_PAYMENT_REQUIRED);
-        }
-
         try {
-            $metadata = $autofill(data_get($validated, 'url'), $user->currentWorkspace, $user->id);
+            $metadata = $autofill(data_get($validated, 'url'));
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
@@ -111,10 +100,6 @@ class WorkspaceController extends Controller
     public function store(StoreWorkspaceRequest $request, LogoAttacher $logoAttacher): RedirectResponse
     {
         $user = $request->user();
-
-        if ($this->hasReachedWorkspaceLimit($user->account)) {
-            abort(SymfonyResponse::HTTP_FORBIDDEN, __('workspaces.limit_reached'));
-        }
 
         $validated = $request->validated();
 
@@ -235,28 +220,13 @@ class WorkspaceController extends Controller
 
         $user = $request->user();
 
+        if (! config('trypost.self_hosted') && $workspace->account->workspaces()->count() <= 1) {
+            return back()->with('flash.error', __('workspaces.cannot_delete_last'));
+        }
+
         DeleteWorkspace::execute($user, $workspace);
 
         return redirect()->route('app.workspaces.index')
             ->with('flash.success', __('workspaces.flash.deleted'));
-    }
-
-    /**
-     * Check whether the account has hit its plan's workspace limit.
-     * Returns false in self-hosted mode (no plan limits apply).
-     */
-    private function hasReachedWorkspaceLimit(?Account $account): bool
-    {
-        if (config('trypost.self_hosted')) {
-            return false;
-        }
-
-        if (! $account) {
-            return false;
-        }
-
-        $limit = (int) ($account->plan?->workspace_limit ?? 1);
-
-        return $account->workspaces()->count() >= $limit;
     }
 }

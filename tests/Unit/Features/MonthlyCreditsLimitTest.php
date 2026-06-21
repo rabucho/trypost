@@ -2,21 +2,23 @@
 
 declare(strict_types=1);
 
+use App\Enums\Plan\Slug;
 use App\Features\MonthlyCreditsLimit;
 use App\Models\Account;
 use App\Models\Plan;
+use App\Models\Workspace;
 
-test('returns plan monthly credits limit', function () {
-    $plan = new Plan(['monthly_credits_limit' => 5000]);
-    $account = new Account;
-    $account->setRelation('plan', $plan);
+test('resolves to the billing cycle credit allotment', function () {
+    $plan = Plan::where('slug', Slug::Workspace)->first();
+    $account = Account::factory()->create(['plan_id' => $plan->id, 'trial_ends_at' => null]);
+    Workspace::factory()->count(2)->create(['account_id' => $account->id]);
 
     expect((new MonthlyCreditsLimit)->resolve($account))->toBe(5000);
 });
 
-test('falls back to 1000 when no plan', function () {
-    $account = new Account;
-    $account->setRelation('plan', null);
+test('resolves to zero when the account has no workspaces', function () {
+    $plan = Plan::where('slug', Slug::Workspace)->first();
+    $account = Account::factory()->create(['plan_id' => $plan->id, 'trial_ends_at' => null]);
 
-    expect((new MonthlyCreditsLimit)->resolve($account))->toBe(1000);
+    expect((new MonthlyCreditsLimit)->resolve($account))->toBe(0);
 });
