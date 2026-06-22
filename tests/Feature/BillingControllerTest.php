@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Enums\Plan\Slug;
 use App\Enums\UserWorkspace\Role;
 use App\Models\Account;
 use App\Models\Plan;
@@ -38,16 +37,6 @@ test('subscribe redirects to onboarding', function () {
     $response = $this->actingAs($this->user)->get(route('app.subscribe'));
 
     $response->assertRedirect(route('app.onboarding'));
-});
-
-test('checkout redirects to calendar in self hosted mode', function () {
-    config(['trypost.self_hosted' => true]);
-    $plan = Plan::where('slug', 'workspace')->first();
-
-    $response = $this->actingAs($this->user)
-        ->post(route('app.billing.checkout', $plan), ['price_id' => 'price_x']);
-
-    $response->assertRedirect(route('app.calendar'));
 });
 
 test('swapToYearly redirects to calendar in self hosted mode', function () {
@@ -228,13 +217,6 @@ test('billing processing redirects to calendar in self hosted mode', function ()
 });
 
 // Checkout tests
-test('checkout requires authentication', function () {
-    $plan = Plan::first();
-    $response = $this->post(route('app.billing.checkout', $plan));
-
-    $response->assertRedirect(route('login'));
-});
-
 // Portal tests
 test('portal requires authentication', function () {
     $response = $this->get(route('app.billing.portal'));
@@ -322,17 +304,6 @@ test('swapToYearly is a no-op when already on annual billing', function () {
     $this->actingAs($this->user)
         ->post(route('app.billing.swap-to-yearly'))
         ->assertRedirect(route('app.billing.index'));
-});
-
-test('checkout rejects an archived plan', function () {
-    config(['trypost.self_hosted' => false]);
-
-    $archived = Plan::factory()->archived()->create(['slug' => Slug::Starter, 'name' => 'Legacy']);
-
-    $response = $this->actingAs($this->user)
-        ->post(route('app.billing.checkout', $archived), ['price_id' => 'price_x']);
-
-    $response->assertNotFound();
 });
 
 test('swapToYearly requires authentication', function () {

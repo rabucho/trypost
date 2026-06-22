@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Enums\UserWorkspace\Role;
 use App\Models\AccessToken;
+use App\Models\Account;
+use App\Models\Plan;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -107,4 +109,49 @@ function createApiTestToken(array $overrides = []): array
 function feedFixture(string $name): string
 {
     return file_get_contents(base_path("tests/fixtures/feeds/{$name}.xml"));
+}
+
+/**
+ * Create an account on the Workspace plan with an active subscription on the
+ * given Stripe price, plus N workspaces. Used by the billing-cycle tests.
+ *
+ * @param  array<string, mixed>  $subscriptionAttributes
+ */
+function billingAccount(string $price, array $subscriptionAttributes = [], int $workspaces = 1): Account
+{
+    $plan = Plan::query()->firstOrFail();
+    $plan->update([
+        'stripe_monthly_price_id' => 'price_month',
+        'stripe_yearly_price_id' => 'price_year',
+    ]);
+
+    $account = Account::factory()->create([
+        'plan_id' => $plan->id,
+        'trial_ends_at' => null,
+    ]);
+
+    $account->subscriptions()->create(array_merge([
+        'type' => Account::SUBSCRIPTION_NAME,
+        'stripe_id' => 'sub_'.fake()->uuid(),
+        'stripe_status' => 'active',
+        'stripe_price' => $price,
+        'quantity' => $workspaces,
+    ], $subscriptionAttributes));
+
+    Workspace::factory()->count($workspaces)->create(['account_id' => $account->id]);
+
+    return $account->refresh();
+}
+
+/**
+ * Attach an active default subscription to the given account.
+ */
+function subscribeAccount(Account $account): void
+{
+    $account->subscriptions()->create([
+        'type' => Account::SUBSCRIPTION_NAME,
+        'stripe_id' => 'sub_'.fake()->uuid(),
+        'stripe_status' => 'active',
+        'stripe_price' => 'price_123',
+    ]);
 }

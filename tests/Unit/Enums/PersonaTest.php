@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 use App\Enums\User\Persona;
 
-test('every persona has a non-empty label', function () {
+test('persona values are stable', function () {
+    expect(array_map(fn (Persona $persona): string => $persona->value, Persona::cases()))
+        ->toBe(['creator', 'freelancer', 'startup', 'agency', 'small_business', 'other']);
+});
+
+test('every persona has an onboarding label in every locale', function (string $locale) {
     foreach (Persona::cases() as $persona) {
-        expect($persona->label())->toBeString()->not->toBe('');
+        $key = "onboarding.personas.{$persona->value}";
+
+        expect(__($key, [], $locale))->not->toBe($key);
     }
-});
-
-test('options returns a value and label for every persona', function () {
-    $options = Persona::options();
-
-    expect($options)->toHaveCount(count(Persona::cases()))
-        ->and($options[0])->toHaveKeys(['value', 'label'])
-        ->and($options[0]['value'])->toBe(Persona::Creator->value);
-});
+})->with(['en', 'es', 'pt-BR']);

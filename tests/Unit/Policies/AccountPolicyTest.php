@@ -20,32 +20,19 @@ beforeEach(function () {
 });
 
 test('swapPlan allows the account owner', function () {
-    $plan = Plan::where('slug', 'workspace')->first();
-
-    $response = $this->policy->swapPlan($this->owner, $this->account, $plan);
+    $response = $this->policy->swapPlan($this->owner, $this->account);
 
     expect($response->allowed())->toBeTrue();
 });
 
 test('swapPlan denies a non-owner', function () {
     $member = User::factory()->create(['account_id' => $this->account->id]);
-    $plan = Plan::where('slug', 'workspace')->first();
 
-    $response = $this->policy->swapPlan($member, $this->account, $plan);
+    $response = $this->policy->swapPlan($member, $this->account);
 
     expect($response->denied())->toBeTrue();
     expect($response->message())->toBe(__('billing.flash.cannot_manage'));
 });
-
-function subscribeAccount(Account $account): void
-{
-    $account->subscriptions()->create([
-        'type' => Account::SUBSCRIPTION_NAME,
-        'stripe_id' => 'sub_'.fake()->uuid(),
-        'stripe_status' => 'active',
-        'stripe_price' => 'price_123',
-    ]);
-}
 
 test('useAi allows when subscribed and credits remain', function () {
     config()->set('trypost.self_hosted', false);

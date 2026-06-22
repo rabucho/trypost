@@ -10,6 +10,7 @@ use App\Actions\Workspace\DeleteWorkspace;
 use App\Enums\Workspace\BrandFont;
 use App\Enums\Workspace\BrandVoiceTrait;
 use App\Enums\Workspace\ImageStyle;
+use App\Http\Requests\App\Workspace\AutofillBrandRequest;
 use App\Http\Requests\App\Workspace\StoreWorkspaceRequest;
 use App\Http\Requests\App\Workspace\UpdateWorkspaceRequest;
 use App\Http\Resources\App\WorkspaceMemberResource;
@@ -82,14 +83,10 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    public function autofillBrand(Request $request, AutofillBrand $autofill): JsonResponse
+    public function autofillBrand(AutofillBrandRequest $request, AutofillBrand $autofill): JsonResponse
     {
-        $validated = $request->validate([
-            'url' => ['required', 'string', 'max:255'],
-        ]);
-
         try {
-            $metadata = $autofill(data_get($validated, 'url'));
+            $metadata = $autofill(data_get($request->validated(), 'url'));
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY);
         }

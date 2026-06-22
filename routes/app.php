@@ -58,7 +58,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('subscribe', [BillingController::class, 'subscribe'])->name('app.subscribe');
     Route::get('onboarding', [OnboardingController::class, 'index'])->name('app.onboarding');
     Route::post('onboarding', [OnboardingController::class, 'store'])->name('app.onboarding.store');
-    Route::post('billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('app.billing.checkout');
     Route::get('billing/processing', [BillingController::class, 'processing'])->name('app.billing.processing');
 
     Route::get('workspaces/create', [WorkspaceController::class, 'create'])->name('app.workspaces.create');

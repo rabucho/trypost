@@ -18,11 +18,6 @@ import { edit as accountEdit } from '@/routes/app/account';
 import { index as billingIndex } from '@/routes/app/billing';
 import { index as usageIndex } from '@/routes/app/usage';
 
-interface Plan {
-    name: string;
-    slug: string;
-}
-
 interface UsageData {
     workspaceCount: number;
     socialAccountCount: number;
@@ -32,7 +27,6 @@ interface UsageData {
 }
 
 defineProps<{
-    plan: Plan | null;
     usage: UsageData;
 }>();
 

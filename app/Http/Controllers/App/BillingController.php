@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\App;
 
-use App\Actions\Billing\StartSubscriptionCheckout;
 use App\Models\Account;
-use App\Models\Plan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -21,33 +19,6 @@ class BillingController extends Controller
     public function subscribe(): RedirectResponse
     {
         return redirect()->route('app.onboarding');
-    }
-
-    public function checkout(Request $request, Plan $plan, StartSubscriptionCheckout $checkout): SymfonyResponse|RedirectResponse
-    {
-        if (config('trypost.self_hosted')) {
-            return redirect()->route('app.calendar');
-        }
-
-        $user = $request->user();
-        $account = $user->account;
-
-        abort_unless($user->isAccountOwner(), SymfonyResponse::HTTP_FORBIDDEN);
-        abort_if($plan->is_archived, SymfonyResponse::HTTP_NOT_FOUND);
-
-        $request->validate([
-            'price_id' => ['required', 'string'],
-        ]);
-
-        $priceId = $request->input('price_id');
-
-        abort_unless(
-            $priceId === $plan->stripe_monthly_price_id || $priceId === $plan->stripe_yearly_price_id,
-            422,
-            'Invalid price for this plan',
-        );
-
-        return $checkout->redirect($account, $priceId, route('app.onboarding'));
     }
 
     public function processing(Request $request): Response|RedirectResponse
@@ -163,7 +134,7 @@ class BillingController extends Controller
             return redirect()->route('app.billing.index');
         }
 
-        $authorization = Gate::inspect('swapPlan', [$account, $plan]);
+        $authorization = Gate::inspect('swapPlan', [$account]);
 
         if ($authorization->denied()) {
             return back()->with('flash.error', $authorization->message());

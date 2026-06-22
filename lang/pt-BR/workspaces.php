@@ -42,7 +42,6 @@ return [
         'success' => 'Workspace criado. Conecte uma conta social para começar a postar.',
     ],
 
-    'limit_reached' => 'Você atingiu o limite de workspaces do seu plano.',
     'cannot_delete_last' => 'Você não pode excluir seu único workspace. Cancele sua assinatura nas configurações de cobrança para encerrar sua conta.',
 
     'flash' => [

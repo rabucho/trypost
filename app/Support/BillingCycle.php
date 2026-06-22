@@ -18,6 +18,13 @@ use Laravel\Cashier\Subscription;
  */
 class BillingCycle
 {
+    /** @var array{0: CarbonImmutable, 1: CarbonImmutable}|null */
+    private ?array $window = null;
+
+    private ?Subscription $subscription = null;
+
+    private bool $subscriptionResolved = false;
+
     private function __construct(private readonly Account $account) {}
 
     public static function for(Account $account): self
@@ -72,6 +79,14 @@ class BillingCycle
      */
     private function window(): array
     {
+        return $this->window ??= $this->computeWindow();
+    }
+
+    /**
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function computeWindow(): array
+    {
         $subscription = $this->subscription();
 
         if ($subscription !== null && $subscription->onTrial()) {
@@ -116,6 +131,11 @@ class BillingCycle
 
     private function subscription(): ?Subscription
     {
-        return $this->account->subscription(Account::SUBSCRIPTION_NAME);
+        if (! $this->subscriptionResolved) {
+            $this->subscription = $this->account->subscription(Account::SUBSCRIPTION_NAME);
+            $this->subscriptionResolved = true;
+        }
+
+        return $this->subscription;
     }
 }

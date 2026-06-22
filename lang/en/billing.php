@@ -16,34 +16,10 @@ return [
     ],
 
     'subscribe' => [
-        'page_title' => 'Choose your plan',
-        'eyebrow' => 'Pricing',
-        'title' => 'Choose the right plan for you',
-        'description' => 'Pick the plan that fits you. Billed monthly or annually.',
-        'trial_info' => ':days-day free trial, then billed automatically',
-        'monthly' => 'Monthly',
-        'yearly' => 'Yearly',
-        'per_month' => 'monthly',
-        'per_year' => 'yearly',
         'billed_monthly' => 'Billed monthly',
         'billed_yearly' => 'Billed annually',
-        'features_included' => "What's included:",
-        'everything_in' => 'Everything in :plan, plus:',
-        'save_months' => '2 months free',
-        'popular' => 'Most popular',
-        'start_trial' => 'Start :days-day free trial',
-        'subscribe_cta' => 'Subscribe',
         'prices' => [
             'workspace' => ['monthly' => '$12', 'yearly_per_month' => '$10', 'yearly' => '$120'],
-        ],
-        'features' => [
-            'per_workspace_credits' => ':count AI credits per workspace/mo',
-            'one_per_network' => 'One account per social network',
-            'unlimited_members' => 'Unlimited team members',
-            'all_platforms' => 'Publish to every supported platform',
-        ],
-        'credit_tooltips' => [
-            'workspace' => 'Each workspace includes 2,500 AI credits per month — about 160 AI images or 280 AI text generations.',
         ],
     ],
 

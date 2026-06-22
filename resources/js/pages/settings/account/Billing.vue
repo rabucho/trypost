@@ -17,7 +17,6 @@ import { index as usageIndex } from '@/routes/app/usage';
 import type { AuthPlan } from '@/types';
 
 interface Plan {
-    name: string;
     slug: string;
 }
 

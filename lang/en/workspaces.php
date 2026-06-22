@@ -42,7 +42,6 @@ return [
         'success' => 'Workspace created. Connect a social account to start posting.',
     ],
 
-    'limit_reached' => 'You have reached your plan limit for workspaces.',
     'cannot_delete_last' => 'You cannot delete your only workspace. Cancel your subscription in billing settings to close your account.',
 
     'flash' => [

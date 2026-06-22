@@ -23,7 +23,7 @@ beforeEach(function () {
     $this->user->update(['current_workspace_id' => $this->workspace->id]);
 });
 
-test('owner can invite members with no count limit', function () {
+test('owner can invite members regardless of count', function () {
     $members = User::factory()->count(10)->create([
         'account_id' => $this->account->id,
     ]);

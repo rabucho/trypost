@@ -16,34 +16,10 @@ return [
     ],
 
     'subscribe' => [
-        'page_title' => 'Elige tu plan',
-        'eyebrow' => 'Precios',
-        'title' => 'Elige el plan ideal para ti',
-        'description' => 'Elige el plan que te queda. Facturación mensual o anual.',
-        'trial_info' => 'Prueba gratuita de :days días, luego se cobra automáticamente',
-        'monthly' => 'Mensual',
-        'yearly' => 'Anual',
-        'per_month' => 'mensual',
-        'per_year' => 'anual',
         'billed_monthly' => 'Facturado mensualmente',
         'billed_yearly' => 'Facturado anualmente',
-        'features_included' => 'Qué incluye:',
-        'everything_in' => 'Todo lo de :plan, más:',
-        'save_months' => '2 meses gratis',
-        'popular' => 'Más popular',
-        'start_trial' => 'Comenzar prueba de :days días',
-        'subscribe_cta' => 'Suscribirse',
         'prices' => [
             'workspace' => ['monthly' => '$12', 'yearly_per_month' => '$10', 'yearly' => '$120'],
-        ],
-        'features' => [
-            'per_workspace_credits' => ':count créditos de IA por workspace/mes',
-            'one_per_network' => 'Una cuenta por red social',
-            'unlimited_members' => 'Miembros del equipo ilimitados',
-            'all_platforms' => 'Publica en todas las plataformas compatibles',
-        ],
-        'credit_tooltips' => [
-            'workspace' => 'Cada workspace incluye 2.500 créditos de IA al mes — alrededor de 160 imágenes o 280 textos generados con IA.',
         ],
     ],
 

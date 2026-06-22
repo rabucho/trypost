@@ -34,7 +34,6 @@ class UsageController extends Controller
         }
 
         return Inertia::render('settings/account/Usage', [
-            'plan' => $account->plan,
             'usage' => [
                 'workspaceCount' => $account->workspaces()->count(),
                 'socialAccountCount' => $totalSocialAccounts,

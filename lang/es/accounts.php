@@ -15,8 +15,6 @@ return [
     'search' => 'Buscar cuentas...',
     'added' => 'Agregada :date',
 
-    'limit_reached' => 'Has alcanzado el límite de cuentas sociales de tu plan.',
-
     'not_connected' => 'No conectado',
     'connect' => 'Conectar',
     'connection_lost' => 'Conexión perdida',

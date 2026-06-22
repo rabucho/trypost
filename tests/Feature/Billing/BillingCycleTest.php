@@ -9,35 +9,6 @@ use App\Models\Workspace;
 use App\Support\BillingCycle;
 use Illuminate\Support\Carbon;
 
-/**
- * @param  array<string, mixed>  $subscriptionAttributes
- */
-function billingAccount(string $price, array $subscriptionAttributes = [], int $workspaces = 1): Account
-{
-    $plan = Plan::query()->firstOrFail();
-    $plan->update([
-        'stripe_monthly_price_id' => 'price_month',
-        'stripe_yearly_price_id' => 'price_year',
-    ]);
-
-    $account = Account::factory()->create([
-        'plan_id' => $plan->id,
-        'trial_ends_at' => null,
-    ]);
-
-    $account->subscriptions()->create(array_merge([
-        'type' => Account::SUBSCRIPTION_NAME,
-        'stripe_id' => 'sub_'.fake()->uuid(),
-        'stripe_status' => 'active',
-        'stripe_price' => $price,
-        'quantity' => $workspaces,
-    ], $subscriptionAttributes));
-
-    Workspace::factory()->count($workspaces)->create(['account_id' => $account->id]);
-
-    return $account->refresh();
-}
-
 test('monthly allotment is credits per workspace times workspace count', function () {
     $account = billingAccount('price_month', workspaces: 3);
 
@@ -103,7 +74,6 @@ test('used credits counts only usage within the current cycle window', function 
 });
 
 test('without a subscription the allotment falls back to a monthly amount', function () {
-
     $plan = Plan::query()->firstOrFail();
     $account = Account::factory()->create(['plan_id' => $plan->id, 'trial_ends_at' => null]);
     Workspace::factory()->count(2)->create(['account_id' => $account->id]);

@@ -15,8 +15,6 @@ return [
     'search' => 'Search accounts...',
     'added' => 'Added :date',
 
-    'limit_reached' => 'You have reached your plan limit for social accounts.',
-
     'not_connected' => 'Not connected',
     'connect' => 'Connect',
     'connection_lost' => 'Connection lost',

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Account;
-use App\Models\Plan;
 use App\Models\User;
 use App\Support\BillingCycle;
 use Illuminate\Auth\Access\Response;
@@ -59,7 +58,7 @@ class AccountPolicy
      * account owner may change billing; per-workspace pricing has no plan tiers
      * to downgrade between, so there are no usage-based restrictions.
      */
-    public function swapPlan(User $user, Account $account, Plan $plan): Response
+    public function swapPlan(User $user, Account $account): Response
     {
         if ($user->id !== $account->owner_id) {
             return Response::deny(__('billing.flash.cannot_manage'));

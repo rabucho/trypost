@@ -15,17 +15,12 @@ import type { FunctionalComponent } from 'vue';
 
 import { store } from '@/routes/app/onboarding';
 
-interface Persona {
-    value: string;
-    label: string;
-}
-
-const { selected } = defineProps<{
-    personas: Persona[];
+const props = defineProps<{
+    personas: string[];
     selected?: string | null;
 }>();
 
-const form = useForm({ persona: selected ?? '' });
+const form = useForm({ persona: props.selected ?? '' });
 
 const icons: Record<string, FunctionalComponent> = {
     creator: IconUser,
@@ -77,22 +72,22 @@ const submit = (): void => {
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <button
                     v-for="persona in personas"
-                    :key="persona.value"
+                    :key="persona"
                     type="button"
                     :class="[
                         'relative flex cursor-pointer flex-col items-start gap-3 rounded-2xl border-2 border-foreground p-5 text-left shadow-2xs transition-shadow hover:shadow-md',
-                        form.persona === persona.value ? 'bg-violet-100' : 'bg-card',
+                        form.persona === persona ? 'bg-violet-100' : 'bg-card',
                     ]"
-                    @click="select(persona.value)"
+                    @click="select(persona)"
                 >
                     <span class="inline-flex size-10 items-center justify-center rounded-2xl border-2 border-foreground bg-card shadow-2xs">
-                        <component :is="icons[persona.value] ?? IconDots" class="size-5 text-foreground" stroke-width="2" />
+                        <component :is="icons[persona] ?? IconDots" class="size-5 text-foreground" stroke-width="2" />
                     </span>
                     <span class="text-base font-bold tracking-tight text-foreground">
-                        {{ personaLabel(persona.value) }}
+                        {{ personaLabel(persona) }}
                     </span>
                     <span
-                        v-if="form.persona === persona.value"
+                        v-if="form.persona === persona"
                         class="absolute right-4 top-4 inline-flex size-5 items-center justify-center rounded-full border-2 border-foreground bg-foreground"
                     >
                         <IconCheck class="size-3 text-background" stroke-width="3" />

@@ -32,7 +32,7 @@ class OnboardingController extends Controller
         }
 
         return Inertia::render('onboarding/Index', [
-            'personas' => Persona::options(),
+            'personas' => array_map(fn (Persona $persona): string => $persona->value, Persona::cases()),
             'selected' => $user->persona?->value,
         ]);
     }
