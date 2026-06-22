@@ -48,6 +48,11 @@ class OnboardingController extends Controller
 
         $user = $request->user();
         $account = $user->account;
+
+        if ($account?->subscribed(Account::SUBSCRIPTION_NAME)) {
+            return redirect()->route('app.calendar');
+        }
+
         $persona = (string) $request->validated('persona');
 
         $user->update(['persona' => $persona]);

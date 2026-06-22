@@ -181,7 +181,9 @@ test('linkedin callback fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple linkedin accounts', function () {
+test('user can connect multiple linkedin accounts in self-hosted mode', function () {
+    config()->set('trypost.self_hosted', true);
+
     SocialAccount::factory()->linkedin()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => 'abc123xyz',

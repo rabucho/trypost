@@ -182,7 +182,9 @@ test('youtube callback fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple youtube accounts', function () {
+test('user can connect multiple youtube accounts in self-hosted mode', function () {
+    config()->set('trypost.self_hosted', true);
+
     SocialAccount::factory()->youtube()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => 'UC_channel_123',
@@ -300,4 +302,54 @@ test('youtube channel selection fails with expired session', function () {
     $response->assertOk();
     $response->assertViewHas('success', false);
     $response->assertViewHas('message', 'Session expired. Please try again.');
+});
+
+test('youtube callback shows network_taken when the network is already connected', function () {
+    config()->set('trypost.self_hosted', false);
+
+    SocialAccount::factory()->youtube()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform_user_id' => 'UC_existing',
+    ]);
+
+    session([
+        'social_connect_workspace' => $this->workspace->id,
+    ]);
+
+    $socialiteUser = Mockery::mock(SocialiteUser::class);
+    $socialiteUser->shouldReceive('getId')->andReturn('google_user_123');
+    $socialiteUser->token = 'test-access-token';
+    $socialiteUser->refreshToken = 'test-refresh-token';
+    $socialiteUser->expiresIn = 3600;
+
+    Socialite::shouldReceive('driver')
+        ->with('google')
+        ->andReturn(Mockery::mock([
+            'user' => $socialiteUser,
+        ]));
+
+    Http::fake([
+        'https://www.googleapis.com/youtube/v3/channels*' => Http::response([
+            'items' => [
+                [
+                    'id' => 'UC_channel_123',
+                    'snippet' => [
+                        'title' => 'My YouTube Channel',
+                        'customUrl' => '@mychannel',
+                        'thumbnails' => ['default' => ['url' => null]],
+                    ],
+                    'statistics' => ['subscriberCount' => 1000],
+                ],
+            ],
+        ], 200),
+    ]);
+
+    $response = $this->actingAs($this->user)->get(route('app.social.youtube.callback'));
+
+    $response->assertOk();
+    $response->assertViewIs('auth.social-callback');
+    $response->assertViewHas('success', false);
+    $response->assertViewHas('message', __('accounts.popup_callback.network_taken'));
+
+    expect($this->workspace->socialAccounts()->where('platform', Platform::YouTube)->count())->toBe(1);
 });

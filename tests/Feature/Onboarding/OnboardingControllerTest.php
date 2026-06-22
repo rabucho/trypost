@@ -97,3 +97,23 @@ test('onboarding store saves the persona, mirrors to PostHog and starts monthly 
 
     Bus::assertDispatched(SendEvent::class);
 });
+
+test('onboarding store redirects an already-subscribed account to the calendar without starting a second checkout', function () {
+    $this->user->account->subscriptions()->create([
+        'type' => Account::SUBSCRIPTION_NAME,
+        'stripe_id' => 'sub_'.fake()->uuid(),
+        'stripe_status' => 'active',
+        'stripe_price' => 'price_123',
+    ]);
+
+    $this->mock(StartSubscriptionCheckout::class)
+        ->shouldReceive('redirect')
+        ->never();
+
+    $response = $this->actingAs($this->user->fresh())->post(route('app.onboarding.store'), [
+        'persona' => Persona::Agency->value,
+    ]);
+
+    $response->assertRedirect(route('app.calendar'));
+    expect($this->user->fresh()->persona)->toBeNull();
+});

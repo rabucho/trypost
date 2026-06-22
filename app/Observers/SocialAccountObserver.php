@@ -34,7 +34,6 @@ class SocialAccountObserver
         $conflict = SocialAccount::query()
             ->where('workspace_id', $socialAccount->workspace_id)
             ->whereIn('platform', $platform->networkPlatformValues())
-            ->where('platform_user_id', '!=', $socialAccount->platform_user_id)
             ->exists();
 
         if ($conflict) {

@@ -86,7 +86,9 @@ test('tiktok callback fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple tiktok accounts', function () {
+test('user can connect multiple tiktok accounts in self-hosted mode', function () {
+    config()->set('trypost.self_hosted', true);
+
     SocialAccount::factory()->tiktok()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => 'tiktok123',

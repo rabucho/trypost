@@ -143,7 +143,9 @@ test('mastodon callback fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple mastodon accounts', function () {
+test('user can connect multiple mastodon accounts in self-hosted mode', function () {
+    config()->set('trypost.self_hosted', true);
+
     SocialAccount::factory()->mastodon()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => '123456789',

@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Workspace\CreateWorkspace;
+use App\Actions\Workspace\DeleteWorkspace;
 use App\Models\Account;
+use App\Models\User;
+use App\Models\Workspace;
 use Laravel\Cashier\Subscription;
 
 test('syncWorkspaceQuantity does not touch Stripe in self-hosted mode', function () {
@@ -44,4 +48,30 @@ test('syncWorkspaceQuantity updates the subscription quantity to the workspace c
     $account->shouldReceive('workspaces->count')->andReturn(3);
 
     $account->syncWorkspaceQuantity();
+});
+
+test('creating a workspace syncs the stripe quantity', function () {
+    $user = User::factory()->create();
+
+    $account = mock(Account::class)->makePartial();
+    $account->shouldReceive('forgetPlanFeatureCache')->once();
+    $account->shouldReceive('syncWorkspaceQuantity')->once();
+    $user->setRelation('account', $account);
+
+    CreateWorkspace::execute($user, ['name' => 'Wiring']);
+});
+
+test('deleting a workspace syncs the stripe quantity', function () {
+    $user = User::factory()->create();
+    $workspace = Workspace::factory()->create([
+        'account_id' => $user->account_id,
+        'user_id' => $user->id,
+    ]);
+
+    $account = mock(Account::class)->makePartial();
+    $account->shouldReceive('forgetPlanFeatureCache')->once();
+    $account->shouldReceive('syncWorkspaceQuantity')->once();
+    $workspace->setRelation('account', $account);
+
+    DeleteWorkspace::execute($user, $workspace);
 });

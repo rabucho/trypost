@@ -214,7 +214,9 @@ test('linkedin page select fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple linkedin pages', function () {
+test('user can connect multiple linkedin pages in self-hosted mode', function () {
+    config()->set('trypost.self_hosted', true);
+
     SocialAccount::factory()->linkedinPage()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => '123456',
@@ -267,4 +269,43 @@ test('linkedin page callback handles oauth errors gracefully', function () {
     $response->assertOk();
     $response->assertViewHas('success', false);
     $response->assertViewHas('message', 'Error connecting account. Please try again.');
+});
+
+test('linkedin page select shows network_taken when a linkedin account is already connected', function () {
+    config()->set('trypost.self_hosted', false);
+
+    SocialAccount::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform' => Platform::LinkedIn,
+        'platform_user_id' => 'existing-linkedin',
+    ]);
+
+    session([
+        'linkedin_page_pending' => [
+            'workspace_id' => $this->workspace->id,
+            'user_id' => 'user123',
+            'name' => 'John Doe',
+            'avatar' => null,
+            'token' => 'test-access-token',
+            'refresh_token' => 'test-refresh-token',
+            'expires_in' => 5184000,
+            'organizations' => [
+                ['id' => 123456, 'name' => 'Test Company', 'vanity_name' => 'testcompany', 'logo' => null],
+            ],
+        ],
+    ]);
+
+    $response = $this->actingAs($this->user)->post(route('app.social.linkedin-page.select'), [
+        'organization_id' => 123456,
+        'organization_name' => 'Test Company',
+        'organization_vanity_name' => 'testcompany',
+        'organization_logo' => null,
+    ]);
+
+    $response->assertOk();
+    $response->assertViewIs('auth.social-callback');
+    $response->assertViewHas('success', false);
+    $response->assertViewHas('message', __('accounts.popup_callback.network_taken'));
+
+    expect($this->workspace->socialAccounts()->whereIn('platform', [Platform::LinkedIn->value, Platform::LinkedInPage->value])->count())->toBe(1);
 });

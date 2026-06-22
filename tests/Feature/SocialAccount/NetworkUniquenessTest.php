@@ -109,3 +109,17 @@ test('self-hosted mode bypasses the one-per-network rule', function () {
 
     expect($second->exists)->toBeTrue();
 });
+
+test('blocks a same-id account connected via a different network variant', function () {
+    SocialAccount::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform' => Platform::Instagram,
+        'platform_user_id' => 'shared-ig-id',
+    ]);
+
+    expect(fn () => SocialAccount::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform' => Platform::InstagramFacebook,
+        'platform_user_id' => 'shared-ig-id',
+    ]))->toThrow(NetworkAlreadyConnectedException::class);
+});
