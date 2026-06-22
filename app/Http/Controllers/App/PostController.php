@@ -180,7 +180,9 @@ class PostController extends Controller
             session()->flash('flash.banner', __('posts.flash.connect_first'));
             session()->flash('flash.bannerStyle', 'danger');
 
-            return redirect()->route('app.accounts');
+            return $request->user()->can('manageAccounts', $workspace)
+                ? redirect()->route('app.accounts')
+                : redirect()->route('app.calendar');
         }
 
         $post = CreatePost::execute($workspace, $request->user(), [
@@ -232,13 +234,15 @@ class PostController extends Controller
             return redirect()->route('app.workspaces.create');
         }
 
-        $this->authorize('update', $post);
+        $this->authorize('view', $post);
 
         if (PostStatusRules::blocksEditing($post)) {
             return redirect()->route('app.posts.show', $post);
         }
 
-        SyncPostPlatforms::execute($post);
+        if ($request->user()->can('update', $post)) {
+            SyncPostPlatforms::execute($post);
+        }
 
         $post->load(['postPlatforms.socialAccount', 'labels']);
         $socialAccounts = $workspace->socialAccounts()->active()->get();

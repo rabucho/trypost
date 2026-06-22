@@ -33,6 +33,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useWorkspaceEcho } from '@/composables/echo/useWorkspaceEcho';
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
 import { getPostStatusConfig } from '@/composables/usePostStatus';
+import { useWorkspaceRole } from '@/composables/useWorkspaceRole';
 import dayjs from '@/dayjs';
 import debounce from '@/debounce';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -142,6 +143,8 @@ const DELETABLE_STATUSES: readonly string[] = [PostStatus.Draft, PostStatus.Sche
 const canEdit = (post: Post): boolean => EDITABLE_STATUSES.includes(post.status);
 const canDelete = (post: Post): boolean => DELETABLE_STATUSES.includes(post.status);
 
+const { canCreatePost } = useWorkspaceRole();
+
 const postUrl = (post: Post): string =>
     canEdit(post) ? editPost.url(post.id) : showPost.url(post.id);
 
@@ -194,7 +197,7 @@ useWorkspaceEcho(
                     <LabelFilter v-if="labels.length" v-model="selectedLabelIds" :labels="labels" />
                 </div>
 
-                <Link :href="createPost.url()">
+                <Link v-if="canCreatePost" :href="createPost.url()">
                     <Button>{{ $t('posts.new_post') }}</Button>
                 </Link>
             </div>
@@ -297,7 +300,7 @@ useWorkspaceEcho(
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <DropdownMenuItem @click="handleDuplicate(post)">
+                                            <DropdownMenuItem v-if="canCreatePost" @click="handleDuplicate(post)">
                                                 <IconCopyPlus class="size-4" />
                                                 {{ $t('posts.actions.duplicate') }}
                                             </DropdownMenuItem>
@@ -305,7 +308,7 @@ useWorkspaceEcho(
                                                 <IconCopy class="size-4" />
                                                 {{ $t('posts.actions.copy_id') }}
                                             </DropdownMenuItem>
-                                            <template v-if="canDelete(post)">
+                                            <template v-if="canCreatePost && canDelete(post)">
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
                                                     variant="destructive"

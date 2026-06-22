@@ -58,6 +58,7 @@ const submit = () => {
             :available-fonts="availableFonts"
             :available-image-styles="availableImageStyles"
             :available-voice-traits="availableVoiceTraits"
+            :autofill="!workspace.brand_website"
         />
 
         <Button :disabled="form.processing">{{ $t('settings.workspace.save') }}</Button>

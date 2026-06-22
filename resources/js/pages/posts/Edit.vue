@@ -17,6 +17,7 @@ import {
     getMediaIncompatibilityReason,
     usePostCompliance,
 } from '@/composables/usePostCompliance';
+import { useWorkspaceRole } from '@/composables/useWorkspaceRole';
 import date from '@/date';
 import dayjs from '@/dayjs';
 import debounce from '@/debounce';
@@ -90,6 +91,8 @@ const props = defineProps<{
     authUserId: string;
 }>();
 
+const { canCreatePost } = useWorkspaceRole();
+
 const post = computed(() => props.post);
 const READONLY_STATUSES: readonly string[] = [
     PostStatus.Publishing,
@@ -100,9 +103,7 @@ const READONLY_STATUSES: readonly string[] = [
 const isReadOnly = computed(() => READONLY_STATUSES.includes(post.value.status));
 const isPublishing = computed(() => post.value.status === PostStatus.Publishing);
 const isScheduled = computed(() => post.value.status === PostStatus.Scheduled);
-// Locked states — terminal + scheduled. Field edits and auto-save suppressed;
-// user must unschedule to re-enter draft and edit.
-const isLocked = computed(() => isReadOnly.value || isScheduled.value);
+const isLocked = computed(() => isReadOnly.value || isScheduled.value || !canCreatePost.value);
 
 // Content
 const content = ref(post.value.content || '');
@@ -201,7 +202,10 @@ const isPostActionDisabled = computed(
 const queryParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
 const initialTabFromQuery = (() => {
     const tab = queryParams?.get('tab');
-    return ['preview', 'schedule', 'comments'].includes(tab ?? '') ? (tab as string) : 'schedule';
+    if (['preview', 'schedule', 'comments'].includes(tab ?? '')) {
+        return tab as string;
+    }
+    return canCreatePost.value ? 'schedule' : 'comments';
 })();
 const initialHighlightCommentId = queryParams?.get('comment') ?? null;
 const activeTab = ref(initialTabFromQuery);
@@ -352,6 +356,7 @@ usePostEcho(post.value.id, '.post.comment.created', (e: any) => {
         <div class="flex flex-col flex-1 min-h-0">
             <PostEditorHeader
                 :post="post"
+                :can-edit="canCreatePost"
                 :is-saving="isSaving"
                 :show-saved="showSaved"
                 :is-submitting="isSubmitting"
@@ -395,6 +400,7 @@ usePostEcho(post.value.id, '.post.comment.created', (e: any) => {
                             :platform-limits="platformLimits"
                             :media-issues="mediaIssues"
                             :allow-ai-regenerate="!isLocked"
+                            :read-only="!canCreatePost"
                             @open-ai-generate="isAiGenerateOpen = true"
                             @open-ai-review="isAiReviewOpen = true"
                             @open-ai-regenerate-image="onOpenAiRegenerateImage"

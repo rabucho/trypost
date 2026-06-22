@@ -4,13 +4,16 @@ import {
     IconAffiliate,
     IconAlertTriangle,
     IconBolt,
+    IconBrandX,
     IconCalendar,
     IconChartBar,
     IconChevronRight,
     IconClock,
     IconFileCheck,
     IconFileText,
+    IconGift,
     IconHash,
+    IconLifebuoy,
     IconPhoto,
     IconPencil,
     IconPlus,
@@ -22,6 +25,7 @@ import { computed } from 'vue';
 
 import { create as createPost, index as postsIndex } from '@/actions/App/Http/Controllers/App/PostController';
 import NavMain from '@/components/NavMain.vue';
+import NavSupport from '@/components/NavSupport.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,6 +47,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useActiveUrl } from '@/composables/useActiveUrl';
+import { useWorkspaceRole } from '@/composables/useWorkspaceRole';
 import { accounts, analytics, calendar, settings as settingsHub } from '@/routes/app';
 import { index as assets } from '@/routes/app/assets';
 import { index as automations } from '@/routes/app/automations';
@@ -63,6 +68,8 @@ const currentWorkspace = computed<Workspace | null>(() => page.props.auth.curren
 const workspaces = computed<Workspace[]>(() => page.props.auth.workspaces as Workspace[]);
 const subscriptionPastDue = computed<boolean>(() => Boolean(page.props.auth.subscriptionPastDue));
 
+const { canCreatePost, canManageAccounts, canManageAutomations, canCreateWorkspace } = useWorkspaceRole();
+
 const mainNavItems = computed<NavItem[]>(() => [
     {
         title: trans('sidebar.posts.calendar'),
@@ -74,12 +81,16 @@ const mainNavItems = computed<NavItem[]>(() => [
         href: analytics.url(),
         icon: IconChartBar,
     },
-    {
-        title: trans('sidebar.automations'),
-        href: automations.url(),
-        icon: IconBolt,
-        badge: 'Beta',
-    },
+    ...(canManageAutomations.value
+        ? [
+              {
+                  title: trans('sidebar.automations'),
+                  href: automations.url(),
+                  icon: IconBolt,
+                  badge: 'Beta',
+              },
+          ]
+        : []),
 ]);
 
 const postsNavItems = computed<NavItem[]>(() => [
@@ -107,25 +118,51 @@ const postsNavItems = computed<NavItem[]>(() => [
 ]);
 
 const workspaceNavItems = computed<NavItem[]>(() => [
+    ...(canManageAccounts.value
+        ? [
+              {
+                  title: trans('sidebar.workspace.connections'),
+                  href: accounts.url(),
+                  icon: IconAffiliate,
+              },
+          ]
+        : []),
+    ...(canCreatePost.value
+        ? [
+              {
+                  title: trans('sidebar.workspace.signatures'),
+                  href: signatures.url(),
+                  icon: IconHash,
+              },
+              {
+                  title: trans('sidebar.workspace.labels'),
+                  href: labels.url(),
+                  icon: IconTag,
+              },
+              {
+                  title: trans('sidebar.workspace.assets'),
+                  href: assets.url(),
+                  icon: IconPhoto,
+              },
+          ]
+        : []),
+]);
+
+const supportNavItems = computed(() => [
     {
-        title: trans('sidebar.workspace.connections'),
-        href: accounts.url(),
-        icon: IconAffiliate,
+        title: trans('sidebar.support.referral'),
+        href: 'https://affiliates.trypost.it/',
+        icon: IconGift,
     },
     {
-        title: trans('sidebar.workspace.signatures'),
-        href: signatures.url(),
-        icon: IconHash,
+        title: trans('sidebar.support.stay_updated'),
+        href: 'https://x.com/trypostit',
+        icon: IconBrandX,
     },
     {
-        title: trans('sidebar.workspace.labels'),
-        href: labels.url(),
-        icon: IconTag,
-    },
-    {
-        title: trans('sidebar.workspace.assets'),
-        href: assets.url(),
-        icon: IconPhoto,
+        title: trans('sidebar.support.docs'),
+        href: 'https://docs.trypost.it',
+        icon: IconLifebuoy,
     },
 ]);
 
@@ -176,20 +213,22 @@ const handleCreateWorkspace = () => {
                                     {{ workspace.name }}
                                 </DropdownMenuItem>
                             </div>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem @click="handleCreateWorkspace">
-                                <IconPlus class="size-4" />
-                                {{ $t('sidebar.create_workspace') }}
-                            </DropdownMenuItem>
+                            <template v-if="canCreateWorkspace">
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem @click="handleCreateWorkspace">
+                                    <IconPlus class="size-4" />
+                                    {{ $t('sidebar.create_workspace') }}
+                                </DropdownMenuItem>
+                            </template>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent class="gap-px">
             <!-- Create Post Button -->
-            <div v-if="currentWorkspace" class="px-2 py-2">
+            <div v-if="currentWorkspace && canCreatePost" class="px-2 py-2">
                 <Link :href="createPost.url()" class="block">
                     <Button class="w-full">
                         {{ $t('sidebar.create_post') }}
@@ -199,7 +238,8 @@ const handleCreateWorkspace = () => {
 
             <NavMain v-if="currentWorkspace" :items="mainNavItems" />
             <NavMain v-if="currentWorkspace" :items="postsNavItems" :label="$t('sidebar.groups.posts')" />
-            <NavMain v-if="currentWorkspace" :items="workspaceNavItems" :label="$t('sidebar.groups.workspace')" />
+            <NavMain v-if="currentWorkspace && workspaceNavItems.length" :items="workspaceNavItems" :label="$t('sidebar.groups.workspace')" />
+            <NavSupport v-if="currentWorkspace" :items="supportNavItems" :label="$t('sidebar.groups.others')" />
         </SidebarContent>
 
         <SidebarFooter>

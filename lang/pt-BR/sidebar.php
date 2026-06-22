@@ -24,7 +24,7 @@ return [
     'groups' => [
         'posts' => 'Posts',
         'workspace' => 'Workspace',
-        'support' => 'Suporte',
+        'others' => 'Outros',
     ],
 
     'analytics' => 'Analytics',
@@ -54,9 +54,8 @@ return [
     'no_notifications' => 'Sem notificações',
 
     'support' => [
-        'discord' => 'Discord',
-        'share_feedback' => 'Enviar feedback',
-        'last_updates' => 'Últimas Atualizações',
         'docs' => 'Documentação',
+        'referral' => 'Ganhe 30% de indicação',
+        'stay_updated' => 'Fique por dentro',
     ],
 ];

@@ -25,7 +25,8 @@ class PostPolicy
     }
 
     /**
-     * Authorize updating a post. Same workspace-tenancy guard as `view`.
+     * Authorize updating a post: tenancy guard (404 across tenants) then the
+     * role gate — viewers are read-only (403).
      */
     public function update(User $user, Post $post): bool|Response
     {
@@ -33,11 +34,12 @@ class PostPolicy
             return Response::denyAsNotFound();
         }
 
-        return true;
+        return $user->can('createPost', $user->currentWorkspace);
     }
 
     /**
-     * Authorize deleting a post. Same workspace-tenancy guard as `view`.
+     * Authorize deleting a post: tenancy guard (404 across tenants) then the
+     * same role gate as `update` — viewers are read-only (403).
      */
     public function delete(User $user, Post $post): bool|Response
     {
@@ -45,7 +47,7 @@ class PostPolicy
             return Response::denyAsNotFound();
         }
 
-        return true;
+        return $user->can('createPost', $user->currentWorkspace);
     }
 
     /**

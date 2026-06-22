@@ -388,6 +388,7 @@ return [
         ],
 
         'status' => [
+            'pending' => 'Pendiente',
             'scheduled' => 'Programado',
             'published' => 'Publicado',
             'publishing' => 'Publicando...',
