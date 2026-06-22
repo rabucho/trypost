@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
+
 import {
     SidebarGroup,
     SidebarGroupLabel,
@@ -6,11 +8,16 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { toUrl } from '@/lib/utils';
-import { type NavItem } from '@/types';
+
+interface SupportNavItem {
+    title: string;
+    icon: Component;
+    href?: string;
+    action?: () => void;
+}
 
 interface Props {
-    items: NavItem[];
+    items: SupportNavItem[];
     label: string;
 }
 
@@ -22,8 +29,16 @@ defineProps<Props>();
         <SidebarGroupLabel>{{ label }}</SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem v-for="item in items" :key="item.title">
-                <SidebarMenuButton as-child :tooltip="item.title">
-                    <a :href="toUrl(item.href)" target="_blank" rel="noopener noreferrer">
+                <SidebarMenuButton
+                    v-if="item.action"
+                    :tooltip="item.title"
+                    @click="item.action"
+                >
+                    <component :is="item.icon" />
+                    <span>{{ item.title }}</span>
+                </SidebarMenuButton>
+                <SidebarMenuButton v-else as-child :tooltip="item.title">
+                    <a :href="item.href" target="_blank" rel="noopener noreferrer">
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
                     </a>
