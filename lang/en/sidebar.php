@@ -24,7 +24,7 @@ return [
     'groups' => [
         'posts' => 'Posts',
         'workspace' => 'Workspace',
-        'more' => 'More',
+        'others' => 'Others',
     ],
 
     'analytics' => 'Analytics',
