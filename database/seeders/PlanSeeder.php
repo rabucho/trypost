@@ -15,58 +15,16 @@ class PlanSeeder extends Seeder
      */
     public function run(): void
     {
-        $plans = [
+        Plan::updateOrCreate(
+            ['slug' => Slug::Workspace],
             [
-                'slug' => Slug::Starter,
-                'name' => 'Starter',
-                'stripe_monthly_price_id' => env('STRIPE_STARTER_MONTHLY'),
-                'stripe_yearly_price_id' => env('STRIPE_STARTER_YEARLY'),
-                'social_account_limit' => 5,
-                'member_limit' => 1,
-                'workspace_limit' => 1,
-                'monthly_credits_limit' => 1000,
+                'name' => 'Workspace',
+                'stripe_monthly_price_id' => env('STRIPE_WORKSPACE_MONTHLY'),
+                'stripe_yearly_price_id' => env('STRIPE_WORKSPACE_YEARLY'),
+                'monthly_credits_limit' => 2500,
                 'sort' => 1,
+                'is_archived' => false,
             ],
-            [
-                'slug' => Slug::Plus,
-                'name' => 'Plus',
-                'stripe_monthly_price_id' => env('STRIPE_PLUS_MONTHLY'),
-                'stripe_yearly_price_id' => env('STRIPE_PLUS_YEARLY'),
-                'social_account_limit' => 10,
-                'member_limit' => 5,
-                'workspace_limit' => 5,
-                'monthly_credits_limit' => 2000,
-                'sort' => 2,
-            ],
-            [
-                'slug' => Slug::Pro,
-                'name' => 'Pro',
-                'stripe_monthly_price_id' => env('STRIPE_PRO_MONTHLY'),
-                'stripe_yearly_price_id' => env('STRIPE_PRO_YEARLY'),
-                'social_account_limit' => 30,
-                'member_limit' => 15,
-                'workspace_limit' => 15,
-                'monthly_credits_limit' => 5000,
-                'sort' => 3,
-            ],
-            [
-                'slug' => Slug::Max,
-                'name' => 'Max',
-                'stripe_monthly_price_id' => env('STRIPE_MAX_MONTHLY'),
-                'stripe_yearly_price_id' => env('STRIPE_MAX_YEARLY'),
-                'social_account_limit' => 100,
-                'member_limit' => 20,
-                'workspace_limit' => 50,
-                'monthly_credits_limit' => 15000,
-                'sort' => 4,
-            ],
-        ];
-
-        foreach ($plans as $plan) {
-            Plan::updateOrCreate(
-                ['slug' => $plan['slug']],
-                $plan,
-            );
-        }
+        );
     }
 }

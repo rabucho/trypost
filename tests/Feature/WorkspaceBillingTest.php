@@ -38,7 +38,7 @@ test('account without subscription is not active in saas mode', function () {
 });
 
 test('account belongs to plan', function () {
-    $plan = Plan::where('slug', PlanSlug::Starter)->first();
+    $plan = Plan::where('slug', PlanSlug::Workspace)->first();
     $this->account->update(['plan_id' => $plan->id]);
 
     expect($this->account->fresh()->plan->id)->toBe($plan->id);
@@ -57,7 +57,7 @@ test('ensure subscribed middleware redirects without subscription in saas mode',
 
     $response = $this->actingAs($this->user)->get(route('app.calendar'));
 
-    $response->assertRedirect(route('app.subscribe'));
+    $response->assertRedirect(route('app.onboarding'));
 });
 
 test('billing page is accessible by account owner', function () {
@@ -96,18 +96,12 @@ test('billing page is not accessible by non-owner member', function () {
     $response->assertForbidden();
 });
 
-test('subscribe page shows plans', function () {
+test('subscribe redirects to onboarding', function () {
     config(['trypost.self_hosted' => false]);
-
-    $activePlanCount = Plan::active()->count();
 
     $response = $this->actingAs($this->user)->get(route('app.subscribe'));
 
-    $response->assertOk();
-    $response->assertInertia(fn ($page) => $page
-        ->component('billing/Subscribe', false)
-        ->has('plans', $activePlanCount)
-    );
+    $response->assertRedirect(route('app.onboarding'));
 });
 
 test('stripe email returns account owner email', function () {
@@ -118,32 +112,18 @@ test('stripe name returns account name', function () {
     expect($this->account->stripeName())->toBe($this->account->name);
 });
 
-test('create workspace is blocked when account hits plan limit in saas mode', function () {
+test('creating an additional workspace redirects to billing without an active subscription', function () {
     config(['trypost.self_hosted' => false]);
 
-    $starter = Plan::where('slug', PlanSlug::Starter)->first();
-    $this->account->update(['plan_id' => $starter->id]);
-    $this->account->subscriptions()->create([
-        'type' => Account::SUBSCRIPTION_NAME,
-        'stripe_id' => 'sub_test_'.fake()->uuid(),
-        'stripe_status' => 'active',
-        'stripe_price' => 'price_123',
-    ]);
+    // The account already owns one workspace (from beforeEach) and has no subscription.
+    $response = $this->actingAs($this->user)->get(route('app.workspaces.create'));
 
-    // Starter plan: workspace_limit = 1; the user already owns 1 workspace (from beforeEach).
-    $response = $this->actingAs($this->user)
-        ->from(route('app.calendar'))
-        ->get(route('app.workspaces.create'));
-
-    $response->assertRedirect(route('app.calendar'))
-        ->assertSessionHas('flash.error', __('workspaces.limit_reached'));
+    $response->assertRedirect(route('app.billing.index'));
 });
 
-test('create workspace is allowed when below plan limit in saas mode', function () {
+test('creating an additional workspace is allowed with an active subscription', function () {
     config(['trypost.self_hosted' => false]);
 
-    $pro = Plan::where('slug', PlanSlug::Pro)->first();
-    $this->account->update(['plan_id' => $pro->id]);
     $this->account->subscriptions()->create([
         'type' => Account::SUBSCRIPTION_NAME,
         'stripe_id' => 'sub_test_'.fake()->uuid(),
@@ -151,40 +131,18 @@ test('create workspace is allowed when below plan limit in saas mode', function 
         'stripe_price' => 'price_123',
     ]);
 
-    // Pro plan: workspace_limit = 15; account has 1 workspace.
     $response = $this->actingAs($this->user->fresh())->get(route('app.workspaces.create'));
 
     $response->assertOk();
 });
 
-test('store workspace is blocked when account hits plan limit in saas mode', function () {
-    config(['trypost.self_hosted' => false]);
+test('store creates an additional workspace with no count limit', function () {
+    config(['trypost.self_hosted' => true]);
 
-    $starter = Plan::where('slug', PlanSlug::Starter)->first();
-    $this->account->update(['plan_id' => $starter->id]);
-    $this->account->subscriptions()->create([
-        'type' => Account::SUBSCRIPTION_NAME,
-        'stripe_id' => 'sub_test_'.fake()->uuid(),
-        'stripe_status' => 'active',
-        'stripe_price' => 'price_123',
-    ]);
-
-    // Starter plan: workspace_limit = 1; the user already owns 1 workspace.
     $response = $this->actingAs($this->user)->post(route('app.workspaces.store'), [
         'name' => 'Second workspace',
     ]);
 
-    $response->assertForbidden();
-});
-
-test('workspace limit is bypassed in self-hosted mode', function () {
-    config(['trypost.self_hosted' => true]);
-
-    $starter = Plan::where('slug', PlanSlug::Starter)->first();
-    $this->account->update(['plan_id' => $starter->id]);
-
-    // Even on Starter (limit 1) with an existing workspace, self-hosted lets through.
-    $response = $this->actingAs($this->user)->get(route('app.workspaces.create'));
-
-    $response->assertOk();
+    $response->assertRedirect(route('app.accounts'));
+    expect($this->account->workspaces()->count())->toBe(2);
 });

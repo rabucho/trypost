@@ -40,6 +40,7 @@ return [
     ],
 
     'or_continue_with' => 'O continuar con',
+    'or_continue_with_email' => 'O continúa con correo',
     'google_login' => 'Iniciar sesión con Google',
     'google_signup' => 'Registrarse con Google',
     'github_login' => 'Iniciar sesión con GitHub',
@@ -66,9 +67,10 @@ return [
     ],
 
     'register' => [
-        'title' => 'Crear una cuenta',
-        'description' => 'Introduce tus datos para crear tu cuenta',
+        'title' => 'Todo tu calendario social en un solo lugar',
+        'description' => 'Crea tu cuenta y empieza a programar publicaciones en todas las redes.',
         'page_title' => 'Registro',
+        'signup_with_email' => 'Registrarse con correo',
         'name' => 'Nombre',
         'name_placeholder' => 'Nombre completo',
         'email' => 'Correo electrónico',

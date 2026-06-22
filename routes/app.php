@@ -10,6 +10,7 @@ use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\DiscordController as AppDiscordController;
 use App\Http\Controllers\App\GiphyController;
 use App\Http\Controllers\App\NotificationController;
+use App\Http\Controllers\App\OnboardingController;
 use App\Http\Controllers\App\PostAiCreateController;
 use App\Http\Controllers\App\PostAiGenerateController;
 use App\Http\Controllers\App\PostAiRegenerateMediaController;
@@ -55,7 +56,10 @@ Route::middleware(['auth'])->group(function () {
     })->name('app.home');
 
     Route::get('subscribe', [BillingController::class, 'subscribe'])->name('app.subscribe');
-    Route::post('billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('app.billing.checkout');
+    Route::get('onboarding', [OnboardingController::class, 'index'])->name('app.onboarding');
+    Route::post('onboarding', [OnboardingController::class, 'store'])->name('app.onboarding.store');
+    Route::get('onboarding/connect', [OnboardingController::class, 'connect'])->name('app.onboarding.connect');
+    Route::post('onboarding/connect', [OnboardingController::class, 'checkout'])->name('app.onboarding.checkout');
     Route::get('billing/processing', [BillingController::class, 'processing'])->name('app.billing.processing');
 
     Route::get('workspaces/create', [WorkspaceController::class, 'create'])->name('app.workspaces.create');
@@ -125,6 +129,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('connect/discord', [DiscordController::class, 'connect'])->name('app.social.discord.connect');
     Route::get('accounts/discord/callback', [DiscordController::class, 'callback'])->name('app.social.discord.callback');
+
+    // Disconnecting must also work during onboarding (before a subscription
+    // exists), so it lives here rather than behind EnsureAccountReady — the
+    // controller still authorizes workspace ownership.
+    Route::delete('accounts/{account}', [SocialController::class, 'disconnect'])->name('app.accounts.disconnect');
 });
 
 // Routes that require active subscription and completed onboarding
@@ -154,7 +163,6 @@ Route::middleware(['auth', EnsureAccountReady::class])->group(function () {
 
     // Social Accounts
     Route::get('accounts', [SocialController::class, 'index'])->name('app.accounts');
-    Route::delete('accounts/{account}', [SocialController::class, 'disconnect'])->name('app.accounts.disconnect');
     Route::put('accounts/{account}/toggle', [SocialController::class, 'toggleActive'])->name('app.accounts.toggle');
 
     // Analytics
@@ -254,7 +262,7 @@ Route::middleware(['auth', EnsureAccountReady::class])->group(function () {
     // Billing
     Route::get('settings/account/billing', [BillingController::class, 'index'])->name('app.billing.index');
     Route::get('settings/account/billing/portal', [BillingController::class, 'portal'])->name('app.billing.portal');
-    Route::post('settings/account/billing/swap/{plan}', [BillingController::class, 'swap'])->name('app.billing.swap');
+    Route::post('settings/account/billing/swap-to-yearly', [BillingController::class, 'swapToYearly'])->name('app.billing.swap-to-yearly');
 
 });
 

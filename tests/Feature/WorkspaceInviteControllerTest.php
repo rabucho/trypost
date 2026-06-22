@@ -80,6 +80,27 @@ test('store invite creates invite and sends email', function () {
     Mail::assertQueued(WorkspaceInviteMail::class);
 });
 
+test('store invite requires a role', function () {
+    $response = $this->actingAs($this->user)->post(route('app.invites.store'), [
+        'email' => 'newmember@example.com',
+    ]);
+
+    $response->assertSessionHasErrors('role');
+    $this->assertDatabaseMissing('invites', ['email' => 'newmember@example.com']);
+});
+
+test('store invite persists the chosen role', function () {
+    $this->actingAs($this->user)->post(route('app.invites.store'), [
+        'email' => 'viewer@example.com',
+        'role' => WorkspaceRole::Viewer->value,
+    ]);
+
+    $this->assertDatabaseHas('invites', [
+        'email' => 'viewer@example.com',
+        'role' => WorkspaceRole::Viewer->value,
+    ]);
+});
+
 test('store invite fails if invite already exists', function () {
     Invite::factory()->create([
         'account_id' => $this->account->id,
@@ -204,6 +225,48 @@ test('update role changes member to admin', function () {
 
     $response->assertRedirect();
     expect($this->workspace->members()->where('user_id', $member->id)->first()->pivot->role)->toBe(WorkspaceRole::Admin->value);
+});
+
+test('update role changes member to viewer', function () {
+    $member = User::factory()->create([
+        'account_id' => $this->account->id,
+    ]);
+    $this->workspace->members()->attach($member->id, ['role' => WorkspaceRole::Member->value]);
+
+    $response = $this->actingAs($this->user)->put(route('app.members.update-role', $member), [
+        'role' => WorkspaceRole::Viewer->value,
+    ]);
+
+    $response->assertRedirect();
+    expect($this->workspace->members()->where('user_id', $member->id)->first()->pivot->role)->toBe(WorkspaceRole::Viewer->value);
+});
+
+test('an admin cannot change their own role', function () {
+    $admin = User::factory()->create([
+        'account_id' => $this->account->id,
+    ]);
+    $this->workspace->members()->attach($admin->id, ['role' => WorkspaceRole::Admin->value]);
+    $admin->update(['current_workspace_id' => $this->workspace->id]);
+
+    $response = $this->actingAs($admin)->put(route('app.members.update-role', $admin), [
+        'role' => WorkspaceRole::Member->value,
+    ]);
+
+    $response->assertSessionHasErrors('role');
+    expect($this->workspace->members()->where('user_id', $admin->id)->first()->pivot->role)->toBe(WorkspaceRole::Admin->value);
+});
+
+test('an admin cannot remove themselves', function () {
+    $admin = User::factory()->create([
+        'account_id' => $this->account->id,
+    ]);
+    $this->workspace->members()->attach($admin->id, ['role' => WorkspaceRole::Admin->value]);
+    $admin->update(['current_workspace_id' => $this->workspace->id]);
+
+    $response = $this->actingAs($admin)->delete(route('app.members.remove', $admin));
+
+    $response->assertSessionHasErrors('member');
+    expect($this->workspace->members()->where('user_id', $admin->id)->exists())->toBeTrue();
 });
 
 test('update role changes admin to member', function () {

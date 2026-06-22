@@ -2,124 +2,73 @@
 
 declare(strict_types=1);
 
-use App\Enums\UserWorkspace\Role;
+use App\Enums\Plan\Slug;
 use App\Models\Account;
 use App\Models\AiUsageLog;
-use App\Models\Invite;
 use App\Models\Plan;
-use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Policies\AccountPolicy;
 
 beforeEach(function () {
     $this->policy = new AccountPolicy;
-    $this->account = Account::factory()->create();
+    $this->account = Account::factory()->create([
+        'plan_id' => Plan::where('slug', Slug::Workspace)->value('id'),
+    ]);
     $this->owner = User::factory()->create(['account_id' => $this->account->id]);
     $this->account->update(['owner_id' => $this->owner->id]);
 });
 
-test('swapPlan allows account owner with usage fitting the target plan', function () {
-    // Plus: workspace_limit=5, social_account_limit=10, member_limit=5
-    $plan = Plan::where('slug', 'plus')->first();
-
-    $response = $this->policy->swapPlan($this->owner, $this->account, $plan);
+test('swapPlan allows the account owner', function () {
+    $response = $this->policy->swapPlan($this->owner, $this->account);
 
     expect($response->allowed())->toBeTrue();
 });
 
-test('swapPlan denies non-owner', function () {
+test('swapPlan denies a non-owner', function () {
     $member = User::factory()->create(['account_id' => $this->account->id]);
-    $plan = Plan::where('slug', 'plus')->first();
 
-    $response = $this->policy->swapPlan($member, $this->account, $plan);
+    $response = $this->policy->swapPlan($member, $this->account);
 
     expect($response->denied())->toBeTrue();
     expect($response->message())->toBe(__('billing.flash.cannot_manage'));
 });
 
-test('swapPlan denies when workspace count exceeds target plan limit', function () {
-    Workspace::factory()->count(3)->create([
-        'account_id' => $this->account->id,
-        'user_id' => $this->owner->id,
-    ]);
-
-    // Starter: workspace_limit=1
-    $plan = Plan::where('slug', 'starter')->first();
-
-    $response = $this->policy->swapPlan($this->owner, $this->account, $plan);
-
-    expect($response->denied())->toBeTrue();
-    expect($response->message())->toBe(__('billing.flash.cannot_downgrade.workspaces', [
-        'plan' => $plan->name,
-        'count' => '3',
-        'limit' => '1',
-    ]));
-});
-
-test('swapPlan denies when social account count exceeds target plan limit', function () {
-    $workspace = Workspace::factory()->create([
-        'account_id' => $this->account->id,
-        'user_id' => $this->owner->id,
-    ]);
-    SocialAccount::factory()->count(6)->create(['workspace_id' => $workspace->id]);
-
-    // Starter: social_account_limit=5
-    $plan = Plan::where('slug', 'starter')->first();
-
-    $response = $this->policy->swapPlan($this->owner, $this->account, $plan);
-
-    expect($response->denied())->toBeTrue();
-    expect($response->message())->toBe(__('billing.flash.cannot_downgrade.social_accounts', [
-        'plan' => $plan->name,
-        'count' => '6',
-        'limit' => '5',
-    ]));
-});
-
-test('swapPlan denies when members + pending invites exceed target plan limit', function () {
-    User::factory()->count(2)->create(['account_id' => $this->account->id]);
-    Invite::factory()->count(2)->create([
-        'account_id' => $this->account->id,
-        'invited_by' => $this->owner->id,
-        'role' => Role::Member,
-    ]);
-
-    // Starter: member_limit=1
-    $plan = Plan::where('slug', 'starter')->first();
-
-    $response = $this->policy->swapPlan($this->owner, $this->account, $plan);
-
-    expect($response->denied())->toBeTrue();
-    expect($response->message())->toBe(__('billing.flash.cannot_downgrade.members', [
-        'plan' => $plan->name,
-        'count' => '5',
-        'limit' => '1',
-    ]));
-});
-
-test('useAi allows when account has credits remaining', function () {
+test('useAi allows when subscribed and credits remain', function () {
     config()->set('trypost.self_hosted', false);
-
-    $plan = Plan::where('slug', 'starter')->first();
-    $this->account->update(['plan_id' => $plan->id]);
+    Workspace::factory()->create([
+        'account_id' => $this->account->id,
+        'user_id' => $this->owner->id,
+    ]);
+    subscribeAccount($this->account);
 
     $response = $this->policy->useAi($this->owner, $this->account->fresh());
 
     expect($response->allowed())->toBeTrue();
 });
 
-test('useAi denies when monthly credits are exhausted', function () {
+test('useAi denies when there is no active subscription', function () {
     config()->set('trypost.self_hosted', false);
-
-    $plan = Plan::where('slug', 'starter')->first();
-    $this->account->update(['plan_id' => $plan->id]);
-    $workspace = Workspace::factory()->create([
+    Workspace::factory()->create([
         'account_id' => $this->account->id,
         'user_id' => $this->owner->id,
     ]);
 
-    AiUsageLog::factory()->text(credits: $plan->monthly_credits_limit)->create([
+    $response = $this->policy->useAi($this->owner, $this->account->fresh());
+
+    expect($response->denied())->toBeTrue();
+    expect($response->message())->toBe(__('billing.flash.subscription_required'));
+});
+
+test('useAi denies when monthly credits are exhausted', function () {
+    config()->set('trypost.self_hosted', false);
+    $workspace = Workspace::factory()->create([
+        'account_id' => $this->account->id,
+        'user_id' => $this->owner->id,
+    ]);
+    subscribeAccount($this->account);
+
+    AiUsageLog::factory()->text(credits: 2500)->create([
         'account_id' => $this->account->id,
         'workspace_id' => $workspace->id,
     ]);
@@ -128,7 +77,7 @@ test('useAi denies when monthly credits are exhausted', function () {
 
     expect($response->denied())->toBeTrue();
     expect($response->message())->toBe(__('billing.flash.credits_exhausted', [
-        'limit' => (string) $plan->monthly_credits_limit,
+        'limit' => '2500',
     ]));
 });
 
@@ -136,20 +85,6 @@ test('useAi always allows when self-hosted', function () {
     config()->set('trypost.self_hosted', true);
 
     $response = $this->policy->useAi($this->owner, $this->account);
-
-    expect($response->allowed())->toBeTrue();
-});
-
-test('swapPlan allows when usage equals target plan limit (boundary)', function () {
-    Workspace::factory()->create([
-        'account_id' => $this->account->id,
-        'user_id' => $this->owner->id,
-    ]);
-
-    // Starter: workspace_limit=1, owner has exactly 1 workspace
-    $plan = Plan::where('slug', 'starter')->first();
-
-    $response = $this->policy->swapPlan($this->owner, $this->account, $plan);
 
     expect($response->allowed())->toBeTrue();
 });

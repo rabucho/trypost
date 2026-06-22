@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
+use App\Exceptions\SocialAccount\NetworkAlreadyConnectedException;
 use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,6 @@ class ThreadsController extends SocialController
         }
 
         $this->authorize('manageAccounts', $workspace);
-        $this->ensureSocialAccountLimit($workspace);
 
         session([
             'social_connect_workspace' => $workspace->id,
@@ -158,6 +158,8 @@ class ThreadsController extends SocialController
             session()->forget(['threads_oauth_state', 'social_reconnect_id']);
 
             return $this->popupCallback(true, __('accounts.popup_callback.connected'), $this->platform->value);
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $this->platform->value);
         } catch (\Exception $e) {
             Log::error('Threads OAuth Error', [
                 'error' => $e->getMessage(),

@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Enums\User;
+
+enum Persona: string
+{
+    case Creator = 'creator';
+    case Freelancer = 'freelancer';
+    case Startup = 'startup';
+    case Agency = 'agency';
+    case SmallBusiness = 'small_business';
+    case Other = 'other';
+}

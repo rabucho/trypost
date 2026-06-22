@@ -19,7 +19,6 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/mcp (MCP) - v0
 - laravel/nightwatch (NIGHTWATCH) - v1
 - laravel/passport (PASSPORT) - v13
-- laravel/pennant (PENNANT) - v1
 - laravel/prompts (PROMPTS) - v0
 - laravel/reverb (REVERB) - v1
 - laravel/socialite (SOCIALITE) - v5
@@ -240,6 +239,13 @@ Vue components must have a single root element.
 - **Never** embed prompts in PHP (`<<<PROMPT`, heredocs, or long string literals in `instructions()`).
 - Put system/instruction text in Blade under `resources/views/prompts/` (e.g. `prompts.post_content.generator`, `prompts.post_image.regenerator`).
 - In `instructions()`, return `view('prompts....', [...])->render()` and pass only the variables the Blade file needs — same pattern as `PostContentStreamer`, `PostContentReviewer`, and `BrandAnalyzer`.
+
+## System AI (always allowed, never metered)
+
+- The brand analyzer / workspace autofill (`App\Services\Brand\BrandAnalyzerRunner`, `App\Actions\Ai\AutofillBrand`, `WorkspaceController::autofillBrand`) is a **system** feature, not the user's AI usage. It runs during workspace creation, before the user has AI access.
+- It MUST always be allowed: NEVER gate it behind the `useAi` policy, an active subscription, or a credit check.
+- It MUST NOT deduct anything: NEVER call `RecordAiUsage` (or otherwise consume the account's credits) for brand analysis. Cost is the platform's, not the user's.
+- Any future "system" AI helper (runs as part of the platform, not on behalf of a workspace's metered quota) follows the same rule: ungated and unmetered.
 
 ## Icons (@tabler/icons-vue)
 

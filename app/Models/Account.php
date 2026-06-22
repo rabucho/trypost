@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Features\MemberLimit;
-use App\Features\MonthlyCreditsLimit;
-use App\Features\SocialAccountLimit;
-use App\Features\WorkspaceLimit;
 use App\Models\Traits\HasUsage;
 use Carbon\CarbonInterface;
 use Database\Factories\AccountFactory;
@@ -16,8 +12,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 use Laravel\Cashier\Billable;
-use Laravel\Pennant\Feature;
+use Throwable;
 
 class Account extends Model
 {
@@ -46,16 +43,6 @@ class Account extends Model
     protected $casts = [
         'trial_ends_at' => 'datetime',
     ];
-
-    public function forgetPlanFeatureCache(): void
-    {
-        Feature::for($this)->forget([
-            WorkspaceLimit::class,
-            SocialAccountLimit::class,
-            MemberLimit::class,
-            MonthlyCreditsLimit::class,
-        ]);
-    }
 
     public function owner(): BelongsTo
     {
@@ -89,6 +76,33 @@ class Account extends Model
         }
 
         return $this->subscribed(self::SUBSCRIPTION_NAME);
+    }
+
+    /**
+     * Align the Stripe subscription quantity with the number of workspaces the
+     * account owns. Each workspace is a billed unit. No-op in self-hosted mode
+     * or when there is no active subscription (e.g. during onboarding).
+     */
+    public function syncWorkspaceQuantity(): void
+    {
+        if (config('trypost.self_hosted')) {
+            return;
+        }
+
+        $subscription = $this->subscription(self::SUBSCRIPTION_NAME);
+
+        if (! $subscription || ! $subscription->active()) {
+            return;
+        }
+
+        try {
+            $subscription->updateQuantity($this->workspaces()->count());
+        } catch (Throwable $e) {
+            Log::warning('Failed to sync workspace quantity to Stripe', [
+                'account_id' => $this->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function isPastDue(): bool

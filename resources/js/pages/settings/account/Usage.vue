@@ -18,24 +18,15 @@ import { edit as accountEdit } from '@/routes/app/account';
 import { index as billingIndex } from '@/routes/app/billing';
 import { index as usageIndex } from '@/routes/app/usage';
 
-interface Plan {
-    name: string;
-    slug: string;
-}
-
 interface UsageData {
     workspaceCount: number;
-    workspaceLimit: number;
     socialAccountCount: number;
-    socialAccountLimit: number;
     memberCount: number;
-    memberLimit: number;
     creditsUsed: number;
     monthlyCreditsLimit: number;
 }
 
 defineProps<{
-    plan: Plan | null;
     usage: UsageData;
 }>();
 
@@ -62,7 +53,7 @@ const tabs = computed(() => [
                 <div class="space-y-6">
                     <HeadingSmall
                         :title="$t('usage.section_account')"
-                        :description="$t('usage.section_account_description', { plan: plan?.name ?? 'Free' })"
+                        :description="$t('usage.section_account_description')"
                     />
 
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -70,7 +61,6 @@ const tabs = computed(() => [
                             :label="$t('usage.workspaces')"
                             :icon="IconBuildingCommunity"
                             :current="usage.workspaceCount"
-                            :limit="usage.workspaceLimit"
                             tone="violet"
                             rotate="-rotate-2"
                         />
@@ -79,7 +69,6 @@ const tabs = computed(() => [
                             :label="$t('usage.social_accounts')"
                             :icon="IconAffiliate"
                             :current="usage.socialAccountCount"
-                            :limit="usage.socialAccountLimit"
                             tone="amber"
                             rotate="rotate-1"
                         />
@@ -88,7 +77,6 @@ const tabs = computed(() => [
                             :label="$t('usage.members')"
                             :icon="IconUsers"
                             :current="usage.memberCount"
-                            :limit="usage.memberLimit"
                             tone="emerald"
                             rotate="-rotate-1"
                         />

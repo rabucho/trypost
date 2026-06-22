@@ -9,68 +9,26 @@ return [
         'cta' => 'Actualizar pago',
     ],
 
-    'upgrade_dialog' => [
-        'title' => 'Actualiza tu plan',
-        'description' => 'Elige un plan que se adapte a tus necesidades.',
-        'current_plan' => 'Plan actual',
-        'current_short' => 'Actual',
-        'current_badge' => 'Actual',
-        'subscribe' => 'Suscribirse',
-        'switch' => 'Cambiar a este plan',
-        'switch_short' => 'Cambiar',
-        'switch_to_yearly' => 'Cambiar a anual',
-        'switch_to_monthly' => 'Cambiar a mensual',
-        'unavailable' => 'No disponible',
-        'reasons' => [
-            'workspace_limit' => 'Has alcanzado el límite de workspaces de tu plan. Actualiza para crear más.',
-            'social_account_limit' => 'Has alcanzado el límite de cuentas sociales de tu plan. Actualiza para conectar más.',
-            'member_limit' => 'Has alcanzado el límite de miembros de tu plan. Actualiza para invitar a más personas.',
-        ],
+    'annual_banner' => [
+        'title' => 'Consigue 2 meses gratis',
+        'description' => 'Cambia a la facturación anual y paga menos al mes — el mismo plan, sin cambios.',
+        'cta' => 'Cambiar a anual',
     ],
 
     'subscribe' => [
-        'page_title' => 'Elige tu plan',
-        'eyebrow' => 'Precios',
-        'title' => 'Elige el plan ideal para ti',
-        'description' => 'Elige el plan que te queda. Facturación mensual o anual.',
-        'trial_info' => 'Prueba gratuita de :days días, luego se cobra automáticamente',
-        'monthly' => 'Mensual',
-        'yearly' => 'Anual',
-        'per_month' => 'mensual',
-        'per_year' => 'anual',
         'billed_monthly' => 'Facturado mensualmente',
         'billed_yearly' => 'Facturado anualmente',
-        'features_included' => 'Qué incluye:',
-        'everything_in' => 'Todo lo de :plan, más:',
-        'save_months' => '2 meses gratis',
-        'popular' => 'Más popular',
-        'start_trial' => 'Comenzar prueba de :days días',
-        'subscribe_cta' => 'Suscribirse',
         'prices' => [
-            'starter' => ['monthly' => '$19', 'yearly_per_month' => '$16', 'yearly' => '$190'],
-            'plus' => ['monthly' => '$29', 'yearly_per_month' => '$24', 'yearly' => '$290'],
-            'pro' => ['monthly' => '$49', 'yearly_per_month' => '$41', 'yearly' => '$490'],
-            'max' => ['monthly' => '$99', 'yearly_per_month' => '$83', 'yearly' => '$990'],
-        ],
-        'features' => [
-            'social_accounts' => ':count cuentas sociales',
-            'workspaces' => ':count workspaces',
-            'members' => ':count miembros del equipo',
-            'credits' => ':count créditos IA/mes',
-        ],
-        'credit_tooltips' => [
-            'starter' => 'En promedio 150 posts de largo medio + 5 imágenes IA por mes.',
-            'plus' => 'En promedio 300 posts de largo medio + 10 imágenes IA por mes.',
-            'pro' => 'En promedio 700 posts de largo medio + 30 imágenes IA por mes.',
-            'max' => 'En promedio 2.000 posts de largo medio + 100 imágenes IA por mes.',
+            'workspace' => ['monthly' => '$12', 'yearly_per_month' => '$10', 'yearly' => '$120'],
         ],
     ],
 
     'plan' => [
         'title' => 'Plan',
         'description' => 'Gestiona tu plan de suscripción.',
-        'change' => 'Cambiar plan',
         'label' => 'Plan',
+        'workspaces' => '{1}:count workspace|[2,*]:count workspaces',
+        'per_workspace' => 'por workspace',
         'price' => 'Precio',
         'month' => 'mes',
         'trial' => 'Prueba',
@@ -99,13 +57,10 @@ return [
 
     'flash' => [
         'plan_changed' => 'Ahora estás en el plan :plan.',
+        'switched_to_yearly' => 'Ahora tienes facturación anual.',
         'cannot_manage' => 'Solo el propietario de la cuenta puede gestionar la facturación.',
-        'cannot_downgrade' => [
-            'workspaces' => 'No puedes cambiar a :plan: tienes :count workspaces pero el plan solo permite :limit.',
-            'social_accounts' => 'No puedes cambiar a :plan: tienes :count cuentas sociales pero el plan solo permite :limit.',
-            'members' => 'No puedes cambiar a :plan: tienes :count miembros (incluyendo invitaciones) pero el plan solo permite :limit.',
-        ],
         'credits_exhausted' => 'Sin créditos de IA — has usado tus :limit créditos mensuales. Mejora tu plan o espera hasta el próximo mes.',
+        'subscription_required' => 'Se requiere una suscripción activa para usar las funciones de IA.',
     ],
 
     'processing' => [

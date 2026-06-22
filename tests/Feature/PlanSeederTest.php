@@ -6,40 +6,23 @@ use App\Enums\Plan\Slug;
 use App\Models\Plan;
 use Database\Seeders\PlanSeeder;
 
-test('seeder creates 4 plans', function () {
-    expect(Plan::count())->toBe(4);
-});
+test('seeder creates only the per-workspace plan', function () {
+    expect(Plan::count())->toBe(1);
 
-test('seeder creates plans with correct limits', function () {
-    $starter = Plan::where('slug', Slug::Starter)->first();
+    $workspace = Plan::where('slug', Slug::Workspace)->first();
 
-    expect($starter->name)->toBe('Starter')
-        ->and($starter->social_account_limit)->toBe(5)
-        ->and($starter->member_limit)->toBe(1)
-        ->and($starter->workspace_limit)->toBe(1)
-        ->and($starter->monthly_credits_limit)->toBe(1000)
-        ->and($starter->sort)->toBe(1);
-
-    $max = Plan::where('slug', Slug::Max)->first();
-
-    expect($max->name)->toBe('Max')
-        ->and($max->social_account_limit)->toBe(100)
-        ->and($max->member_limit)->toBe(20)
-        ->and($max->workspace_limit)->toBe(50)
-        ->and($max->monthly_credits_limit)->toBe(15000)
-        ->and($max->sort)->toBe(4);
+    expect($workspace->name)->toBe('Workspace')
+        ->and($workspace->monthly_credits_limit)->toBe(2500)
+        ->and($workspace->is_archived)->toBeFalse();
 });
 
 test('seeder is idempotent', function () {
     $this->seed(PlanSeeder::class);
 
-    expect(Plan::count())->toBe(4);
+    expect(Plan::count())->toBe(1);
 });
 
-test('active scope excludes archived plans', function () {
-    $plan = Plan::where('slug', Slug::Starter)->first();
-    $plan->update(['is_archived' => true]);
-
-    expect(Plan::active()->count())->toBe(3)
-        ->and(Plan::count())->toBe(4);
+test('the per-workspace plan is active', function () {
+    expect(Plan::active()->count())->toBe(1)
+        ->and(Plan::active()->first()->slug)->toBe(Slug::Workspace);
 });

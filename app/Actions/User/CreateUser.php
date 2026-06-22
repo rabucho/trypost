@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\User;
 
+use App\Actions\Workspace\CreateWorkspace;
 use App\Enums\Plan\Slug;
 use App\Jobs\PostHog\SyncUser;
 use App\Models\Account;
@@ -29,8 +30,8 @@ class CreateUser
             ];
 
             if (! $requiresCardForTrial) {
-                $accountAttributes['plan_id'] = Plan::where('slug', Slug::Starter)->value('id');
-                $accountAttributes['trial_ends_at'] = now()->addDays(config('cashier.trial_days', 7));
+                $accountAttributes['plan_id'] = Plan::where('slug', Slug::Workspace)->value('id');
+                $accountAttributes['trial_ends_at'] = now()->addDays(config('cashier.trial_days'));
             }
 
             $account = Account::create($accountAttributes);
@@ -47,6 +48,10 @@ class CreateUser
             ], $utmParameters));
 
             $account->update(['owner_id' => $user->id]);
+
+            if (! $isInviteRegistration) {
+                CreateWorkspace::execute($user, ['name' => data_get($data, 'name')."'s Workspace"]);
+            }
 
             return $user;
         });

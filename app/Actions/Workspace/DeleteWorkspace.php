@@ -15,9 +15,12 @@ class DeleteWorkspace
     {
         User::where('current_workspace_id', $workspace->id)->update(['current_workspace_id' => null]);
 
+        $account = $workspace->account;
         $accountId = (string) $workspace->account_id;
 
         $workspace->delete();
+
+        $account?->syncWorkspaceQuantity();
 
         if (PostHogService::isEnabled()) {
             SyncAccountUsage::dispatch($accountId, null);

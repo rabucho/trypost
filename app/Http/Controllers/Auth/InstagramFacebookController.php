@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
+use App\Exceptions\SocialAccount\NetworkAlreadyConnectedException;
 use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,12 +45,10 @@ class InstagramFacebookController extends SocialController
         }
 
         $this->authorize('manageAccounts', $workspace);
-        $this->ensureSocialAccountLimit($workspace);
 
         session([
             'social_connect_workspace' => $workspace->id,
             'social_reconnect_id' => null,
-            'social_connect_onboarding' => $request->boolean('onboarding'),
         ]);
 
         $url = Socialite::driver($this->driver)
@@ -111,6 +110,8 @@ class InstagramFacebookController extends SocialController
             ]);
 
             return redirect()->route('app.social.instagram-facebook.select-page');
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $this->platform->value);
         } catch (\Exception $e) {
             Log::error('Instagram via Facebook OAuth Error', [
                 'error' => $e->getMessage(),
@@ -183,6 +184,8 @@ class InstagramFacebookController extends SocialController
             session()->forget(['instagram_facebook_oauth', 'social_reconnect_id']);
 
             return $result;
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $this->platform->value);
         } catch (\Exception $e) {
             Log::error('Instagram via Facebook page selection error', ['error' => $e->getMessage()]);
 
@@ -230,9 +233,7 @@ class InstagramFacebookController extends SocialController
             ]),
         );
 
-        $isOnboarding = session('social_connect_onboarding', false);
-
-        return $this->popupCallback(true, __('accounts.popup_callback.connected'), $this->platform->value, $isOnboarding);
+        return $this->popupCallback(true, __('accounts.popup_callback.connected'), $this->platform->value);
     }
 
     private function fetchPagesWithInstagram(string $userToken): array

@@ -112,7 +112,9 @@ test('pinterest callback fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple pinterest accounts', function () {
+test('user can connect multiple pinterest accounts in self-hosted mode', function () {
+    config()->set('trypost.self_hosted', true);
+
     SocialAccount::factory()->pinterest()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => 'pinterest_user_123',

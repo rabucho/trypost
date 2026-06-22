@@ -225,8 +225,7 @@ return [
 
         'cancel' => 'Cancel',
         'remove' => 'Remove',
-        'make_admin' => 'Make admin',
-        'make_member' => 'Make member',
+        'make_role' => 'Make :role',
 
         'invite' => [
             'title' => 'Invite Member',
@@ -300,7 +299,6 @@ return [
     'flash' => [
         'account_updated' => 'Account updated successfully!',
         'profile_updated' => 'Profile updated successfully!',
-        'language_updated' => 'Language updated successfully!',
         'password_updated' => 'Password updated successfully!',
         'workspace_updated' => 'Settings updated successfully!',
         'photo_updated' => 'Photo updated successfully!',

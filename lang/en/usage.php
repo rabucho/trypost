@@ -4,7 +4,7 @@ return [
     'title' => 'Usage',
 
     'section_account' => 'Account',
-    'section_account_description' => 'Quotas and limits for your :plan plan.',
+    'section_account_description' => 'Quotas and limits for your plan.',
     'section_ai' => 'AI Credits',
     'section_ai_description' => 'Credits are debited as AI features are used. They reset on the first of every month.',
 

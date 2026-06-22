@@ -83,6 +83,50 @@ test('facebook oauth callback creates account with single page', function () {
     ]);
 });
 
+test('facebook callback shows network_taken when the network is already connected', function () {
+    config()->set('trypost.self_hosted', false);
+
+    SocialAccount::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform' => Platform::Facebook,
+        'platform_user_id' => 'existing_page',
+    ]);
+
+    session(['social_connect_workspace' => $this->workspace->id]);
+
+    $socialiteUser = Mockery::mock(SocialiteUser::class);
+    $socialiteUser->shouldReceive('getId')->andReturn('facebook_user_123');
+    $socialiteUser->token = 'test-user-token';
+
+    Socialite::shouldReceive('driver')
+        ->with('facebook')
+        ->andReturn(Mockery::mock()->shouldReceive('usingGraphVersion')->andReturnSelf()->shouldReceive('user')->andReturn($socialiteUser)->getMock());
+
+    Http::fake([
+        'https://graph.facebook.com/*/me/accounts*' => Http::response([
+            'data' => [
+                [
+                    'id' => 'page_123',
+                    'name' => 'My Facebook Page',
+                    'username' => 'myfbpage',
+                    'picture' => ['data' => ['url' => null]],
+                    'access_token' => 'page-access-token',
+                ],
+            ],
+        ], 200),
+    ]);
+
+    $response = $this->actingAs($this->user)->get(route('app.social.facebook.callback'));
+
+    $response->assertOk();
+    $response->assertViewIs('auth.social-callback');
+    $response->assertViewHas('success', false);
+    $response->assertViewHas('message', __('accounts.popup_callback.network_taken'));
+
+    // The duplicate was blocked by the observer — only the pre-existing account remains.
+    expect($this->workspace->socialAccounts()->where('platform', Platform::Facebook)->count())->toBe(1);
+});
+
 test('facebook callback redirects to page selection when multiple pages', function () {
     session([
         'social_connect_workspace' => $this->workspace->id,
@@ -159,7 +203,9 @@ test('facebook callback fails with expired session', function () {
     $response->assertViewHas('message', 'Session expired. Please try again.');
 });
 
-test('user can connect multiple facebook accounts', function () {
+test('user can connect multiple facebook accounts in self-hosted mode', function () {
+    config(['trypost.self_hosted' => true]);
+
     SocialAccount::factory()->facebook()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => 'page_existing',

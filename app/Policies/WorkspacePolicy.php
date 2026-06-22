@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Enums\UserWorkspace\Role;
-use App\Features\MemberLimit;
 use App\Models\User;
 use App\Models\Workspace;
-use Laravel\Pennant\Feature;
 
 class WorkspacePolicy
 {
@@ -68,17 +66,7 @@ class WorkspacePolicy
 
     public function inviteMember(User $user, Workspace $workspace): bool
     {
-        if (! $this->isOwnerOrWorkspaceAdmin($user, $workspace)) {
-            return false;
-        }
-
-        if (config('trypost.self_hosted')) {
-            return true;
-        }
-
-        $limit = Feature::for($user->account)->value(MemberLimit::class);
-
-        return $workspace->members()->count() < $limit;
+        return $this->isOwnerOrWorkspaceAdmin($user, $workspace);
     }
 
     public function manageBilling(User $user, Workspace $workspace): bool

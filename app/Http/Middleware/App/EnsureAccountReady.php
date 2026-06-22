@@ -32,7 +32,7 @@ class EnsureAccountReady
             );
 
             if (! $hasAccess) {
-                return redirect()->route('app.subscribe');
+                return redirect()->route('app.onboarding');
             }
         }
 

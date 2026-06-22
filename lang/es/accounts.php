@@ -4,39 +4,15 @@ return [
     'title' => 'Conexiones',
     'page_title' => 'Cuentas Sociales',
     'description' => 'Resumen de todas tus cuentas sociales conectadas',
-    'add_social' => 'Agregar Red Social',
-    'add_social_title' => 'Conectar una Cuenta Social',
-    'add_social_description' => 'Conecta una cuenta social a TryPost para empezar a publicar',
     'connect_cta' => 'Conectar',
-    'no_accounts' => 'No hay cuentas conectadas todavía',
-    'no_accounts_description' => 'Conecta tus redes sociales para empezar a programar y publicar posts',
-    'no_search_results' => 'Ninguna cuenta coincide con tu búsqueda',
-    'try_different_search' => 'Prueba otra palabra clave o limpia la búsqueda.',
-    'search' => 'Buscar cuentas...',
-    'added' => 'Agregada :date',
-
-    'limit_reached' => 'Has alcanzado el límite de cuentas sociales de tu plan.',
 
     'not_connected' => 'No conectado',
     'connect' => 'Conectar',
     'connection_lost' => 'Conexión perdida',
+    'reconnect' => 'Reconectar',
     'reconnect_account' => 'Reconectar cuenta',
     'view_profile' => 'Ver perfil',
     'disconnect' => 'Desconectar',
-
-    'table' => [
-        'account' => 'Cuenta',
-        'platform' => 'Plataforma',
-        'status' => 'Estado',
-        'last_used' => 'Último uso',
-        'added' => 'Añadida',
-        'active' => 'Activa',
-    ],
-    'never_used' => 'Nunca usada',
-    'status' => [
-        'connected' => 'Conectada',
-        'disconnected' => 'Desconectada',
-    ],
 
     'descriptions' => [
         'linkedin' => 'Conecta tu perfil personal de LinkedIn',
@@ -98,6 +74,7 @@ return [
         'new_code' => 'Generar un nuevo código',
         'retry' => 'Reintentar',
         'error_generic' => 'No se pudo iniciar la conexión. Inténtalo de nuevo.',
+        'network_taken' => 'Este workspace ya tiene un canal de Telegram conectado. Desconéctalo primero.',
     ],
 
     'facebook' => [
@@ -142,6 +119,7 @@ return [
         'connected' => '¡Cuenta conectada!',
         'reconnected' => '¡Cuenta reconectada!',
         'error_connecting' => 'Error al conectar la cuenta. Inténtalo de nuevo.',
+        'network_taken' => 'Este workspace ya tiene una cuenta para esta red. Desconéctala primero.',
         'error_connecting_page' => 'Error al conectar la página. Inténtalo de nuevo.',
         'error_connecting_channel' => 'Error al conectar el canal. Inténtalo de nuevo.',
         'session_expired' => 'Sesión expirada. Inténtalo de nuevo.',

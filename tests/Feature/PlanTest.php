@@ -20,28 +20,25 @@ test('plan can be created with factory', function () {
 });
 
 test('plan slug is cast to enum', function () {
-    $plan = Plan::where('slug', Slug::Starter)->first();
+    $plan = Plan::where('slug', Slug::Workspace)->first();
 
     expect($plan->slug)->toBeInstanceOf(Slug::class)
-        ->and($plan->slug)->toBe(Slug::Starter)
-        ->and($plan->slug->label())->toBe('Starter');
+        ->and($plan->slug)->toBe(Slug::Workspace)
+        ->and($plan->slug->label())->toBe('Workspace');
 });
 
 test('active scope excludes archived plans', function () {
     $activeBefore = Plan::active()->count();
 
-    $plan = Plan::where('slug', Slug::Pro)->first();
+    $plan = Plan::where('slug', Slug::Workspace)->first();
     $plan->update(['is_archived' => true]);
 
     expect(Plan::active()->count())->toBe($activeBefore - 1);
 });
 
 test('integer fields are cast correctly', function () {
-    $plan = Plan::where('slug', Slug::Starter)->first();
+    $plan = Plan::where('slug', Slug::Workspace)->first();
 
-    expect($plan->social_account_limit)->toBeInt()
-        ->and($plan->member_limit)->toBeInt()
-        ->and($plan->workspace_limit)->toBeInt()
-        ->and($plan->monthly_credits_limit)->toBeInt()
+    expect($plan->monthly_credits_limit)->toBeInt()
         ->and($plan->sort)->toBeInt();
 });

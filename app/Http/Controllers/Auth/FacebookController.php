@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
+use App\Exceptions\SocialAccount\NetworkAlreadyConnectedException;
 use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,12 +43,10 @@ class FacebookController extends SocialController
         }
 
         $this->authorize('manageAccounts', $workspace);
-        $this->ensureSocialAccountLimit($workspace);
 
         session([
             'social_connect_workspace' => $workspace->id,
             'social_reconnect_id' => null,
-            'social_connect_onboarding' => $request->boolean('onboarding'),
         ]);
 
         return Inertia::location(
@@ -132,6 +131,8 @@ class FacebookController extends SocialController
             ]);
 
             return redirect()->route('app.social.facebook.select-page');
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $this->platform->value);
         } catch (\Exception $e) {
             Log::error('Facebook OAuth Error', [
                 'error' => $e->getMessage(),
@@ -257,6 +258,8 @@ class FacebookController extends SocialController
             session()->forget(['facebook_oauth', 'social_reconnect_id']);
 
             return $this->popupCallback(true, __('accounts.popup_callback.connected'), $this->platform->value);
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $this->platform->value);
         } catch (\Exception $e) {
             Log::error('Facebook page selection error', [
                 'error' => $e->getMessage(),

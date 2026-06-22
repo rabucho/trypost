@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 return [
 
-    'discord' => [
-        'label' => 'Discord',
-        'join' => 'Unite a nuestra comunidad en Discord',
-    ],
-
     'back' => 'Volver',
 
     'confirm_modal' => [

@@ -43,12 +43,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useActiveUrl } from '@/composables/useActiveUrl';
-import { useFeatureAccess } from '@/composables/useFeatureAccess';
-import { useUpgradeDialog } from '@/composables/useUpgradeDialog';
 import { accounts, analytics, calendar, settings as settingsHub } from '@/routes/app';
-import { portal } from '@/routes/app/billing';
 import { index as assets } from '@/routes/app/assets';
 import { index as automations } from '@/routes/app/automations';
+import { portal } from '@/routes/app/billing';
 import { index as labels } from '@/routes/app/labels';
 import { index as signatures } from '@/routes/app/signatures';
 import { create as createWorkspaceRoute, switchMethod } from '@/routes/app/workspaces';
@@ -137,15 +135,9 @@ const switchWorkspace = (workspaceId: string) => {
     });
 };
 
-const { canCreateWorkspace } = useFeatureAccess();
-const { openUpgrade } = useUpgradeDialog();
 const { urlIsActive } = useActiveUrl();
 
 const handleCreateWorkspace = () => {
-    if (!canCreateWorkspace.value) {
-        openUpgrade(trans('billing.upgrade_dialog.reasons.workspace_limit'));
-        return;
-    }
     router.visit(createWorkspaceRoute.url());
 };
 </script>

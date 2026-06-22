@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
+use App\Exceptions\SocialAccount\NetworkAlreadyConnectedException;
 use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,12 +41,10 @@ class YouTubeController extends SocialController
         }
 
         $this->authorize('manageAccounts', $workspace);
-        $this->ensureSocialAccountLimit($workspace);
 
         session([
             'social_connect_workspace' => $workspace->id,
             'social_reconnect_id' => null,
-            'social_connect_onboarding' => $request->boolean('onboarding'),
         ]);
 
         return $this->redirectToGoogle();
@@ -117,6 +116,8 @@ class YouTubeController extends SocialController
             ]);
 
             return redirect()->route('app.social.youtube.select-channel');
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $this->platform->value);
         } catch (\Exception $e) {
             Log::error('YouTube OAuth Error', [
                 'error' => $e->getMessage(),
@@ -152,14 +153,13 @@ class YouTubeController extends SocialController
         $channels = $this->fetchChannels(data_get($oauthData, 'access_token'));
 
         if (empty($channels)) {
-            $redirectRoute = $this->getRedirectRoute();
             $this->forgetSocialConnectSession();
             session()->forget('youtube_oauth');
 
             session()->flash('flash.banner', __('accounts.flash.no_youtube_channels'));
             session()->flash('flash.bannerStyle', 'danger');
 
-            return redirect()->route($redirectRoute);
+            return redirect()->route('app.accounts');
         }
 
         return inertia('accounts/YouTubeChannelSelect', [
@@ -251,6 +251,8 @@ class YouTubeController extends SocialController
             session()->forget(['youtube_oauth', 'social_reconnect_id']);
 
             return $this->popupCallback(true, __('accounts.popup_callback.connected'), $this->platform->value);
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $this->platform->value);
         } catch (\Exception $e) {
             Log::error('YouTube channel selection error', [
                 'error' => $e->getMessage(),

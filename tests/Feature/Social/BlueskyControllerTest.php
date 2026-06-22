@@ -79,7 +79,9 @@ test('user cannot connect bluesky with invalid credentials', function () {
     ]);
 });
 
-test('user can connect multiple bluesky accounts', function () {
+test('user can connect multiple bluesky accounts in self-hosted mode', function () {
+    config()->set('trypost.self_hosted', true);
+
     SocialAccount::factory()->bluesky()->create([
         'workspace_id' => $this->workspace->id,
         'platform_user_id' => 'did:plc:existing123',

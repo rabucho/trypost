@@ -2,20 +2,31 @@
 
 declare(strict_types=1);
 
+use App\Enums\Plan\Slug;
 use App\Enums\PostHog\BillingEvent;
-use App\Features\WorkspaceLimit;
 use App\Jobs\PostHog\TrackBilling;
 use App\Listeners\StripeEventListener;
 use App\Models\Account;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\DB;
 use Laravel\Cashier\Events\WebhookReceived;
-use Laravel\Pennant\Feature;
 
 beforeEach(function () {
     config(['services.posthog.enabled' => true, 'services.posthog.api_key' => 'phc_test_key']);
+
+    Plan::factory()->create([
+        'slug' => Slug::Starter,
+        'name' => 'Starter',
+        'stripe_monthly_price_id' => 'price_starter_monthly',
+        'stripe_yearly_price_id' => 'price_starter_yearly',
+    ]);
+    Plan::factory()->create([
+        'slug' => Slug::Pro,
+        'name' => 'Pro',
+        'stripe_monthly_price_id' => 'price_pro_monthly',
+        'stripe_yearly_price_id' => 'price_pro_yearly',
+    ]);
 
     $this->account = Account::factory()->create(['stripe_id' => 'cus_test123']);
     $this->user = User::factory()->create([
@@ -422,21 +433,14 @@ test('subscription created forwards a null previous plan when account had none',
 });
 
 // ========================================
-// Pennant feature cache invalidation
+// Plan mapping by Stripe price id
 // ========================================
 
-test('subscription updated flushes the pennant cache when the plan changes', function () {
+test('subscription updated maps the plan by price id', function () {
     $starter = Plan::query()->where('slug', 'starter')->firstOrFail();
     $pro = Plan::query()->where('slug', 'pro')->firstOrFail();
 
     $this->account->update(['plan_id' => $starter->id]);
-
-    // Prime the Pennant cache against the starter limit.
-    expect(Feature::for($this->account)->value(WorkspaceLimit::class))
-        ->toBe($starter->workspace_limit);
-
-    expect(DB::table('features')->where('scope', 'account|'.$this->account->id)->count())
-        ->toBeGreaterThan(0);
 
     $this->listener->handle(new WebhookReceived([
         'type' => 'customer.subscription.updated',
@@ -446,27 +450,32 @@ test('subscription updated flushes the pennant cache when the plan changes', fun
         ]],
     ]));
 
-    expect(DB::table('features')->where('scope', 'account|'.$this->account->id)->count())
-        ->toBe(0);
-
-    expect(Feature::for($this->account->fresh())->value(WorkspaceLimit::class))
-        ->toBe($pro->workspace_limit);
+    expect($this->account->fresh()->plan_id)->toBe($pro->id);
 });
 
-test('subscription deleted flushes the pennant cache', function () {
+test('subscription updated maps an archived legacy plan by price id', function () {
+    $pro = Plan::query()->where('slug', 'pro')->firstOrFail();
+    $pro->update(['is_archived' => true]);
+
+    $this->listener->handle(new WebhookReceived([
+        'type' => 'customer.subscription.updated',
+        'data' => ['object' => [
+            'customer' => 'cus_test123',
+            'items' => ['data' => [['price' => ['id' => 'price_pro_monthly']]]],
+        ]],
+    ]));
+
+    expect($this->account->fresh()->plan_id)->toBe($pro->id);
+});
+
+test('subscription deleted clears the plan_id', function () {
     $starter = Plan::query()->where('slug', 'starter')->firstOrFail();
     $this->account->update(['plan_id' => $starter->id]);
-
-    Feature::for($this->account)->value(WorkspaceLimit::class);
-
-    expect(DB::table('features')->where('scope', 'account|'.$this->account->id)->count())
-        ->toBeGreaterThan(0);
 
     $this->listener->handle(new WebhookReceived([
         'type' => 'customer.subscription.deleted',
         'data' => ['object' => ['customer' => 'cus_test123']],
     ]));
 
-    expect(DB::table('features')->where('scope', 'account|'.$this->account->id)->count())
-        ->toBe(0);
+    expect($this->account->fresh()->plan_id)->toBeNull();
 });

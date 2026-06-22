@@ -6,9 +6,13 @@ import { Button } from '@/components/ui/button';
 import { redirect as githubRedirect } from '@/routes/auth/github';
 import { redirect as googleRedirect } from '@/routes/auth/google';
 
-defineProps<{
-    mode: 'login' | 'signup';
-}>();
+withDefaults(
+    defineProps<{
+        mode: 'login' | 'signup';
+        hideDivider?: boolean;
+    }>(),
+    { hideDivider: false },
+);
 
 const page = usePage();
 const googleEnabled = computed(() => Boolean(page.props.googleAuthEnabled));
@@ -31,6 +35,7 @@ const hasSocial = computed(() => googleEnabled.value || githubEnabled.value);
         </div>
 
         <div
+            v-if="!hideDivider"
             class="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border"
         >
             <span class="relative z-10 bg-background px-2 text-muted-foreground">{{ $t('auth.or_continue_with') }}</span>

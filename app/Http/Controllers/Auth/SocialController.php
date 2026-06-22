@@ -8,7 +8,7 @@ use App\Actions\SocialAccount\ToggleSocialAccount;
 use App\Enums\PostPlatform\Status as PostPlatformStatus;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
-use App\Features\SocialAccountLimit;
+use App\Exceptions\SocialAccount\NetworkAlreadyConnectedException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\App\SocialAccountResource;
 use App\Models\SocialAccount;
@@ -19,7 +19,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Pennant\Feature;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
@@ -34,19 +33,6 @@ class SocialController extends Controller
         }
     }
 
-    protected function ensureSocialAccountLimit(Workspace $workspace): void
-    {
-        if (config('trypost.self_hosted')) {
-            return;
-        }
-
-        $limit = Feature::for($workspace->account)->value(SocialAccountLimit::class);
-
-        if ($workspace->socialAccounts()->count() >= $limit) {
-            abort(SymfonyResponse::HTTP_FORBIDDEN, __('accounts.limit_reached'));
-        }
-    }
-
     public function index(Request $request): Response|RedirectResponse
     {
         $workspace = $request->user()->currentWorkspace;
@@ -57,32 +43,19 @@ class SocialController extends Controller
 
         $this->authorize('view', $workspace);
 
-        $accounts = $workspace->socialAccounts()
-            ->when(
-                $request->input('search'),
-                fn ($query, $search) => $query->where(function ($q) use ($search): void {
-                    $q->where('display_name', 'ilike', "%{$search}%")
-                        ->orWhere('username', 'ilike', "%{$search}%")
-                        ->orWhere('platform', 'ilike', "%{$search}%");
-                }),
-            )
-            ->orderBy('id')
-            ->paginate(config('app.pagination.default'));
-
         $platforms = collect(SocialPlatform::enabled())->map(fn ($platform) => [
             'value' => $platform->value,
             'label' => $platform->label(),
             'color' => $platform->color(),
+            'network' => $platform->network(),
         ])->values();
 
         return Inertia::render('accounts/Index', [
             'workspace' => $workspace,
-            'accounts' => Inertia::scroll(fn () => SocialAccountResource::collection($accounts)),
             'platforms' => $platforms,
-            'filters' => [
-                'search' => $request->input('search', ''),
-            ],
-            'openDialog' => $request->boolean('openDialog'),
+            'connectedAccounts' => SocialAccountResource::collection(
+                $workspace->socialAccounts()->orderBy('id')->get(),
+            )->resolve(),
         ]);
     }
 
@@ -146,10 +119,7 @@ class SocialController extends Controller
             return redirect()->route('app.workspaces.create');
         }
 
-        $this->ensureSocialAccountLimit($workspace);
-
         session(['social_connect_workspace' => $workspace->id]);
-        session(['social_connect_onboarding' => $request->boolean('onboarding')]);
 
         return Inertia::location(
             Socialite::driver($driver)
@@ -201,6 +171,8 @@ class SocialController extends Controller
             );
 
             return $this->popupCallback(true, __('accounts.popup_callback.connected'), $platform->value);
+        } catch (NetworkAlreadyConnectedException) {
+            return $this->popupCallback(false, __('accounts.popup_callback.network_taken'), $platform->value);
         } catch (\Exception $e) {
             Log::error('Social OAuth Error', [
                 'platform' => $platform->value,
@@ -213,12 +185,7 @@ class SocialController extends Controller
 
     protected function forgetSocialConnectSession(): void
     {
-        session()->forget(['social_connect_workspace', 'social_connect_onboarding']);
-    }
-
-    protected function getRedirectRoute(): string
-    {
-        return session('social_connect_onboarding', false) ? 'onboarding.connect' : 'accounts';
+        session()->forget('social_connect_workspace');
     }
 
     /**

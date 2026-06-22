@@ -7,13 +7,12 @@ namespace App\Actions\SocialAccount;
 use App\Enums\SocialAccount\Platform;
 use App\Enums\SocialAccount\Status;
 use App\Events\TelegramChannelConnected;
-use App\Features\SocialAccountLimit;
+use App\Events\TelegramConnectFailed;
 use App\Models\SocialAccount;
 use App\Models\Workspace;
 use App\Services\Social\Telegram\TelegramApi;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
-use Laravel\Pennant\Feature;
 use Throwable;
 
 class ConnectTelegramChannel
@@ -30,13 +29,14 @@ class ConnectTelegramChannel
         $chatId = (string) data_get($chat, 'id');
         $username = data_get($chat, 'username');
 
-        // Block only brand-new accounts against the plan limit, never reconnects.
         $isNewAccount = ! $workspace->socialAccounts()
             ->where('platform', Platform::Telegram->value)
             ->where('platform_user_id', $chatId)
             ->exists();
 
-        if ($isNewAccount && self::workspaceAtAccountLimit($workspace)) {
+        if ($isNewAccount && self::networkAlreadyConnected($workspace, $chatId)) {
+            TelegramConnectFailed::dispatch($workspace->id, $nonce, 'network_taken');
+
             return null;
         }
 
@@ -103,14 +103,15 @@ class ConnectTelegramChannel
         }
     }
 
-    private static function workspaceAtAccountLimit(Workspace $workspace): bool
+    private static function networkAlreadyConnected(Workspace $workspace, string $chatId): bool
     {
         if (config('trypost.self_hosted')) {
             return false;
         }
 
-        $limit = Feature::for($workspace->account)->value(SocialAccountLimit::class);
-
-        return $workspace->socialAccounts()->count() >= $limit;
+        return $workspace->socialAccounts()
+            ->whereIn('platform', Platform::Telegram->networkPlatformValues())
+            ->where('platform_user_id', '!=', $chatId)
+            ->exists();
     }
 }

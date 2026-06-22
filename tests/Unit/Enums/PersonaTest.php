@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Enums\User\Persona;
+
+test('persona values are stable', function () {
+    expect(array_map(fn (Persona $persona): string => $persona->value, Persona::cases()))
+        ->toBe(['creator', 'freelancer', 'startup', 'agency', 'small_business', 'other']);
+});
+
+test('every persona has an onboarding label in every locale', function (string $locale) {
+    foreach (Persona::cases() as $persona) {
+        $key = "onboarding.personas.{$persona->value}";
+
+        expect(__($key, [], $locale))->not->toBe($key);
+    }
+})->with(['en', 'es', 'pt-BR']);

@@ -52,6 +52,7 @@ return [
     ],
 
     'or_continue_with' => 'Or continue with',
+    'or_continue_with_email' => 'Or continue with email',
     'google_login' => 'Log in with Google',
     'google_signup' => 'Sign up with Google',
     'github_login' => 'Log in with GitHub',
@@ -78,9 +79,10 @@ return [
     ],
 
     'register' => [
-        'title' => 'Create an account',
-        'description' => 'Enter your details below to create your account',
+        'title' => 'Your whole social calendar, in one place',
+        'description' => 'Create your account and start scheduling posts across every network.',
         'page_title' => 'Register',
+        'signup_with_email' => 'Sign up with email',
         'name' => 'Name',
         'name_placeholder' => 'Full name',
         'email' => 'Email address',

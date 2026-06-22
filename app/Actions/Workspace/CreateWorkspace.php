@@ -7,6 +7,7 @@ namespace App\Actions\Workspace;
 use App\Enums\UserWorkspace\Role;
 use App\Models\User;
 use App\Models\Workspace;
+use Illuminate\Support\Facades\DB;
 
 class CreateWorkspace
 {
@@ -26,16 +27,22 @@ class CreateWorkspace
             'content_language' => data_get($data, 'content_language'),
         ], static fn ($value): bool => $value !== null);
 
-        $workspace = Workspace::create([
-            ...$attributes,
-            'account_id' => $user->account_id,
-            'user_id' => $user->id,
-        ]);
+        $workspace = DB::transaction(function () use ($user, $attributes): Workspace {
+            $workspace = Workspace::create([
+                ...$attributes,
+                'account_id' => $user->account_id,
+                'user_id' => $user->id,
+            ]);
 
-        // Creator becomes Admin of the workspace they made. The Account Owner
-        // is resolved separately (via account.owner_id) and outranks this role.
-        $workspace->members()->attach($user->id, ['role' => Role::Admin->value]);
-        $user->switchWorkspace($workspace);
+            // Creator becomes Admin of the workspace they made. The Account Owner
+            // is resolved separately (via account.owner_id) and outranks this role.
+            $workspace->members()->attach($user->id, ['role' => Role::Admin->value]);
+            $user->switchWorkspace($workspace);
+
+            return $workspace;
+        });
+
+        $user->account?->syncWorkspaceQuantity();
 
         return $workspace;
     }

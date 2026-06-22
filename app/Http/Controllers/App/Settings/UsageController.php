@@ -4,17 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\App\Settings;
 
-use App\Features\MemberLimit;
-use App\Features\MonthlyCreditsLimit;
-use App\Features\SocialAccountLimit;
-use App\Features\WorkspaceLimit;
 use App\Http\Controllers\App\Controller;
-use App\Models\AiUsageLog;
+use App\Support\BillingCycle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Pennant\Feature;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class UsageController extends Controller
@@ -37,16 +32,12 @@ class UsageController extends Controller
         }
 
         return Inertia::render('settings/account/Usage', [
-            'plan' => $account->plan,
             'usage' => [
-                'workspaceCount' => $account->workspaces()->count(),
-                'workspaceLimit' => Feature::for($account)->value(WorkspaceLimit::class),
+                'workspaceCount' => $account->workspaces->count(),
                 'socialAccountCount' => $totalSocialAccounts,
-                'socialAccountLimit' => Feature::for($account)->value(SocialAccountLimit::class),
                 'memberCount' => $totalMembers,
-                'memberLimit' => Feature::for($account)->value(MemberLimit::class),
-                'creditsUsed' => AiUsageLog::monthlyCredits($account->id),
-                'monthlyCreditsLimit' => Feature::for($account)->value(MonthlyCreditsLimit::class),
+                'creditsUsed' => BillingCycle::for($account)->usedCredits(),
+                'monthlyCreditsLimit' => BillingCycle::for($account)->creditAllotment(),
             ],
         ]);
     }

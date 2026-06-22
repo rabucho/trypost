@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Ai\UsageType;
+use Carbon\CarbonInterface;
 use Database\Factories\AiUsageLogFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -50,10 +51,11 @@ class AiUsageLog extends Model
         return $this->belongsTo(Account::class);
     }
 
-    public static function monthlyCredits(string $accountId): int
+    public static function creditsUsedBetween(string $accountId, CarbonInterface $start, CarbonInterface $end): int
     {
         return (int) static::where('account_id', $accountId)
-            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $end)
             ->sum('credits');
     }
 }
