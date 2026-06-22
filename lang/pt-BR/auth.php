@@ -52,6 +52,7 @@ return [
     ],
 
     'or_continue_with' => 'Ou continue com',
+    'or_continue_with_email' => 'Ou continue com e-mail',
     'google_login' => 'Entrar com Google',
     'google_signup' => 'Cadastrar com Google',
     'github_login' => 'Entrar com GitHub',
@@ -78,9 +79,10 @@ return [
     ],
 
     'register' => [
-        'title' => 'Criar uma conta',
-        'description' => 'Digite seus dados abaixo para criar sua conta',
+        'title' => 'Todo o seu calendário social num só lugar',
+        'description' => 'Crie sua conta e comece a agendar posts em todas as redes.',
         'page_title' => 'Cadastro',
+        'signup_with_email' => 'Cadastrar com e-mail',
         'name' => 'Nome',
         'name_placeholder' => 'Nome completo',
         'email' => 'Endereço de email',
