@@ -10,6 +10,7 @@ use App\Models\PostPlatform;
 use App\Models\SocialAccount;
 use App\Services\Media\MediaOptimizer;
 use App\Services\Social\Concerns\HasSocialHttpClient;
+use Carbon\CarbonInterface;
 use Exception;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -19,6 +20,22 @@ use Throwable;
 class BlueskyPublisher
 {
     use HasSocialHttpClient;
+
+    /** Seconds allowed for a remote media download (large videos need time). */
+    private const DOWNLOAD_TIMEOUT = 600;
+
+    /** Re-upload a transiently-failing transcode this many times before giving up. */
+    private const VIDEO_UPLOAD_ATTEMPTS = 3;
+
+    /** Poll getJobStatus up to this many times (× the configured interval) before timing out. */
+    private const VIDEO_POLL_MAX_ATTEMPTS = 150;
+
+    /** Wall-clock budget (seconds) for the whole upload+poll+retry flow, kept under the 600s job timeout so a stuck transcode degrades to text instead of being killed mid-flight. */
+    private const VIDEO_PROCESSING_BUDGET = 420;
+
+    private const JOB_STATE_COMPLETED = 'JOB_STATE_COMPLETED';
+
+    private const JOB_STATE_FAILED = 'JOB_STATE_FAILED';
 
     public function publish(PostPlatform $postPlatform): array
     {
@@ -57,6 +74,23 @@ class BlueskyPublisher
                     '$type' => BlueskyLexicon::EMBED_IMAGES,
                     'images' => $images,
                 ];
+            }
+        }
+
+        // A post carries either images or a single video, never both. Only look
+        // for a video when no image embed was built (mirrors the official client).
+        if ($embed === null) {
+            $video = $medias->first(fn ($media) => $media->isVideo());
+
+            if ($video) {
+                $videoBlob = $this->uploadVideo($account, $service, $video->url, $video->mime_type);
+
+                if ($videoBlob) {
+                    $embed = [
+                        '$type' => BlueskyLexicon::EMBED_VIDEO,
+                        'video' => $videoBlob,
+                    ];
+                }
             }
         }
 
@@ -109,33 +143,28 @@ class BlueskyPublisher
 
     private function uploadBlob(SocialAccount $account, string $service, string $url, string $mimeType): ?array
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'bsky_blob_');
+        $tempFile = $this->downloadToTempFile($url, 'bsky_blob_');
+
+        if ($tempFile === null) {
+            return null;
+        }
 
         try {
-            $downloadResponse = Http::withOptions(['sink' => $tempFile])->timeout(600)->get($url);
-
-            if ($downloadResponse->failed()) {
-                throw new Exception('Failed to download media: HTTP '.$downloadResponse->status());
-            }
-
-            $fileSize = filesize($tempFile);
-
-            if ($fileSize === false || $fileSize === 0) {
-                Log::error('Bluesky failed to download media', ['url' => $url]);
-
-                return null;
-            }
-
-            // Optimize images for Bluesky's 1MB limit
+            // Optimize images for Bluesky's 1MB limit (GIFs are passed through untouched).
             if (str_starts_with($mimeType, 'image/') && ! str_starts_with($mimeType, 'image/gif')) {
-                $optimizer = app(MediaOptimizer::class);
-                $optimizedPath = $optimizer->optimizeImage($tempFile, Platform::Bluesky);
+                $optimizedPath = app(MediaOptimizer::class)->optimizeImage($tempFile, Platform::Bluesky);
                 @unlink($tempFile);
                 $tempFile = $optimizedPath;
                 $mimeType = 'image/jpeg';
             }
 
             $stream = fopen($tempFile, 'r');
+
+            if ($stream === false) {
+                Log::error('Bluesky could not open media file for upload', ['file' => $tempFile]);
+
+                return null;
+            }
 
             $response = $this->socialHttp()->withToken($account->access_token)
                 ->withHeaders(['Content-Type' => $mimeType])
@@ -156,7 +185,7 @@ class BlueskyPublisher
             }
 
             return data_get($response->json(), 'blob');
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error('Bluesky blob upload exception', [
                 'error' => $e->getMessage(),
                 'url' => $url,
@@ -166,6 +195,357 @@ class BlueskyPublisher
         } finally {
             @unlink($tempFile);
         }
+    }
+
+    /**
+     * Download a remote media file to a temp file. Returns the temp path, or
+     * null (after cleaning up) if the temp file can't be created, the download
+     * fails, or the downloaded file is empty.
+     */
+    private function downloadToTempFile(string $url, string $prefix): ?string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), $prefix);
+
+        if ($tempFile === false) {
+            Log::error('Bluesky could not create temp file for download', ['url' => $url]);
+
+            return null;
+        }
+
+        try {
+            $response = Http::withOptions(['sink' => $tempFile])->timeout(self::DOWNLOAD_TIMEOUT)->get($url);
+
+            if ($response->failed()) {
+                throw new Exception('HTTP '.$response->status());
+            }
+
+            $size = filesize($tempFile);
+
+            if ($size === false || $size === 0) {
+                throw new Exception('downloaded file is empty');
+            }
+
+            return $tempFile;
+        } catch (Throwable $e) {
+            Log::error('Bluesky media download failed', ['url' => $url, 'error' => $e->getMessage()]);
+            @unlink($tempFile);
+
+            return null;
+        }
+    }
+
+    /**
+     * Upload a video to Bluesky and return the processed blob for embedding.
+     *
+     * Unlike images, video does not go to the PDS via uploadBlob. It is sent to
+     * the separate video service (video.bsky.app), which transcodes it and
+     * stores the resulting blob on the account's PDS. The flow is:
+     *   1. resolve the account's real PDS host (for the upload-token audience),
+     *   2. mint two service-auth tokens — one for the video service to write
+     *      the blob back to the PDS (uploadBlob), one to poll job status,
+     *   3. POST the bytes to app.bsky.video.uploadVideo,
+     *   4. poll app.bsky.video.getJobStatus until the blob is ready,
+     *      retrying the whole upload a few times on a transient transcode failure.
+     *
+     * Returns null on any failure so the post still publishes as text rather
+     * than crashing the whole job (mirrors uploadBlob()).
+     */
+    private function uploadVideo(SocialAccount $account, string $service, string $url, ?string $mimeType): ?array
+    {
+        $tempFile = $this->downloadToTempFile($url, 'bsky_video_');
+
+        if ($tempFile === null) {
+            return null;
+        }
+
+        try {
+            $fileSize = filesize($tempFile);
+
+            // Bluesky caps videos at 100MB; skip oversized files rather than
+            // burning an upload that the service will reject.
+            if ($fileSize > (int) config('trypost.platforms.bluesky.video_max_bytes')) {
+                Log::error('Bluesky video exceeds size limit', ['url' => $url, 'size' => $fileSize]);
+
+                return null;
+            }
+
+            $pds = $this->resolvePdsEndpoint($account, $service);
+            $pdsHost = parse_url($pds, PHP_URL_HOST);
+
+            if (! is_string($pdsHost) || $pdsHost === '') {
+                Log::error('Bluesky could not resolve PDS host for video upload', ['did' => $account->platform_user_id]);
+
+                return null;
+            }
+
+            // Two service-auth tokens, minted once (valid 30 min) and reused
+            // across retries:
+            //   - upload: lets the video service write the blob back to the
+            //     user's PDS, so its audience is the PDS itself;
+            //   - status: lets us poll the video service for the transcode job.
+            $uploadToken = $this->getServiceAuth($account, $pds, "did:web:{$pdsHost}", BlueskyLexicon::UPLOAD_BLOB);
+            $statusToken = $this->getServiceAuth($account, $pds, (string) config('trypost.platforms.bluesky.video_service_did'), BlueskyLexicon::VIDEO_GET_JOB_STATUS);
+
+            if ($uploadToken === null || $statusToken === null) {
+                return null;
+            }
+
+            // Bound the whole upload+poll+retry flow to a wall-clock budget that
+            // stays under the queue job timeout: a stuck transcode must give up
+            // and let the post publish as text, not run the worker to its
+            // timeout (which would drop the post entirely on a $tries=1 job).
+            $deadline = now()->addSeconds(self::VIDEO_PROCESSING_BUDGET);
+
+            // The transcoder occasionally fails a job transiently
+            // (JOB_STATE_FAILED "Failed to process video") even for valid input.
+            // Re-uploading starts a fresh job, so retry until the budget runs out.
+            for ($attempt = 1; $attempt <= self::VIDEO_UPLOAD_ATTEMPTS && now()->lessThan($deadline); $attempt++) {
+                $blob = $this->attemptVideoUpload($account, $uploadToken, $statusToken, $tempFile, $mimeType, $deadline);
+
+                if ($blob !== null) {
+                    return $blob;
+                }
+
+                if ($attempt < self::VIDEO_UPLOAD_ATTEMPTS) {
+                    Log::warning('Bluesky video upload attempt failed, retrying', [
+                        'attempt' => $attempt,
+                        'url' => $url,
+                    ]);
+                }
+            }
+
+            return null;
+        } catch (Throwable $e) {
+            Log::error('Bluesky video upload exception', [
+                'error' => $e->getMessage(),
+                'url' => $url,
+            ]);
+
+            return null;
+        } finally {
+            @unlink($tempFile);
+        }
+    }
+
+    /**
+     * A single upload-and-poll attempt against the video service. Returns the
+     * processed blob, or null if this attempt failed (so the caller can retry).
+     */
+    private function attemptVideoUpload(SocialAccount $account, string $uploadToken, string $statusToken, string $tempFile, ?string $mimeType, CarbonInterface $deadline): ?array
+    {
+        $stream = fopen($tempFile, 'r');
+
+        if ($stream === false) {
+            Log::error('Bluesky could not open video file for upload', ['file' => $tempFile]);
+
+            return null;
+        }
+
+        [$contentType, $extension] = $this->videoUploadFormat($mimeType);
+        $videoService = (string) config('trypost.platforms.bluesky.video_service');
+        $name = bin2hex(random_bytes(8)).'.'.$extension;
+        $uploadUrl = "{$videoService}/xrpc/".BlueskyLexicon::VIDEO_UPLOAD
+            .'?did='.rawurlencode($account->platform_user_id).'&name='.rawurlencode($name);
+
+        $response = $this->socialHttp()->withToken($uploadToken)
+            ->withHeaders(['Content-Type' => $contentType])
+            ->withBody($stream, $contentType)
+            ->post($uploadUrl);
+
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
+
+        // A re-upload of identical bytes returns 409 with the already-finished
+        // job, whose blob we can embed directly.
+        if ($response->failed() && $response->status() !== 409) {
+            Log::error('Bluesky video upload failed', [
+                'status' => $response->status(),
+                'body' => $this->redactResponseBody($response->body()),
+            ]);
+
+            return null;
+        }
+
+        $jobStatus = $this->unwrapJobStatus($response->json());
+
+        if ($blob = data_get($jobStatus, 'blob')) {
+            return $blob;
+        }
+
+        $jobId = data_get($jobStatus, 'jobId');
+
+        if (! is_string($jobId) || $jobId === '') {
+            Log::error('Bluesky video upload returned no jobId', [
+                'body' => $this->redactResponseBody($response->body()),
+            ]);
+
+            return null;
+        }
+
+        return $this->pollVideoJob($statusToken, $jobId, $deadline);
+    }
+
+    /**
+     * Poll the video service until the transcode job finishes, then return its
+     * blob. Returns null if the job fails or never completes within the shared
+     * deadline. The status token is minted by the caller and reused per poll.
+     */
+    private function pollVideoJob(string $statusToken, string $jobId, CarbonInterface $deadline): ?array
+    {
+        $statusUrl = (string) config('trypost.platforms.bluesky.video_service').'/xrpc/'.BlueskyLexicon::VIDEO_GET_JOB_STATUS;
+        $intervalSeconds = (int) config('trypost.platforms.bluesky.video_poll_seconds');
+
+        // Processing usually finishes within seconds. State is checked before
+        // sleeping so an already-complete job returns at once. The attempt cap
+        // and the wall-clock deadline both bound the loop.
+        for ($attempt = 0; $attempt < self::VIDEO_POLL_MAX_ATTEMPTS && now()->lessThan($deadline); $attempt++) {
+            $response = $this->socialHttp()->withToken($statusToken)
+                ->get($statusUrl, ['jobId' => $jobId]);
+
+            // Bail on a hard error (e.g. expired/invalid token) instead of
+            // sleeping to the timeout and masking the real failure.
+            if ($response->failed()) {
+                Log::error('Bluesky getJobStatus failed', [
+                    'jobId' => $jobId,
+                    'status' => $response->status(),
+                    'body' => $this->redactResponseBody($response->body()),
+                ]);
+
+                return null;
+            }
+
+            $jobStatus = $this->unwrapJobStatus($response->json());
+            $state = data_get($jobStatus, 'state');
+
+            if ($state === self::JOB_STATE_COMPLETED && ($blob = data_get($jobStatus, 'blob'))) {
+                return $blob;
+            }
+
+            if ($state === self::JOB_STATE_FAILED) {
+                Log::error('Bluesky video processing failed', [
+                    'jobId' => $jobId,
+                    'message' => data_get($jobStatus, 'message'),
+                ]);
+
+                return null;
+            }
+
+            sleep($intervalSeconds);
+        }
+
+        Log::error('Bluesky video processing timed out', ['jobId' => $jobId]);
+
+        return null;
+    }
+
+    /**
+     * uploadVideo returns the job status at the top level, while getJobStatus
+     * wraps it under a `jobStatus` key. Fall back to the top level only when the
+     * key is absent (null), not when it's present-but-empty.
+     */
+    private function unwrapJobStatus(mixed $body): mixed
+    {
+        return data_get($body, 'jobStatus') ?? $body;
+    }
+
+    /**
+     * Map a video mime type to the [Content-Type, file extension] the upload
+     * should carry. Bluesky accepts mp4, mpeg, webm and mov; anything else
+     * (or an unknown mime) is sent as mp4 and left to the transcoder.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function videoUploadFormat(?string $mimeType): array
+    {
+        return match ($mimeType) {
+            'video/mpeg' => ['video/mpeg', 'mpeg'],
+            'video/webm' => ['video/webm', 'webm'],
+            'video/quicktime' => ['video/quicktime', 'mov'],
+            default => ['video/mp4', 'mp4'],
+        };
+    }
+
+    /**
+     * Mint a short-lived service-auth token (com.atproto.server.getServiceAuth)
+     * scoped to a single audience + method, used to authorize the video service.
+     */
+    private function getServiceAuth(SocialAccount $account, string $pds, string $aud, string $lxm): ?string
+    {
+        try {
+            $response = $this->socialHttp()->withToken($account->access_token)
+                ->get("{$pds}/xrpc/".BlueskyLexicon::GET_SERVICE_AUTH, [
+                    'aud' => $aud,
+                    'lxm' => $lxm,
+                    'exp' => now()->addMinutes(30)->timestamp,
+                ]);
+
+            if ($response->failed()) {
+                Log::error('Bluesky getServiceAuth failed', [
+                    'status' => $response->status(),
+                    'lxm' => $lxm,
+                    'body' => $this->redactResponseBody($response->body()),
+                ]);
+
+                return null;
+            }
+
+            $token = data_get($response->json(), 'token');
+
+            return is_string($token) && $token !== '' ? $token : null;
+        } catch (Throwable $e) {
+            Log::error('Bluesky getServiceAuth exception', ['error' => $e->getMessage(), 'lxm' => $lxm]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Resolve the account's real PDS service endpoint from its DID document.
+     * Bluesky entryway accounts store the entryway URL as `service`, but video
+     * service-auth must be scoped to the actual PDS host (e.g. *.host.bsky.network).
+     * Falls back to the stored service URL when the DID document is unavailable.
+     */
+    private function resolvePdsEndpoint(SocialAccount $account, string $service): string
+    {
+        $did = (string) $account->platform_user_id;
+
+        try {
+            $docUrl = null;
+            if (str_starts_with($did, 'did:plc:')) {
+                $directory = (string) config('trypost.platforms.bluesky.plc_directory');
+                $docUrl = "{$directory}/".rawurlencode($did);
+            } elseif (str_starts_with($did, 'did:web:')) {
+                // Per the did:web spec, colon-separated segments map to a host
+                // plus optional path; a bare host uses /.well-known/did.json.
+                $segments = array_map('rawurldecode', explode(':', substr($did, strlen('did:web:'))));
+                $host = array_shift($segments);
+                $path = $segments === [] ? '/.well-known/did.json' : '/'.implode('/', $segments).'/did.json';
+                $docUrl = "https://{$host}{$path}";
+            }
+
+            if ($docUrl !== null) {
+                $response = $this->socialHttp()->get($docUrl);
+
+                if ($response->successful()) {
+                    $services = data_get($response->json(), 'service', []);
+                    foreach ($services as $entry) {
+                        $type = data_get($entry, 'type');
+                        $id = data_get($entry, 'id');
+                        if ($type === 'AtprotoPersonalDataServer' || $id === '#atproto_pds') {
+                            $endpoint = data_get($entry, 'serviceEndpoint');
+                            if (is_string($endpoint) && $endpoint !== '') {
+                                return $endpoint;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            Log::warning('Bluesky PDS resolution failed', ['did' => $did, 'error' => $e->getMessage()]);
+        }
+
+        return $service;
     }
 
     private function parseFacets(string $text): array
