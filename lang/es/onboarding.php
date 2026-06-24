@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 return [
     'title' => 'Bienvenido a TryPost',
-    'description' => 'Cuéntanos qué te describe mejor para personalizar tu experiencia.',
+    'description' => 'Cuéntanos qué te describe mejor a ti o a tu negocio para personalizar tu experiencia.',
     'continue' => 'Continuar',
     'personas' => [
-        'creator' => 'Creador',
+        'creator' => 'Creador de contenido',
         'freelancer' => 'Freelancer',
         'developer' => 'Desarrollador',
         'startup' => 'Startup',
         'agency' => 'Agencia',
         'small_business' => 'Pequeña empresa',
-        'marketer' => 'Marketing',
+        'marketer' => 'Profesional de marketing',
         'online_store' => 'Tienda online',
         'other' => 'Otro',
     ],

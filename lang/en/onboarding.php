@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 return [
     'title' => 'Welcome to TryPost',
-    'description' => 'Tell us what best describes you so we can tailor your experience.',
+    'description' => 'Tell us what best describes you or your business so we can tailor your experience.',
     'continue' => 'Continue',
     'personas' => [
-        'creator' => 'Creator',
+        'creator' => 'Content creator',
         'freelancer' => 'Freelancer',
         'developer' => 'Developer',
         'startup' => 'Startup',
