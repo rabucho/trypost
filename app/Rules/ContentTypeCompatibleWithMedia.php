@@ -53,6 +53,7 @@ class ContentTypeCompatibleWithMedia implements DataAwareRule, ValidationRule
 
         $hasImage = collect($media)->contains(fn ($item) => $this->isImage((array) $item));
         $hasVideo = collect($media)->contains(fn ($item) => $this->isVideo((array) $item));
+        $hasDocument = collect($media)->contains(fn ($item) => $this->isDocument((array) $item));
 
         if ($hasImage && ! $contentType->supportsImage()) {
             $fail("{$contentType->label()} does not support images.");
@@ -60,6 +61,10 @@ class ContentTypeCompatibleWithMedia implements DataAwareRule, ValidationRule
 
         if ($hasVideo && ! $contentType->supportsVideo()) {
             $fail("{$contentType->label()} does not support videos.");
+        }
+
+        if ($hasDocument && ! $contentType->supportsDocument()) {
+            $fail("{$contentType->label()} does not support PDF documents.");
         }
 
         if ($hasImage && $hasVideo && ! $contentType->supportsMixedMedia()) {
@@ -89,5 +94,17 @@ class ContentTypeCompatibleWithMedia implements DataAwareRule, ValidationRule
         }
 
         return str_starts_with((string) data_get($item, 'mime_type', ''), 'video/');
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function isDocument(array $item): bool
+    {
+        if (data_get($item, 'type') === MediaType::Document->value) {
+            return true;
+        }
+
+        return data_get($item, 'mime_type') === 'application/pdf';
     }
 }

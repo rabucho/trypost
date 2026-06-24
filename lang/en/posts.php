@@ -143,6 +143,7 @@ return [
             'variant' => [
                 'post' => 'Post',
                 'carousel' => 'Carousel',
+                'document' => 'Document',
             ],
         ],
         'pinterest' => [
@@ -188,9 +189,11 @@ return [
             'min_files_required' => 'This post type requires at least :min media files (you have :current).',
             'no_video_allowed' => 'This post type does not accept videos.',
             'no_image_allowed' => 'This post type accepts only videos.',
+            'no_document_allowed' => 'This post type does not accept PDF documents.',
             'gif_not_allowed' => 'This platform does not accept GIF. Remove the GIF or choose a different network.',
             'image_too_large' => 'Image exceeds the :max limit for this post type (yours is :current).',
             'video_too_large' => 'Video exceeds the :max limit for this post type (yours is :current).',
+            'document_too_large' => 'PDF exceeds the :max limit for this post type (yours is :current).',
             'video_too_long' => 'Video is :current long, but this post type allows up to :max.',
             'aspect_ratio_too_narrow' => 'Aspect ratio :current is too tall for this post type (min :min).',
             'aspect_ratio_too_wide' => 'Aspect ratio :current is too wide for this post type (max :max).',
@@ -471,6 +474,14 @@ return [
         'linkedin_page_carousel' => [
             'label' => 'Carousel',
             'description' => 'Swipeable images',
+        ],
+        'linkedin_document' => [
+            'label' => 'Document',
+            'description' => 'Swipeable PDF carousel',
+        ],
+        'linkedin_page_document' => [
+            'label' => 'Document',
+            'description' => 'Swipeable PDF carousel',
         ],
         'facebook_post' => [
             'label' => 'Post',

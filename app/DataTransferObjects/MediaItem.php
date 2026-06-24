@@ -43,6 +43,15 @@ class MediaItem
         return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif']);
     }
 
+    public function isDocument(): bool
+    {
+        if ($this->mime_type) {
+            return $this->mime_type === 'application/pdf';
+        }
+
+        return strtolower(pathinfo($this->path, PATHINFO_EXTENSION)) === 'pdf';
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -63,6 +72,7 @@ class MediaItem
                 'webp' => 'image/webp',
                 'mp4' => 'video/mp4',
                 'mov' => 'video/quicktime',
+                'pdf' => 'application/pdf',
                 default => null,
             };
         }

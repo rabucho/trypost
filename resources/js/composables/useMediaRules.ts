@@ -5,11 +5,13 @@ export interface MediaRules {
     minFiles?: number;
     acceptImages: boolean;
     acceptVideos: boolean;
+    acceptDocuments?: boolean;
     requiresMedia: boolean;
     acceptsGif: boolean;
     forbidsMixedMedia?: boolean;
     maxImageBytes?: number;
     maxVideoBytes?: number;
+    maxDocumentBytes?: number;
     maxVideoDurationSec?: number;
     aspectRatioMin?: number;
     aspectRatioMax?: number;
@@ -80,6 +82,17 @@ const CONTENT_TYPE_RULES: Record<string, MediaRules> = {
         acceptsGif: false,
         maxImageBytes: 5 * MB,
         aspectRatioMin: 0.5, aspectRatioMax: 1,
+    },
+    // Document (PDF) posts — the swipeable LinkedIn carousel. One PDF, up to 100MB.
+    linkedin_document: {
+        maxFiles: 1, acceptImages: false, acceptVideos: false, acceptDocuments: true, requiresMedia: true,
+        acceptsGif: false,
+        maxDocumentBytes: 100 * MB,
+    },
+    linkedin_page_document: {
+        maxFiles: 1, acceptImages: false, acceptVideos: false, acceptDocuments: true, requiresMedia: true,
+        acceptsGif: false,
+        maxDocumentBytes: 100 * MB,
     },
 
     // TikTok
@@ -169,6 +182,9 @@ export function useMediaRules(contentType: Ref<string> | ComputedRef<string>) {
         if (rules.value.acceptVideos) {
             types.push('video/*');
         }
+        if (rules.value.acceptDocuments) {
+            types.push('application/pdf');
+        }
         return types.join(',');
     });
 
@@ -180,6 +196,7 @@ export function useMediaRules(contentType: Ref<string> | ComputedRef<string>) {
         return (file: File): boolean => {
             const isImage = file.type.startsWith('image/');
             const isVideo = file.type.startsWith('video/');
+            const isDocument = file.type === 'application/pdf';
 
             if (isImage && !rules.value.acceptImages) {
                 return false;
@@ -187,11 +204,17 @@ export function useMediaRules(contentType: Ref<string> | ComputedRef<string>) {
             if (isVideo && !rules.value.acceptVideos) {
                 return false;
             }
+            if (isDocument) {
+                return Boolean(rules.value.acceptDocuments);
+            }
             return isImage || isVideo;
         };
     });
 
     const getAcceptDescription = computed<string>(() => {
+        if (rules.value.acceptDocuments && !rules.value.acceptImages && !rules.value.acceptVideos) {
+            return 'PDF document';
+        }
         if (rules.value.acceptImages && rules.value.acceptVideos) {
             return 'Images or videos';
         }

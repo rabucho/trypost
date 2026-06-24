@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
     IconAlertTriangle,
+    IconFileTypePdf,
     IconGripVertical,
     IconHash,
     IconLibraryPhoto,
@@ -73,10 +74,17 @@ const mediaThumbRefs = ref<HTMLElement[]>([]);
 const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
 
 const openPreview = (item: MediaItem) => {
-    const idx = media.value.findIndex((m) => m.id === item.id);
+    // PDFs can't render in the image lightbox — open them in a new tab.
+    if (isDocument(item)) {
+        window.open(item.url, '_blank', 'noopener');
+        return;
+    }
+
+    const previewable = media.value.filter((m) => !isDocument(m));
+    const idx = previewable.findIndex((m) => m.id === item.id);
     if (idx < 0) return;
     lightbox.value?.openCollection(
-        media.value.map((m) => ({
+        previewable.map((m) => ({
             url: m.url,
             type: isVideo(m) ? 'video' as const : 'image' as const,
         })),
@@ -86,6 +94,9 @@ const openPreview = (item: MediaItem) => {
 
 const isVideo = (item: MediaItem): boolean =>
     item.type === 'video' || Boolean(item.mime_type?.startsWith('video/'));
+
+const isDocument = (item: MediaItem): boolean =>
+    item.type === 'document' || item.mime_type === 'application/pdf';
 
 const formatDuration = (seconds: number): string => {
     const total = Math.round(seconds);
@@ -245,6 +256,13 @@ const canRegenerateWithAi = (item: MediaItem): boolean => props.allowAiRegenerat
                             class="h-full w-full object-cover"
                             muted
                         />
+                        <div
+                            v-else-if="isDocument(item)"
+                            class="flex h-full w-full flex-col items-center justify-center gap-1 bg-rose-50 p-2 text-center"
+                        >
+                            <IconFileTypePdf class="size-7 text-rose-600" />
+                            <span class="line-clamp-2 break-all text-[10px] font-medium text-foreground/70">{{ item.original_filename || 'PDF' }}</span>
+                        </div>
                         <img
                             v-else
                             :src="item.url"

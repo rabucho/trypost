@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { IconArrowLeft, IconCalendar, IconExternalLink, IconLoader2 } from '@tabler/icons-vue';
+import { IconArrowLeft, IconCalendar, IconExternalLink, IconFileTypePdf, IconLoader2 } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -90,12 +90,24 @@ const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
 const isVideoItem = (item: MediaItem): boolean =>
     item.type === 'video' || (item.mime_type?.startsWith('video/') ?? false);
 
+const isDocumentItem = (item: MediaItem): boolean =>
+    item.type === 'document' || item.mime_type === 'application/pdf';
+
 const openLightbox = (i: number) => {
-    const collection = props.post.media.map((m) => ({
+    const item = props.post.media[i];
+    // PDFs can't render in the image lightbox — open them in a new tab.
+    if (item && isDocumentItem(item)) {
+        window.open(item.url, '_blank', 'noopener');
+        return;
+    }
+
+    const previewable = props.post.media.filter((m) => !isDocumentItem(m));
+    const collection = previewable.map((m) => ({
         url: m.url,
         type: isVideoItem(m) ? ('video' as const) : ('image' as const),
     }));
-    lightbox.value?.openCollection(collection, i);
+    const idx = previewable.findIndex((m) => m.id === item?.id);
+    lightbox.value?.openCollection(collection, idx < 0 ? 0 : idx);
 };
 
 usePostEcho(props.post.id, '.post.platform.status.updated', () => {
@@ -171,6 +183,13 @@ usePostEcho(props.post.id, '.post.platform.status.updated', () => {
                                         class="h-full w-full object-cover"
                                         muted
                                     />
+                                    <div
+                                        v-else-if="isDocumentItem(item)"
+                                        class="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-rose-50 p-2 text-center"
+                                    >
+                                        <IconFileTypePdf class="size-8 text-rose-600" />
+                                        <span class="line-clamp-2 break-all text-[10px] font-medium text-foreground/70">{{ item.original_filename || 'PDF' }}</span>
+                                    </div>
                                     <img
                                         v-else
                                         :src="item.url"

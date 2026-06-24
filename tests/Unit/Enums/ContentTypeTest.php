@@ -150,3 +150,29 @@ test('bluesky and mastodon support video', function () {
     expect(ContentType::BlueskyPost->supportsVideo())->toBeTrue();
     expect(ContentType::MastodonPost->supportsVideo())->toBeTrue();
 });
+
+test('linkedin document content types are pdf-only and single-file', function () {
+    foreach ([ContentType::LinkedInDocument, ContentType::LinkedInPageDocument] as $type) {
+        expect($type->label())->toBe('Document');
+        expect($type->supportsDocument())->toBeTrue();
+        expect($type->supportsImage())->toBeFalse();
+        expect($type->supportsVideo())->toBeFalse();
+        expect($type->requiresMedia())->toBeTrue();
+        expect($type->maxMediaCount())->toBe(1);
+    }
+
+    expect(ContentType::LinkedInDocument->platform())->toBe(Platform::LinkedIn);
+    expect(ContentType::LinkedInPageDocument->platform())->toBe(Platform::LinkedInPage);
+});
+
+test('only linkedin document content types support documents', function () {
+    expect(ContentType::LinkedInPost->supportsDocument())->toBeFalse();
+    expect(ContentType::LinkedInCarousel->supportsDocument())->toBeFalse();
+    expect(ContentType::InstagramFeed->supportsDocument())->toBeFalse();
+    expect(ContentType::XPost->supportsDocument())->toBeFalse();
+});
+
+test('linkedin document content types are exposed for their platform', function () {
+    expect(ContentType::forPlatform(Platform::LinkedIn))->toContain(ContentType::LinkedInDocument);
+    expect(ContentType::forPlatform(Platform::LinkedInPage))->toContain(ContentType::LinkedInPageDocument);
+});

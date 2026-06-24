@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useHttp } from '@inertiajs/vue3';
-import { IconCloudUpload, IconLoader2, IconPencilPlus, IconPhoto, IconPlus, IconSearch, IconTrash } from '@tabler/icons-vue';
+import { IconCloudUpload, IconFileTypePdf, IconLoader2, IconPencilPlus, IconPhoto, IconPlus, IconSearch, IconTrash } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { toast } from 'vue-sonner';
@@ -91,11 +91,17 @@ const handleAssetClick = (asset: AssetMedia) => {
         toggleSelect(asset);
         return;
     }
-    const items = uploads.value.map((a) => ({
+    // PDFs can't render in the image lightbox — open them in a new tab.
+    if (asset.type === 'document' || asset.mime_type === 'application/pdf') {
+        window.open(asset.url, '_blank', 'noopener');
+        return;
+    }
+    const previewable = uploads.value.filter((a) => a.type !== 'document' && a.mime_type !== 'application/pdf');
+    const items = previewable.map((a) => ({
         url: a.url,
         type: a.type === 'video' ? ('video' as const) : ('image' as const),
     }));
-    const idx = uploads.value.findIndex((a) => a.id === asset.id);
+    const idx = previewable.findIndex((a) => a.id === asset.id);
     lightbox.value?.openCollection(items, idx);
 };
 
@@ -617,7 +623,7 @@ onUnmounted(() => {
                         type="file"
                         class="hidden"
                         multiple
-                        accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+                        accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,application/pdf"
                         @change="handleFileSelect"
                     />
                     <div v-if="uploading" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-card/85">
@@ -668,6 +674,13 @@ onUnmounted(() => {
                                 muted
                                 preload="metadata"
                             />
+                            <div
+                                v-else-if="asset.type === 'document' || asset.mime_type === 'application/pdf'"
+                                class="flex size-full flex-col items-center justify-center gap-1.5 bg-rose-50 p-3 text-center"
+                            >
+                                <IconFileTypePdf class="size-9 text-rose-600" />
+                                <span class="line-clamp-2 break-all text-[11px] font-medium text-foreground/70">{{ asset.original_filename }}</span>
+                            </div>
                             <img
                                 v-else
                                 :src="asset.url"

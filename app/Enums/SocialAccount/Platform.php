@@ -94,7 +94,7 @@ enum Platform: string
     public function allowedMediaTypes(): array
     {
         return match ($this) {
-            self::LinkedIn, self::LinkedInPage => [MediaType::Image, MediaType::Video],
+            self::LinkedIn, self::LinkedInPage => [MediaType::Image, MediaType::Video, MediaType::Document],
             self::X => [MediaType::Image, MediaType::Video],
             self::TikTok => [MediaType::Video],
             self::YouTube => [MediaType::Video],

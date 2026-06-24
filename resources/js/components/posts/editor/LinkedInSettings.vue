@@ -43,10 +43,12 @@ const variants = computed(() =>
         ? [
             { value: ContentType.LinkedInPagePost, labelKey: 'posts.form.linkedin.variant.post' },
             { value: ContentType.LinkedInPageCarousel, labelKey: 'posts.form.linkedin.variant.carousel' },
+            { value: ContentType.LinkedInPageDocument, labelKey: 'posts.form.linkedin.variant.document' },
         ]
         : [
             { value: ContentType.LinkedInPost, labelKey: 'posts.form.linkedin.variant.post' },
             { value: ContentType.LinkedInCarousel, labelKey: 'posts.form.linkedin.variant.carousel' },
+            { value: ContentType.LinkedInDocument, labelKey: 'posts.form.linkedin.variant.document' },
         ],
 );
 

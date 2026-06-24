@@ -143,6 +143,7 @@ return [
             'variant' => [
                 'post' => 'Publicación',
                 'carousel' => 'Carrusel',
+                'document' => 'Documento',
             ],
         ],
         'pinterest' => [
@@ -188,9 +189,11 @@ return [
             'min_files_required' => 'Este tipo requiere al menos :min archivos (tienes :current).',
             'no_video_allowed' => 'Este tipo no acepta videos.',
             'no_image_allowed' => 'Este tipo acepta solo videos.',
+            'no_document_allowed' => 'Este tipo no acepta documentos PDF.',
             'gif_not_allowed' => 'Esta red no acepta GIF. Elimínalo o selecciona otra red.',
             'image_too_large' => 'La imagen supera el límite de :max (la tuya es :current).',
             'video_too_large' => 'El video supera el límite de :max (el tuyo es :current).',
+            'document_too_large' => 'El PDF supera el límite de :max (el tuyo es :current).',
             'video_too_long' => 'El video dura :current, pero este tipo permite hasta :max.',
             'aspect_ratio_too_narrow' => 'La proporción :current es demasiado alta (mínimo :min).',
             'aspect_ratio_too_wide' => 'La proporción :current es demasiado ancha (máximo :max).',
@@ -471,6 +474,14 @@ return [
         'linkedin_page_carousel' => [
             'label' => 'Carrusel',
             'description' => 'Imágenes deslizables',
+        ],
+        'linkedin_document' => [
+            'label' => 'Documento',
+            'description' => 'Carrusel PDF deslizable',
+        ],
+        'linkedin_page_document' => [
+            'label' => 'Documento',
+            'description' => 'Carrusel PDF deslizable',
         ],
         'facebook_post' => [
             'label' => 'Post',

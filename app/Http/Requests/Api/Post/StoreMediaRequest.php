@@ -22,6 +22,7 @@ class StoreMediaRequest extends FormRequest
         $allowedMimes = [
             ...MediaType::Image->allowedMimeTypes(),
             ...MediaType::Video->allowedMimeTypes(),
+            ...MediaType::Document->allowedMimeTypes(),
         ];
 
         return [

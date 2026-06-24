@@ -45,6 +45,9 @@ class PostPlatformMetaRules
             // Instagram / Facebook
             'platforms.*.meta.aspect_ratio' => ['sometimes', 'nullable', 'string', Rule::enum(AspectRatio::class)],
 
+            // LinkedIn — title shown on a document (PDF carousel) post
+            'platforms.*.meta.document_title' => ['sometimes', 'nullable', 'string', 'max:300'],
+
             // TikTok
             'platforms.*.meta.privacy_level' => ['sometimes', 'nullable', 'string', Rule::in(self::TIKTOK_PRIVACY_LEVELS)],
             'platforms.*.meta.auto_add_music' => ['sometimes', 'boolean'],

@@ -380,3 +380,201 @@ test('linkedin publisher can publish post with video', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), 'finalizeUpload'));
     Http::assertSent(fn ($request) => str_contains($request->url(), '/rest/posts'));
 });
+
+test('linkedin publisher can publish a document (pdf carousel) with a title', function () {
+    $this->postPlatform->update([
+        'content_type' => ContentType::LinkedInDocument,
+        'meta' => ['document_title' => 'My Slides'],
+    ]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'doc-media-1',
+                'path' => 'media/2026-01/deck.pdf',
+                'url' => 'https://example.com/media/2026-01/deck.pdf',
+                'mime_type' => 'application/pdf',
+                'original_filename' => 'deck.pdf',
+            ],
+        ],
+    ]);
+
+    $uploadUrl = 'https://www.linkedin.com/dms-uploads/document/0';
+
+    Http::fake(function ($request) use ($uploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/documents') && str_contains($url, 'initializeUpload')) {
+            return Http::response([
+                'value' => [
+                    'uploadUrl' => $uploadUrl,
+                    'document' => 'urn:li:document:FakeDocUrn',
+                ],
+            ], 200);
+        }
+
+        if ($url === $uploadUrl) {
+            return Http::response(null, 201);
+        }
+
+        if (str_contains($url, '/rest/documents/')) {
+            return Http::response(['status' => 'AVAILABLE'], 200);
+        }
+
+        if (str_contains($url, '/rest/posts')) {
+            return Http::response(null, 201, ['x-restli-id' => 'urn:li:share:doc999']);
+        }
+
+        return Http::response('fake-pdf-bytes', 200);
+    });
+
+    $result = $this->publisher->publish($this->postPlatform);
+
+    expect($result['id'])->toBe('urn:li:share:doc999');
+    expect($result['url'])->toContain('linkedin.com/feed/update/urn:li:share:doc999');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/rest/documents') && str_contains($request->url(), 'initializeUpload'));
+    Http::assertSent(function ($request) use ($uploadUrl) {
+        return $request->url() === $uploadUrl
+            && $request->hasHeader('Content-Type', 'application/pdf');
+    });
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/rest/posts')) {
+            return false;
+        }
+
+        return data_get($request->data(), 'content.media.id') === 'urn:li:document:FakeDocUrn'
+            && data_get($request->data(), 'content.media.title') === 'My Slides';
+    });
+});
+
+test('linkedin publisher document title falls back to the file name', function () {
+    $this->postPlatform->update(['content_type' => ContentType::LinkedInDocument]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'doc-media-1',
+                'path' => 'media/2026-01/whitepaper.pdf',
+                'url' => 'https://example.com/media/2026-01/whitepaper.pdf',
+                'mime_type' => 'application/pdf',
+                'original_filename' => 'whitepaper.pdf',
+            ],
+        ],
+    ]);
+
+    $uploadUrl = 'https://www.linkedin.com/dms-uploads/document/1';
+
+    Http::fake(function ($request) use ($uploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/documents') && str_contains($url, 'initializeUpload')) {
+            return Http::response(['value' => ['uploadUrl' => $uploadUrl, 'document' => 'urn:li:document:Doc2']], 200);
+        }
+
+        if ($url === $uploadUrl) {
+            return Http::response(null, 201);
+        }
+
+        if (str_contains($url, '/rest/documents/')) {
+            return Http::response(['status' => 'AVAILABLE'], 200);
+        }
+
+        if (str_contains($url, '/rest/posts')) {
+            return Http::response(null, 201, ['x-restli-id' => 'urn:li:share:doc2']);
+        }
+
+        return Http::response('fake-pdf-bytes', 200);
+    });
+
+    $this->publisher->publish($this->postPlatform);
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/rest/posts')) {
+            return false;
+        }
+
+        return data_get($request->data(), 'content.media.title') === 'whitepaper.pdf';
+    });
+});
+
+test('linkedin publisher waits for document processing before posting', function () {
+    $this->postPlatform->update(['content_type' => ContentType::LinkedInDocument]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'doc-media-1',
+                'path' => 'media/2026-01/deck.pdf',
+                'url' => 'https://example.com/media/2026-01/deck.pdf',
+                'mime_type' => 'application/pdf',
+                'original_filename' => 'deck.pdf',
+            ],
+        ],
+    ]);
+
+    $uploadUrl = 'https://www.linkedin.com/dms-uploads/document/2';
+
+    Http::fake(function ($request) use ($uploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/documents') && str_contains($url, 'initializeUpload')) {
+            return Http::response(['value' => ['uploadUrl' => $uploadUrl, 'document' => 'urn:li:document:Doc3']], 200);
+        }
+
+        if ($url === $uploadUrl) {
+            return Http::response(null, 201);
+        }
+
+        if (str_contains($url, '/rest/documents/')) {
+            return Http::response(['status' => 'AVAILABLE'], 200);
+        }
+
+        if (str_contains($url, '/rest/posts')) {
+            return Http::response(null, 201, ['x-restli-id' => 'urn:li:share:doc3']);
+        }
+
+        return Http::response('fake-pdf-bytes', 200);
+    });
+
+    $this->publisher->publish($this->postPlatform);
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/rest/documents/urn'));
+});
+
+test('linkedin publisher throws and does not post when document processing fails', function () {
+    $this->postPlatform->update(['content_type' => ContentType::LinkedInDocument]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'doc-media-1',
+                'path' => 'media/2026-01/deck.pdf',
+                'url' => 'https://example.com/media/2026-01/deck.pdf',
+                'mime_type' => 'application/pdf',
+                'original_filename' => 'deck.pdf',
+            ],
+        ],
+    ]);
+
+    $uploadUrl = 'https://www.linkedin.com/dms-uploads/document/fail';
+
+    Http::fake(function ($request) use ($uploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/documents') && str_contains($url, 'initializeUpload')) {
+            return Http::response(['value' => ['uploadUrl' => $uploadUrl, 'document' => 'urn:li:document:Fail']], 200);
+        }
+
+        if ($url === $uploadUrl) {
+            return Http::response(null, 201);
+        }
+
+        if (str_contains($url, '/rest/documents/')) {
+            return Http::response(['status' => 'PROCESSING_FAILED'], 200);
+        }
+
+        return Http::response('fake-pdf-bytes', 200);
+    });
+
+    expect(fn () => $this->publisher->publish($this->postPlatform))
+        ->toThrow(Exception::class, 'LinkedIn document processing failed');
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/rest/posts'));
+});

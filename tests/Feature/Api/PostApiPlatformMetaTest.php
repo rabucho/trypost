@@ -51,6 +51,23 @@ it('persists Discord channel, mentions and embeds meta on store', function () {
         ->and(data_get($meta, 'embeds.0.color'))->toBe('#5865F2');
 });
 
+it('persists the LinkedIn document_title meta on store', function () {
+    $linkedin = SocialAccount::factory()->create(['workspace_id' => $this->workspace->id, 'platform' => Platform::LinkedIn]);
+
+    $this->withHeaders($this->headers)
+        ->postJson(route('api.posts.store'), [
+            'content' => 'Check our latest deck',
+            'platforms' => [[
+                'social_account_id' => $linkedin->id,
+                'content_type' => ContentType::LinkedInDocument->value,
+                'meta' => ['document_title' => 'Q2 Report'],
+            ]],
+        ])
+        ->assertCreated();
+
+    expect(PostPlatform::where('social_account_id', $linkedin->id)->sole()->meta['document_title'])->toBe('Q2 Report');
+});
+
 it('persists per-platform meta across networks on store', function () {
     $instagram = SocialAccount::factory()->create(['workspace_id' => $this->workspace->id, 'platform' => Platform::Instagram]);
     $pinterest = SocialAccount::factory()->create(['workspace_id' => $this->workspace->id, 'platform' => Platform::Pinterest]);

@@ -283,3 +283,66 @@ test('linkedin page publisher can publish post with image using organization urn
         && isset($request['content']['media']['id'])
     );
 });
+
+test('linkedin page publisher can publish a document (pdf carousel) using organization urn', function () {
+    $this->postPlatform->update([
+        'content_type' => ContentType::LinkedInPageDocument,
+        'meta' => ['document_title' => 'Company Deck'],
+    ]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'doc-media-1',
+                'path' => 'media/2026-01/company-deck.pdf',
+                'url' => 'https://example.com/media/2026-01/company-deck.pdf',
+                'mime_type' => 'application/pdf',
+                'original_filename' => 'company-deck.pdf',
+            ],
+        ],
+    ]);
+
+    $uploadUrl = 'https://www.linkedin.com/dms-uploads/document/org/0';
+
+    Http::fake(function ($request) use ($uploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/documents') && str_contains($url, 'initializeUpload')) {
+            return Http::response([
+                'value' => [
+                    'uploadUrl' => $uploadUrl,
+                    'document' => 'urn:li:document:OrgDocUrn',
+                ],
+            ], 200);
+        }
+
+        if ($url === $uploadUrl) {
+            return Http::response(null, 201);
+        }
+
+        if (str_contains($url, '/rest/documents/')) {
+            return Http::response(['status' => 'AVAILABLE'], 200);
+        }
+
+        if (str_contains($url, '/rest/posts')) {
+            return Http::response(null, 201, ['x-restli-id' => 'urn:li:share:orgdoc999']);
+        }
+
+        return Http::response('fake-pdf-bytes', 200);
+    });
+
+    $result = $this->publisher->publish($this->postPlatform);
+
+    expect($result['id'])->toBe('urn:li:share:orgdoc999');
+    expect($result['url'])->toContain('linkedin.com/company/testcompany/posts/');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/rest/documents') && str_contains($request->url(), 'initializeUpload'));
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/rest/posts')) {
+            return false;
+        }
+
+        return ($request['author'] ?? '') === 'urn:li:organization:123456'
+            && data_get($request->data(), 'content.media.id') === 'urn:li:document:OrgDocUrn'
+            && data_get($request->data(), 'content.media.title') === 'Company Deck';
+    });
+});

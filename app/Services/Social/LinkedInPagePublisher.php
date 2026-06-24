@@ -63,6 +63,7 @@ class LinkedInPagePublisher
         try {
             return match ($contentType) {
                 ContentType::LinkedInPageCarousel => $this->publishCarousel($organizationUrn, $content, $postPlatform->post->mediaItems, $this->account),
+                ContentType::LinkedInPageDocument => $this->publishDocument($organizationUrn, $content, $postPlatform->post->mediaItems, $this->resolveDocumentTitle($postPlatform), $this->account),
                 ContentType::LinkedInPagePost => $this->publishPost($organizationUrn, $content, $postPlatform->post->mediaItems, $this->account),
                 default => throw new \Exception("Unsupported LinkedIn Page content type: {$contentType?->value}"),
             };
@@ -89,6 +90,7 @@ class LinkedInPagePublisher
 
             return match ($contentType) {
                 ContentType::LinkedInPageCarousel => $this->publishCarousel($organizationUrn, $content, $postPlatform->post->mediaItems, $this->account),
+                ContentType::LinkedInPageDocument => $this->publishDocument($organizationUrn, $content, $postPlatform->post->mediaItems, $this->resolveDocumentTitle($postPlatform), $this->account),
                 ContentType::LinkedInPagePost => $this->publishPost($organizationUrn, $content, $postPlatform->post->mediaItems, $this->account),
                 default => throw new \Exception("Unsupported LinkedIn Page content type: {$contentType?->value}"),
             };
@@ -208,6 +210,77 @@ class LinkedInPagePublisher
         $postId = $response->header('x-restli-id');
 
         // Build company page URL
+        $username = $account->username;
+        $postUrl = $username
+            ? "https://www.linkedin.com/company/{$username}/posts/"
+            : "https://www.linkedin.com/feed/update/{$postId}";
+
+        return [
+            'id' => $postId ?? 'unknown',
+            'url' => $postId ? $postUrl : null,
+        ];
+    }
+
+    /**
+     * The title shown on a LinkedIn document (PDF carousel) post. Falls back
+     * to the uploaded file name, then a generic label, so it's never empty.
+     */
+    private function resolveDocumentTitle(PostPlatform $postPlatform): string
+    {
+        $title = data_get($postPlatform->meta, 'document_title');
+
+        if (filled($title)) {
+            return (string) $title;
+        }
+
+        return $postPlatform->post->mediaItems->first()?->original_filename ?? 'Document';
+    }
+
+    private function publishDocument(string $organizationUrn, ?string $content, $mediaCollection, string $title, $account): array
+    {
+        $document = $mediaCollection->first(fn ($media) => $media->isDocument());
+
+        if (! $document) {
+            throw new \Exception('No PDF document for LinkedIn Page document post');
+        }
+
+        $documentUrn = $this->uploadDocument($document, $organizationUrn);
+
+        if (! $documentUrn) {
+            throw new \Exception('LinkedIn Page document upload failed');
+        }
+
+        $payload = [
+            'author' => $organizationUrn,
+            'commentary' => $content ?? '',
+            'visibility' => 'PUBLIC',
+            'distribution' => [
+                'feedDistribution' => 'MAIN_FEED',
+                'targetEntities' => [],
+                'thirdPartyDistributionChannels' => [],
+            ],
+            'lifecycleState' => 'PUBLISHED',
+            'content' => [
+                'media' => [
+                    'id' => $documentUrn,
+                    'title' => $title,
+                ],
+            ],
+        ];
+
+        $response = $this->getHttpClient()
+            ->post("{$this->baseUrl}/rest/posts", $payload);
+
+        if ($response->failed()) {
+            Log::error('LinkedIn Page document post creation failed', [
+                'status' => $response->status(),
+                'body' => $this->redactResponseBody($response->body()),
+            ]);
+            $this->handleApiError($response);
+        }
+
+        $postId = $response->header('x-restli-id');
+
         $username = $account->username;
         $postUrl = $username
             ? "https://www.linkedin.com/company/{$username}/posts/"
@@ -448,6 +521,98 @@ class LinkedInPagePublisher
         }
 
         Log::warning('LinkedIn Page video processing timeout, proceeding anyway');
+    }
+
+    private function uploadDocument($mediaItem, string $ownerUrn): ?string
+    {
+        // Step 1: Initialize upload
+        $initResponse = $this->getHttpClient()
+            ->post("{$this->baseUrl}/rest/documents?action=initializeUpload", [
+                'initializeUploadRequest' => [
+                    'owner' => $ownerUrn,
+                ],
+            ]);
+
+        if ($initResponse->failed()) {
+            Log::error('LinkedIn Page document init failed', ['body' => $this->redactResponseBody($initResponse->body())]);
+            $this->handleApiError($initResponse);
+        }
+
+        $initData = $initResponse->json();
+        $uploadUrl = $initData['value']['uploadUrl'] ?? null;
+        $documentUrn = $initData['value']['document'] ?? null;
+
+        if (! $uploadUrl || ! $documentUrn) {
+            throw new \Exception('LinkedIn Page document upload init missing uploadUrl or document URN');
+        }
+
+        // Step 2: Upload the PDF in a single request (Documents API is not chunked)
+        $tempFile = tempnam(sys_get_temp_dir(), 'lip_document_');
+
+        try {
+            $downloadResponse = Http::withOptions(['sink' => $tempFile])->timeout(600)->get($mediaItem->url);
+
+            if ($downloadResponse->failed()) {
+                throw new \Exception('Failed to download media: HTTP '.$downloadResponse->status());
+            }
+
+            $stream = fopen($tempFile, 'r');
+
+            $uploadResponse = Http::withToken($this->accessToken)
+                ->withHeaders([
+                    'Content-Type' => 'application/pdf',
+                ])
+                ->timeout(600)
+                ->withBody($stream, 'application/pdf')
+                ->put($uploadUrl);
+
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+
+            if ($uploadResponse->failed()) {
+                Log::error('LinkedIn Page document upload failed', ['body' => $this->redactResponseBody($uploadResponse->body())]);
+                $this->handleApiError($uploadResponse);
+            }
+        } finally {
+            @unlink($tempFile);
+        }
+
+        // Step 3: Wait for processing (SYNCHRONOUS_UPLOAD is not supported)
+        $this->waitForDocumentProcessing($documentUrn);
+
+        return $documentUrn;
+    }
+
+    private function waitForDocumentProcessing(string $documentUrn, int $maxAttempts = 30): void
+    {
+        $encodedUrn = urlencode($documentUrn);
+
+        for ($i = 0; $i < $maxAttempts; $i++) {
+            $response = $this->getHttpClient()
+                ->get("{$this->baseUrl}/rest/documents/{$encodedUrn}");
+
+            if ($response->failed()) {
+                Log::warning('LinkedIn Page document status check failed', ['attempt' => $i]);
+                sleep(5);
+
+                continue;
+            }
+
+            $status = data_get($response->json(), 'status', 'UNKNOWN');
+
+            if ($status === 'AVAILABLE') {
+                return;
+            }
+
+            if ($status === 'PROCESSING_FAILED') {
+                throw new \Exception('LinkedIn Page document processing failed');
+            }
+
+            sleep(5);
+        }
+
+        Log::warning('LinkedIn Page document processing timeout, proceeding anyway');
     }
 
     private function handleApiError(Response $response): never

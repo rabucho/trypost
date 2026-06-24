@@ -81,6 +81,15 @@ class Media extends Model
         return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif']);
     }
 
+    public function isDocument(): bool
+    {
+        if ($this->mime_type) {
+            return $this->mime_type === 'application/pdf';
+        }
+
+        return strtolower(pathinfo($this->path, PATHINFO_EXTENSION)) === 'pdf';
+    }
+
     public function getTemporaryUrl(int $expirationMinutes = 60): string
     {
         return Storage::temporaryUrl(

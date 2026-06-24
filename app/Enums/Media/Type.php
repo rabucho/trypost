@@ -8,12 +8,14 @@ enum Type: string
 {
     case Image = 'image';
     case Video = 'video';
+    case Document = 'document';
 
     public function label(): string
     {
         return match ($this) {
             self::Image => 'Imagem',
             self::Video => 'Vídeo',
+            self::Document => 'Documento',
         };
     }
 
@@ -31,6 +33,11 @@ enum Type: string
      * server-side transcoding, accepting WebM would just produce
      * platform-specific publish failures down the line.
      *
+     * Document accepts PDF only — the swipeable LinkedIn document
+     * (carousel) format. PPTX/DOCX are also valid LinkedIn documents
+     * but are converted server-side by LinkedIn and lose fonts, so we
+     * keep the surface to PDF.
+     *
      * @return array<int, string>
      */
     public function allowedMimeTypes(): array
@@ -38,6 +45,7 @@ enum Type: string
         return match ($this) {
             self::Image => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
             self::Video => ['video/mp4', 'video/quicktime'],
+            self::Document => ['application/pdf'],
         };
     }
 
@@ -52,6 +60,7 @@ enum Type: string
         return match ($this) {
             self::Image => ['jpg', 'jpeg', 'png', 'gif', 'webp'],
             self::Video => ['mp4', 'mov'],
+            self::Document => ['pdf'],
         };
     }
 

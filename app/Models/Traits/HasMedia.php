@@ -164,6 +164,10 @@ trait HasMedia
             return 'video';
         }
 
+        if ($mimeType === 'application/pdf') {
+            return 'document';
+        }
+
         throw new \InvalidArgumentException("Unsupported media MIME type: {$mimeType}");
     }
 

@@ -52,6 +52,24 @@ test('create post persists Discord channel + embeds meta', function () {
         ->and(data_get($meta, 'embeds.0.title'))->toBe('Release');
 });
 
+test('create post persists LinkedIn document_title meta', function () {
+    $linkedin = SocialAccount::factory()->create(['workspace_id' => $this->workspace->id, 'platform' => Platform::LinkedIn]);
+
+    $response = TryPostServer::actingAs($this->user)
+        ->tool(CreatePostTool::class, [
+            'content' => 'Check our latest deck',
+            'platforms' => [[
+                'social_account_id' => $linkedin->id,
+                'content_type' => ContentType::LinkedInDocument->value,
+                'meta' => ['document_title' => 'Q2 Report'],
+            ]],
+        ]);
+
+    $response->assertOk();
+
+    expect(PostPlatform::where('social_account_id', $linkedin->id)->sole()->meta['document_title'])->toBe('Q2 Report');
+});
+
 test('update post merges per-platform meta', function () {
     $post = Post::factory()->create([
         'workspace_id' => $this->workspace->id,

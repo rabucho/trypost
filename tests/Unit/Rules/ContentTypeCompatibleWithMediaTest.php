@@ -136,6 +136,39 @@ test('a mixed-media content type accepts an image and a video together', functio
     expect(runMediaRule(ContentType::DiscordMessage->value, $media))->toBe([]);
 });
 
+test('linkedin document accepts a pdf', function () {
+    $media = [['type' => MediaType::Document->value, 'mime_type' => 'application/pdf']];
+
+    expect(runMediaRule(ContentType::LinkedInDocument->value, $media))->toBe([]);
+    expect(runMediaRule(ContentType::LinkedInPageDocument->value, $media))->toBe([]);
+});
+
+test('linkedin document detects a pdf from mime when type field is missing', function () {
+    $media = [['mime_type' => 'application/pdf']];
+
+    expect(runMediaRule(ContentType::LinkedInDocument->value, $media))->toBe([]);
+});
+
+test('linkedin document rejects an image', function () {
+    $media = [['type' => MediaType::Image->value, 'mime_type' => 'image/jpeg']];
+
+    $errors = runMediaRule(ContentType::LinkedInDocument->value, $media);
+
+    expect($errors)->toHaveCount(1);
+    expect($errors[0])->toContain('does not support images');
+});
+
+test('a pdf is rejected on content types that are not documents', function () {
+    $media = [['type' => MediaType::Document->value, 'mime_type' => 'application/pdf']];
+
+    $errors = runMediaRule(ContentType::LinkedInPost->value, $media);
+
+    expect($errors)->toHaveCount(1);
+    expect($errors[0])->toContain('does not support PDF documents');
+
+    expect(runMediaRule(ContentType::LinkedInCarousel->value, $media)[0])->toContain('does not support PDF documents');
+});
+
 test('does nothing for invalid content type values', function () {
     expect(runMediaRule('not_a_real_content_type', []))->toBe([]);
 });

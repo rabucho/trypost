@@ -16,10 +16,12 @@ enum ContentType: string
     // LinkedIn
     case LinkedInPost = 'linkedin_post';
     case LinkedInCarousel = 'linkedin_carousel';
+    case LinkedInDocument = 'linkedin_document';
 
     // LinkedIn Page
     case LinkedInPagePost = 'linkedin_page_post';
     case LinkedInPageCarousel = 'linkedin_page_carousel';
+    case LinkedInPageDocument = 'linkedin_page_document';
 
     // Facebook
     case FacebookPost = 'facebook_post';
@@ -70,6 +72,7 @@ enum ContentType: string
             self::InstagramStory => 'Story',
             self::LinkedInPost, self::LinkedInPagePost => 'Post',
             self::LinkedInCarousel, self::LinkedInPageCarousel => 'Carousel',
+            self::LinkedInDocument, self::LinkedInPageDocument => 'Document',
             self::FacebookPost => 'Post',
             self::FacebookReel => 'Reel',
             self::FacebookStory => 'Story',
@@ -97,8 +100,8 @@ enum ContentType: string
     {
         return match ($this) {
             self::InstagramFeed, self::InstagramReel, self::InstagramStory => SocialPlatform::Instagram,
-            self::LinkedInPost, self::LinkedInCarousel => SocialPlatform::LinkedIn,
-            self::LinkedInPagePost, self::LinkedInPageCarousel => SocialPlatform::LinkedInPage,
+            self::LinkedInPost, self::LinkedInCarousel, self::LinkedInDocument => SocialPlatform::LinkedIn,
+            self::LinkedInPagePost, self::LinkedInPageCarousel, self::LinkedInPageDocument => SocialPlatform::LinkedInPage,
             self::FacebookPost, self::FacebookReel, self::FacebookStory => SocialPlatform::Facebook,
             self::TikTokVideo, self::TikTokPhoto => SocialPlatform::TikTok,
             self::YouTubeShort => SocialPlatform::YouTube,
@@ -166,6 +169,7 @@ enum ContentType: string
             self::InstagramReel, self::InstagramStory => 1,
             self::LinkedInPost, self::LinkedInPagePost => 1,
             self::LinkedInCarousel, self::LinkedInPageCarousel => 20,
+            self::LinkedInDocument, self::LinkedInPageDocument => 1,
             self::FacebookPost => 10,
             self::FacebookReel, self::FacebookStory => 1,
             self::TikTokVideo => 1,
@@ -188,6 +192,7 @@ enum ContentType: string
             self::InstagramFeed, self::InstagramReel, self::InstagramStory => true,
             self::LinkedInPost, self::LinkedInPagePost => true,
             self::LinkedInCarousel, self::LinkedInPageCarousel => false,
+            self::LinkedInDocument, self::LinkedInPageDocument => false,
             self::FacebookPost, self::FacebookReel, self::FacebookStory => true,
             self::TikTokVideo => true,
             self::TikTokPhoto => false,
@@ -212,7 +217,21 @@ enum ContentType: string
             self::TikTokPhoto => true,
             self::YouTubeShort => false,
             self::PinterestVideoPin => false,
+            self::LinkedInDocument, self::LinkedInPageDocument => false,
             default => true,
+        };
+    }
+
+    /**
+     * Whether this content type carries a document (PDF) attachment instead of
+     * images/videos — currently the LinkedIn swipeable document ("carousel").
+     * A document post is PDF-only: it never combines with images or videos.
+     */
+    public function supportsDocument(): bool
+    {
+        return match ($this) {
+            self::LinkedInDocument, self::LinkedInPageDocument => true,
+            default => false,
         };
     }
 

@@ -39,7 +39,7 @@ class StoreChunkedAssetRequest extends FormRequest
      */
     public function rules(): array
     {
-        $allowedSuffixes = collect([MediaType::Image, MediaType::Video])
+        $allowedSuffixes = collect([MediaType::Image, MediaType::Video, MediaType::Document])
             ->flatMap(fn (MediaType $type) => $type->extensions())
             ->map(fn (string $ext) => '.'.$ext)
             ->all();
