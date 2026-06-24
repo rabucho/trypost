@@ -8,6 +8,7 @@ use App\Enums\SocialAccount\Platform;
 use App\Enums\UserWorkspace\Role;
 use App\Jobs\PublishPost;
 use App\Mcp\Servers\TryPostServer;
+use App\Mcp\Tools\Post\AttachMediaFromUploadTool;
 use App\Mcp\Tools\Post\CreatePostTool;
 use App\Mcp\Tools\Post\PublishPostTool;
 use App\Mcp\Tools\Post\UpdatePostTool;
@@ -17,6 +18,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -174,6 +176,95 @@ test('publish guard enforces required meta for TikTok and Pinterest', function (
     'tiktok' => ['tiktok', 'privacy_level', 'posts.form.tiktok.privacy_required'],
     'pinterest' => ['pinterest', 'board_id', 'posts.form.pinterest.board_required'],
 ]);
+
+test('attach media from upload accepts a PDF for a LinkedIn post', function () {
+    $linkedin = SocialAccount::factory()->create(['workspace_id' => $this->workspace->id, 'platform' => Platform::LinkedIn]);
+
+    $post = Post::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'user_id' => $this->user->id,
+        'status' => PostStatus::Draft,
+    ]);
+    PostPlatform::factory()->create([
+        'post_id' => $post->id, 'social_account_id' => $linkedin->id,
+        'platform' => Platform::LinkedIn, 'content_type' => ContentType::LinkedInDocument, 'enabled' => true,
+    ]);
+
+    $uploadToken = (string) Str::uuid();
+    $this->workspace->media()->create([
+        'group_id' => (string) Str::uuid(),
+        'collection' => 'assets',
+        'type' => 'document',
+        'path' => 'medias/deck.pdf',
+        'original_filename' => 'deck.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 1000,
+        'order' => 0,
+        'upload_token' => $uploadToken,
+    ]);
+
+    $response = TryPostServer::actingAs($this->user)
+        ->tool(AttachMediaFromUploadTool::class, [
+            'post_id' => $post->id,
+            'upload_token' => $uploadToken,
+        ]);
+
+    $response->assertOk();
+
+    $media = $post->fresh()->media;
+    expect($media)->toHaveCount(1)
+        ->and($media[0]['type'])->toBe('document')
+        ->and($media[0]['mime_type'])->toBe('application/pdf');
+});
+
+test('publish post succeeds for a LinkedIn document that has a PDF', function () {
+    Queue::fake();
+
+    $linkedin = SocialAccount::factory()->create(['workspace_id' => $this->workspace->id, 'platform' => Platform::LinkedIn]);
+
+    $post = Post::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'user_id' => $this->user->id,
+        'status' => PostStatus::Draft,
+        'media' => [[
+            'id' => 'doc-1', 'path' => 'medias/deck.pdf', 'url' => 'https://example.com/deck.pdf',
+            'type' => 'document', 'mime_type' => 'application/pdf', 'original_filename' => 'deck.pdf',
+        ]],
+    ]);
+    PostPlatform::factory()->create([
+        'post_id' => $post->id, 'social_account_id' => $linkedin->id,
+        'platform' => Platform::LinkedIn, 'content_type' => ContentType::LinkedInDocument, 'enabled' => true,
+    ]);
+
+    $response = TryPostServer::actingAs($this->user)
+        ->tool(PublishPostTool::class, ['post_id' => $post->id]);
+
+    $response->assertOk();
+    Queue::assertPushed(PublishPost::class);
+});
+
+test('publish post rejects a LinkedIn document whose media is an image, not a PDF', function () {
+    $linkedin = SocialAccount::factory()->create(['workspace_id' => $this->workspace->id, 'platform' => Platform::LinkedIn]);
+
+    $post = Post::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'user_id' => $this->user->id,
+        'status' => PostStatus::Draft,
+        'media' => [[
+            'id' => 'img-1', 'path' => 'medias/slide.jpg', 'url' => 'https://example.com/slide.jpg',
+            'type' => 'image', 'mime_type' => 'image/jpeg', 'original_filename' => 'slide.jpg',
+        ]],
+    ]);
+    PostPlatform::factory()->create([
+        'post_id' => $post->id, 'social_account_id' => $linkedin->id,
+        'platform' => Platform::LinkedIn, 'content_type' => ContentType::LinkedInDocument, 'enabled' => true,
+    ]);
+
+    $response = TryPostServer::actingAs($this->user)
+        ->tool(PublishPostTool::class, ['post_id' => $post->id]);
+
+    $response->assertHasErrors(['Document does not support images.']);
+});
 
 test('publish post succeeds for a Discord platform with a channel', function () {
     Queue::fake();

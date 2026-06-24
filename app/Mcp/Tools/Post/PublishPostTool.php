@@ -9,6 +9,7 @@ use App\Enums\Post\Action as PostAction;
 use App\Enums\Post\Status;
 use App\Http\Resources\Api\PostResource;
 use App\Models\Post;
+use App\Rules\ContentTypeCompatibleWithMedia;
 use App\Support\PostPlatformMetaRules;
 use App\Support\PostStatusRules;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -43,6 +44,7 @@ class PublishPostTool extends Tool
         }
 
         PostPlatformMetaRules::assertStoredPostPublishable($post);
+        ContentTypeCompatibleWithMedia::assertStoredPostCompatible($post);
 
         $scheduledAt = data_get($validated, 'scheduled_at');
 

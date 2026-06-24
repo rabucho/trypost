@@ -169,6 +169,40 @@ test('a pdf is rejected on content types that are not documents', function () {
     expect(runMediaRule(ContentType::LinkedInCarousel->value, $media)[0])->toContain('does not support PDF documents');
 });
 
+test('falls back to stored media when the request omits the media key', function () {
+    $errors = [];
+    (new ContentTypeCompatibleWithMedia([['type' => 'document', 'mime_type' => 'application/pdf']]))
+        ->setData([]) // no 'media' key in the request -> use the fallback
+        ->validate('platforms.0.content_type', ContentType::LinkedInDocument->value, function (string $message) use (&$errors): void {
+            $errors[] = $message;
+        });
+
+    expect($errors)->toBe([]);
+
+    $imageErrors = [];
+    (new ContentTypeCompatibleWithMedia([['type' => 'image', 'mime_type' => 'image/jpeg']]))
+        ->setData([])
+        ->validate('platforms.0.content_type', ContentType::LinkedInDocument->value, function (string $message) use (&$imageErrors): void {
+            $imageErrors[] = $message;
+        });
+
+    expect($imageErrors)->toHaveCount(1);
+    expect($imageErrors[0])->toContain('does not support images');
+});
+
+test('request media takes precedence over the stored fallback', function () {
+    // Fallback is a PDF, but the request explicitly carries an image instead.
+    $errors = [];
+    (new ContentTypeCompatibleWithMedia([['type' => 'document', 'mime_type' => 'application/pdf']]))
+        ->setData(['media' => [['type' => 'image', 'mime_type' => 'image/jpeg']]])
+        ->validate('platforms.0.content_type', ContentType::LinkedInDocument->value, function (string $message) use (&$errors): void {
+            $errors[] = $message;
+        });
+
+    expect($errors)->toHaveCount(1);
+    expect($errors[0])->toContain('does not support images');
+});
+
 test('does nothing for invalid content type values', function () {
     expect(runMediaRule('not_a_real_content_type', []))->toBe([]);
 });

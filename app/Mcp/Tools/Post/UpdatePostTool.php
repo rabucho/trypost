@@ -10,6 +10,7 @@ use App\Enums\Post\Status;
 use App\Enums\PostPlatform\ContentType;
 use App\Http\Resources\Api\PostResource;
 use App\Models\Post;
+use App\Rules\ContentTypeCompatibleWithMedia;
 use App\Rules\ContentTypeMatchesPostPlatform;
 use App\Support\PostPlatformMetaRules;
 use App\Support\PostStatusRules;
@@ -35,6 +36,9 @@ class UpdatePostTool extends Tool
             return Response::error('Post not found.');
         }
 
+        $enforcesMediaCompatibility = data_get($request->all(), 'status') === Status::Scheduled->value;
+        $storedMedia = (array) ($post->media ?? []);
+
         $validated = $request->validate([
             'post_id' => ['required', 'uuid'],
             'content' => ['nullable', 'string', 'max:10000'],
@@ -48,7 +52,13 @@ class UpdatePostTool extends Tool
                 'uuid',
                 Rule::exists('post_platforms', 'id')->where('post_id', $post->id),
             ],
-            'platforms.*.content_type' => ['sometimes', 'string', Rule::in(array_column(ContentType::cases(), 'value')), new ContentTypeMatchesPostPlatform],
+            'platforms.*.content_type' => [
+                'sometimes',
+                'string',
+                Rule::in(array_column(ContentType::cases(), 'value')),
+                new ContentTypeMatchesPostPlatform,
+                Rule::when($enforcesMediaCompatibility, [new ContentTypeCompatibleWithMedia($storedMedia)]),
+            ],
             ...PostPlatformMetaRules::rules(),
         ]);
 
