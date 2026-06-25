@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import debounce from '@/debounce';
-import { acceptAttribute, isDocument, isVideo, type MediaType } from '@/lib/mediaType';
+import { acceptAttribute, classify, isDocument, isVideo, MediaType } from '@/lib/mediaType';
 import { destroy as assetsDestroy, search as assetsSearch, storeChunked as assetsStoreChunked, storeFromUrl } from '@/routes/app/assets';
 import { search as giphySearch, trending as giphyTrending } from '@/routes/app/assets/giphy';
 import { search as unsplashSearch, trending as unsplashTrending } from '@/routes/app/assets/unsplash';
@@ -95,17 +95,11 @@ const handleAssetClick = (asset: AssetMedia) => {
         toggleSelect(asset);
         return;
     }
-    // PDFs can't render in the image lightbox — open them in a new tab.
-    if (isDocument(asset)) {
-        window.open(asset.url, '_blank', 'noopener');
-        return;
-    }
-    const previewable = uploads.value.filter((a) => !isDocument(a));
-    const items = previewable.map((a) => ({
+    const items = uploads.value.map((a) => ({
         url: a.url,
-        type: isVideo(a) ? ('video' as const) : ('image' as const),
+        type: classify(a) ?? MediaType.Image,
     }));
-    const idx = previewable.findIndex((a) => a.id === asset.id);
+    const idx = uploads.value.findIndex((a) => a.id === asset.id);
     lightbox.value?.openCollection(items, idx);
 };
 

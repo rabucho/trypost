@@ -17,7 +17,7 @@ import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo
 import { getPlatformStatusConfig, getPostStatusConfig } from '@/composables/usePostStatus';
 import dayjs from '@/dayjs';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { isDocument as isDocumentItem, isVideo as isVideoItem } from '@/lib/mediaType';
+import { classify, isDocument as isDocumentItem, isVideo as isVideoItem, MediaType } from '@/lib/mediaType';
 import { index as postsIndex } from '@/routes/app/posts';
 import type { MediaItem } from '@/types/media';
 import { PostPlatformStatus, PostStatus } from '@/types/post';
@@ -89,20 +89,11 @@ const formatDateTime = (date: string | null): string =>
 const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
 
 const openLightbox = (i: number) => {
-    const item = props.post.media[i];
-    // PDFs can't render in the image lightbox — open them in a new tab.
-    if (item && isDocumentItem(item)) {
-        window.open(item.url, '_blank', 'noopener');
-        return;
-    }
-
-    const previewable = props.post.media.filter((m) => !isDocumentItem(m));
-    const collection = previewable.map((m) => ({
+    const collection = props.post.media.map((m) => ({
         url: m.url,
-        type: isVideoItem(m) ? ('video' as const) : ('image' as const),
+        type: classify(m) ?? MediaType.Image,
     }));
-    const idx = previewable.findIndex((m) => m.id === item?.id);
-    lightbox.value?.openCollection(collection, idx < 0 ? 0 : idx);
+    lightbox.value?.openCollection(collection, i);
 };
 
 usePostEcho(props.post.id, '.post.platform.status.updated', () => {

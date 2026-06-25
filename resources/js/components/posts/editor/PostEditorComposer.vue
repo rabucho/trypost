@@ -23,7 +23,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatBytes } from '@/composables/useMedia';
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
-import { isDocument, isVideo } from '@/lib/mediaType';
+import { classify, isDocument, isVideo, MediaType } from '@/lib/mediaType';
 import type { MediaItem } from '@/types/media';
 
 interface Signature {
@@ -75,19 +75,12 @@ const mediaThumbRefs = ref<HTMLElement[]>([]);
 const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
 
 const openPreview = (item: MediaItem) => {
-    // PDFs can't render in the image lightbox — open them in a new tab.
-    if (isDocument(item)) {
-        window.open(item.url, '_blank', 'noopener');
-        return;
-    }
-
-    const previewable = media.value.filter((m) => !isDocument(m));
-    const idx = previewable.findIndex((m) => m.id === item.id);
+    const idx = media.value.findIndex((m) => m.id === item.id);
     if (idx < 0) return;
     lightbox.value?.openCollection(
-        previewable.map((m) => ({
+        media.value.map((m) => ({
             url: m.url,
-            type: isVideo(m) ? 'video' as const : 'image' as const,
+            type: classify(m) ?? MediaType.Image,
         })),
         idx,
     );
