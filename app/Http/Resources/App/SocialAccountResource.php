@@ -17,6 +17,7 @@ class SocialAccountResource extends JsonResource
         return [
             'id' => $this->id,
             'platform' => $this->platform,
+            'network' => $this->platform->network(),
             'platform_user_id' => $this->platform_user_id,
             'username' => $this->username,
             'display_name' => $this->display_name,

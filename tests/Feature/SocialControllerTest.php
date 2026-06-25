@@ -87,9 +87,12 @@ test('a connected linkedin page account is still returned so it surfaces under t
     $response = $this->actingAs($this->user)->get(route('app.accounts'));
 
     $response->assertOk();
+    // The grid groups by the account's own `network`, so a linkedin-page account
+    // must report network=linkedin to surface under the single LinkedIn card.
     $response->assertInertia(fn ($page) => $page
         ->component('accounts/Index', false)
         ->where('connectedAccounts.0.platform', Platform::LinkedInPage->value)
+        ->where('connectedAccounts.0.network', 'linkedin')
     );
 });
 

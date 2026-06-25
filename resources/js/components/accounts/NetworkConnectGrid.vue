@@ -21,6 +21,7 @@ export interface AvailablePlatform {
 export interface ConnectedAccount {
     id: string;
     platform: string;
+    network: string;
     username: string;
     display_name: string;
     avatar_url: string | null;
@@ -120,20 +121,14 @@ const platformTheme: Record<
 const themeFor = (value: string) =>
     platformTheme[value] ?? { bg: 'bg-muted', rotate: '', image: '' };
 
-const networkOf = (value: string): string =>
-    props.platforms.find((platform) => platform.value === value)?.network ??
-    value;
-
 // One account per network: map each connected network to its account so every
 // platform card belonging to that network reflects the connection.
 const connectedByNetwork = computed((): Record<string, ConnectedAccount> => {
     const map: Record<string, ConnectedAccount> = {};
 
     for (const account of props.connectedAccounts) {
-        const network = networkOf(account.platform);
-
-        if (!map[network]) {
-            map[network] = account;
+        if (!map[account.network]) {
+            map[account.network] = account;
         }
     }
 
