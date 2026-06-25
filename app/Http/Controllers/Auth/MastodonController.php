@@ -11,8 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use Inertia\Response;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class MastodonController extends SocialController
 {
@@ -23,7 +23,7 @@ class MastodonController extends SocialController
     /**
      * Show form to enter Mastodon instance URL
      */
-    public function connect(Request $request): Response
+    public function connect(Request $request): InertiaResponse
     {
         $this->ensurePlatformEnabled();
 
@@ -39,7 +39,7 @@ class MastodonController extends SocialController
     /**
      * Register app on instance and redirect to OAuth
      */
-    public function authorizeInstance(Request $request): SymfonyResponse
+    public function authorizeInstance(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
@@ -107,7 +107,7 @@ class MastodonController extends SocialController
     /**
      * Handle OAuth callback
      */
-    public function callback(Request $request): Response
+    public function callback(Request $request): InertiaResponse
     {
         $workspaceId = session('social_connect_workspace');
         $savedState = session('mastodon_oauth_state');

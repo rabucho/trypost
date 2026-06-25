@@ -13,7 +13,15 @@ class DeleteWorkspace
 {
     public static function execute(User $user, Workspace $workspace): void
     {
-        User::where('current_workspace_id', $workspace->id)->update(['current_workspace_id' => null]);
+        User::where('current_workspace_id', $workspace->id)
+            ->get()
+            ->each(function (User $affected) use ($workspace): void {
+                $fallback = $affected->workspaces()
+                    ->where('workspaces.id', '!=', $workspace->id)
+                    ->first();
+
+                $affected->update(['current_workspace_id' => $fallback?->id]);
+            });
 
         $account = $workspace->account;
         $accountId = (string) $workspace->account_id;

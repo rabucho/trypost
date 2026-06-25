@@ -12,13 +12,13 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 
 class BlueskyController extends SocialController
 {
     protected SocialPlatform $platform = SocialPlatform::Bluesky;
 
-    public function connect(Request $request): Response
+    public function connect(Request $request): InertiaResponse
     {
         $this->ensurePlatformEnabled();
 
@@ -31,7 +31,7 @@ class BlueskyController extends SocialController
         ]);
     }
 
-    public function store(Request $request): Response
+    public function store(Request $request): InertiaResponse
     {
         $this->ensurePlatformEnabled();
 
