@@ -23,6 +23,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatBytes } from '@/composables/useMedia';
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
+import { isDocument, isVideo } from '@/lib/mediaType';
 import type { MediaItem } from '@/types/media';
 
 interface Signature {
@@ -91,12 +92,6 @@ const openPreview = (item: MediaItem) => {
         idx,
     );
 };
-
-const isVideo = (item: MediaItem): boolean =>
-    item.type === 'video' || Boolean(item.mime_type?.startsWith('video/'));
-
-const isDocument = (item: MediaItem): boolean =>
-    item.type === 'document' || item.mime_type === 'application/pdf';
 
 const formatDuration = (seconds: number): string => {
     const total = Math.round(seconds);

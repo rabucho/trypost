@@ -1,5 +1,7 @@
 import { computed, type Ref, type ComputedRef } from 'vue';
 
+import { fromMimeType, MediaType } from '@/lib/mediaType';
+
 export interface MediaRules {
     maxFiles: number;
     minFiles?: number;
@@ -173,20 +175,18 @@ export function useMediaRules(contentType: Ref<string> | ComputedRef<string>) {
 
     const isValidFileType = computed(() => {
         return (file: File): boolean => {
-            const isImage = file.type.startsWith('image/');
-            const isVideo = file.type.startsWith('video/');
-            const isDocument = file.type === 'application/pdf';
+            const type = fromMimeType(file.type);
 
-            if (isImage && !rules.value.acceptImages) {
+            if (type === MediaType.Image && !rules.value.acceptImages) {
                 return false;
             }
-            if (isVideo && !rules.value.acceptVideos) {
+            if (type === MediaType.Video && !rules.value.acceptVideos) {
                 return false;
             }
-            if (isDocument) {
+            if (type === MediaType.Document) {
                 return Boolean(rules.value.acceptDocuments);
             }
-            return isImage || isVideo;
+            return type === MediaType.Image || type === MediaType.Video;
         };
     });
 

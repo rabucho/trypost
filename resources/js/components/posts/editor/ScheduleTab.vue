@@ -7,6 +7,7 @@ import LabelBadge from '@/components/labels/LabelBadge.vue';
 import { Badge } from '@/components/ui/badge';
 import { usePageErrors } from '@/composables/usePageErrors';
 import { getPlatformLogo } from '@/composables/usePlatformLogo';
+import { isVideo } from '@/lib/mediaType';
 import type { PinterestBoard } from '@/types';
 import type { Channel } from '@/types/channel';
 import type { MediaItem } from '@/types/media';
@@ -97,7 +98,7 @@ const getBoards = (pp: PostPlatform): PinterestBoard[] =>
     pp.social_account_id ? props.pinterestBoards?.[pp.social_account_id] ?? [] : [];
 
 const videoDurationSec = computed(() => {
-    const video = props.media?.find((m) => m.type === 'video' || m.mime_type?.startsWith('video/'));
+    const video = props.media?.find((m) => isVideo(m));
     const duration = video?.meta?.duration;
     return typeof duration === 'number' ? Math.ceil(duration) : null;
 });

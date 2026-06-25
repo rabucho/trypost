@@ -17,6 +17,7 @@ import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo
 import { getPlatformStatusConfig, getPostStatusConfig } from '@/composables/usePostStatus';
 import dayjs from '@/dayjs';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { isDocument as isDocumentItem, isVideo as isVideoItem } from '@/lib/mediaType';
 import { index as postsIndex } from '@/routes/app/posts';
 import type { MediaItem } from '@/types/media';
 import { PostPlatformStatus, PostStatus } from '@/types/post';
@@ -86,12 +87,6 @@ const formatDateTime = (date: string | null): string =>
     date ? dayjs.utc(date).local().format('D MMM YYYY, HH:mm') : '';
 
 const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
-
-const isVideoItem = (item: MediaItem): boolean =>
-    item.type === 'video' || (item.mime_type?.startsWith('video/') ?? false);
-
-const isDocumentItem = (item: MediaItem): boolean =>
-    item.type === 'document' || item.mime_type === 'application/pdf';
 
 const openLightbox = (i: number) => {
     const item = props.post.media[i];

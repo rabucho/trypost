@@ -1,5 +1,7 @@
 import { ref } from 'vue';
 
+import { fromMimeType, MediaType } from '@/lib/mediaType';
+
 export interface DragAndDropOptions {
     acceptImages: boolean;
     acceptVideos: boolean;
@@ -11,16 +13,15 @@ export function useDragAndDrop(options: DragAndDropOptions) {
     const isDragging = ref(false);
 
     const isValidFileType = (file: File): boolean => {
-        const isImage = file.type.startsWith('image/');
-        const isVideo = file.type.startsWith('video/');
+        const type = fromMimeType(file.type);
 
-        if (isImage && !options.acceptImages) {
+        if (type === MediaType.Image && !options.acceptImages) {
             return false;
         }
-        if (isVideo && !options.acceptVideos) {
+        if (type === MediaType.Video && !options.acceptVideos) {
             return false;
         }
-        return isImage || isVideo;
+        return type === MediaType.Image || type === MediaType.Video;
     };
 
     const handleDragOver = (e: DragEvent) => {

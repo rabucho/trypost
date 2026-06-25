@@ -2,6 +2,7 @@
 import { IconCloudUpload, IconPhoto, IconVideo, IconX, IconLoader2, IconPlus } from '@tabler/icons-vue';
 import { computed, ref } from 'vue';
 
+import { fromMimeType, isImage, isVideo, MediaType } from '@/lib/mediaType';
 import type { MediaItem } from '@/types/media';
 
 interface Props {
@@ -66,16 +67,15 @@ const canAddMore = computed(() => props.media.length < props.maxFiles);
 const isMultiple = computed(() => props.maxFiles > 1);
 
 const isValidFileType = (file: File): boolean => {
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
+    const type = fromMimeType(file.type);
 
-    if (isImage && !props.acceptImages) {
+    if (type === MediaType.Image && !props.acceptImages) {
         return false;
     }
-    if (isVideo && !props.acceptVideos) {
+    if (type === MediaType.Video && !props.acceptVideos) {
         return false;
     }
-    return isImage || isVideo;
+    return type === MediaType.Image || type === MediaType.Video;
 };
 
 const handleDragOver = (e: DragEvent) => {
@@ -198,7 +198,7 @@ const handleRemove = (mediaId: string) => {
                     class="relative group aspect-square rounded-lg overflow-hidden bg-muted"
                 >
                     <img
-                        v-if="item.type === 'image'"
+                        v-if="isImage(item)"
                         :src="item.url"
                         :alt="item.original_filename"
                         class="w-full h-full object-cover"
@@ -212,7 +212,7 @@ const handleRemove = (mediaId: string) => {
                     />
                     <!-- Video indicator -->
                     <div
-                        v-if="item.type === 'video'"
+                        v-if="isVideo(item)"
                         class="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5"
                     >
                         <IconVideo class="h-3 w-3" />
@@ -247,7 +247,7 @@ const handleRemove = (mediaId: string) => {
                 :class="[aspectRatio, variant === 'vertical' ? 'rounded-2xl' : 'rounded-lg']"
             >
                 <img
-                    v-if="media[0].type === 'image'"
+                    v-if="isImage(media[0])"
                     :src="media[0].url"
                     :alt="media[0].original_filename"
                     class="w-full h-full object-cover"
@@ -262,7 +262,7 @@ const handleRemove = (mediaId: string) => {
                 />
                 <!-- Video indicator -->
                 <div
-                    v-if="media[0].type === 'video'"
+                    v-if="isVideo(media[0])"
                     class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1"
                 >
                     <IconVideo class="h-3.5 w-3.5" />

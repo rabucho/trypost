@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import debounce from '@/debounce';
+import { acceptAttribute, isDocument, isVideo, type MediaType } from '@/lib/mediaType';
 import { destroy as assetsDestroy, search as assetsSearch, storeChunked as assetsStoreChunked, storeFromUrl } from '@/routes/app/assets';
 import { search as giphySearch, trending as giphyTrending } from '@/routes/app/assets/giphy';
 import { search as unsplashSearch, trending as unsplashTrending } from '@/routes/app/assets/unsplash';
@@ -24,7 +25,7 @@ interface AssetMedia {
     id: string;
     path: string;
     url: string;
-    type: string;
+    type: MediaType;
     mime_type: string;
     original_filename: string;
     size: number;
@@ -59,7 +60,7 @@ interface SavedMedia {
     id: string;
     path: string;
     url: string;
-    type: string;
+    type: MediaType;
     mime_type: string;
 }
 
@@ -67,7 +68,7 @@ interface PickedMedia {
     id: string;
     path: string;
     url: string;
-    type: string;
+    type: MediaType;
     mime_type: string;
     original_filename?: string;
     size?: number;
@@ -84,6 +85,9 @@ const selected = defineModel<PickedMedia[]>('selected', { default: () => [] });
 
 const isPicker = computed(() => props.mode === 'picker');
 
+// The upload file picker accepts everything the backend's Media\Type allow-list does.
+const acceptedUploadTypes = acceptAttribute();
+
 const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
 
 const handleAssetClick = (asset: AssetMedia) => {
@@ -92,14 +96,14 @@ const handleAssetClick = (asset: AssetMedia) => {
         return;
     }
     // PDFs can't render in the image lightbox — open them in a new tab.
-    if (asset.type === 'document' || asset.mime_type === 'application/pdf') {
+    if (isDocument(asset)) {
         window.open(asset.url, '_blank', 'noopener');
         return;
     }
-    const previewable = uploads.value.filter((a) => a.type !== 'document' && a.mime_type !== 'application/pdf');
+    const previewable = uploads.value.filter((a) => !isDocument(a));
     const items = previewable.map((a) => ({
         url: a.url,
-        type: a.type === 'video' ? ('video' as const) : ('image' as const),
+        type: isVideo(a) ? ('video' as const) : ('image' as const),
     }));
     const idx = previewable.findIndex((a) => a.id === asset.id);
     lightbox.value?.openCollection(items, idx);
@@ -626,7 +630,7 @@ onUnmounted(() => {
                         type="file"
                         class="hidden"
                         multiple
-                        accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,application/pdf"
+                        :accept="acceptedUploadTypes"
                         @change="handleFileSelect"
                     />
                     <div v-if="uploading" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-card/85">
@@ -664,21 +668,21 @@ onUnmounted(() => {
                         :key="asset.id"
                         class="group relative overflow-hidden rounded-xl border-2 border-foreground bg-muted shadow-2xs transition-all hover:-translate-y-0.5 hover:shadow-md"
                         :class="[
-                            (isPicker || asset.type !== 'video') ? 'cursor-pointer' : '',
+                            (isPicker || !isVideo(asset)) ? 'cursor-pointer' : '',
                             isPicker && isSelected(asset.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : '',
                         ]"
                         @click="handleAssetClick(asset)"
                     >
                         <div class="aspect-square">
                             <video
-                                v-if="asset.type === 'video'"
+                                v-if="isVideo(asset)"
                                 :src="asset.url"
                                 class="size-full object-cover"
                                 muted
                                 preload="metadata"
                             />
                             <div
-                                v-else-if="asset.type === 'document' || asset.mime_type === 'application/pdf'"
+                                v-else-if="isDocument(asset)"
                                 class="flex size-full flex-col items-center justify-center gap-1.5 bg-rose-50 p-3 text-center"
                             >
                                 <IconFileTypePdf class="size-9 text-rose-600" />

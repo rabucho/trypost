@@ -1,7 +1,14 @@
 import { getMediaRulesForContentType } from '@/composables/useMediaRules';
+import { isDocument, isGif, isImage, isVideo } from '@/lib/mediaType';
 import type { MediaItem } from '@/types/media';
 
 export type { MediaItem } from '@/types/media';
+
+// Media-type detection lives in '@/lib/mediaType' — these aliases keep the
+// names the rest of the app already imports from here pointing at it.
+export const isVideoMedia = isVideo;
+export const isDocumentMedia = isDocument;
+export const isImageMedia = isImage;
 
 export interface MediaValidationWarning {
     key: string; // short key, e.g. 'gif_not_allowed'
@@ -37,10 +44,10 @@ export const getMediaValidationWarning = (
     if (! contentType) return { key: 'no_variant', params: {} };
 
     const rules = getMediaRulesForContentType(contentType);
-    const videos = media.filter((m) => m.type === 'video' || m.mime_type?.startsWith('video/'));
-    const documents = media.filter((m) => m.type === 'document' || m.mime_type === 'application/pdf');
-    const images = media.filter((m) => m.type === 'image' || (m.mime_type?.startsWith('image/') ?? false));
-    const gifs = media.filter((m) => m.mime_type === 'image/gif');
+    const videos = media.filter(isVideo);
+    const documents = media.filter(isDocument);
+    const images = media.filter(isImage);
+    const gifs = media.filter(isGif);
     const total = media.length;
 
     if (rules.requiresMedia && total === 0) {
@@ -72,14 +79,12 @@ export const getMediaValidationWarning = (
     }
 
     for (const m of media) {
-        const isVideo = m.type === 'video' || m.mime_type?.startsWith('video/');
-        const isDocument = m.type === 'document' || m.mime_type === 'application/pdf';
         const size = m.size ?? 0;
         const width = m.meta?.width ?? 0;
         const height = m.meta?.height ?? 0;
         const duration = m.meta?.duration ?? 0;
 
-        if (isDocument) {
+        if (isDocument(m)) {
             if (rules.maxDocumentBytes && size > rules.maxDocumentBytes) {
                 return {
                     key: 'document_too_large',
@@ -89,7 +94,7 @@ export const getMediaValidationWarning = (
             continue;
         }
 
-        if (isVideo) {
+        if (isVideo(m)) {
             if (rules.maxVideoBytes && size > rules.maxVideoBytes) {
                 return {
                     key: 'video_too_large',
@@ -139,27 +144,27 @@ export const getMediaItemIssue = (item: MediaItem, contentType: string): string 
     if (! contentType) return null;
 
     const rules = getMediaRulesForContentType(contentType);
-    const isVideo = item.type === 'video' || Boolean(item.mime_type?.startsWith('video/'));
-    const isDocument = item.type === 'document' || item.mime_type === 'application/pdf';
-    const isGif = item.mime_type === 'image/gif';
+    const itemIsVideo = isVideo(item);
+    const itemIsDocument = isDocument(item);
+    const itemIsGif = isGif(item);
 
-    if (isDocument) {
+    if (itemIsDocument) {
         if (! rules.acceptDocuments) return 'no_document_allowed';
         const docSize = item.size ?? 0;
         if (rules.maxDocumentBytes && docSize > rules.maxDocumentBytes) return 'document_too_large';
         return null;
     }
 
-    if (isVideo && ! rules.acceptVideos) return 'no_video_allowed';
-    if (! isVideo && ! rules.acceptImages) return 'no_image_allowed';
-    if (isGif && ! rules.acceptsGif) return 'gif_not_allowed';
+    if (itemIsVideo && ! rules.acceptVideos) return 'no_video_allowed';
+    if (! itemIsVideo && ! rules.acceptImages) return 'no_image_allowed';
+    if (itemIsGif && ! rules.acceptsGif) return 'gif_not_allowed';
 
     const size = item.size ?? 0;
-    if (isVideo && rules.maxVideoBytes && size > rules.maxVideoBytes) return 'video_too_large';
-    if (! isVideo && rules.maxImageBytes && size > rules.maxImageBytes) return 'image_too_large';
+    if (itemIsVideo && rules.maxVideoBytes && size > rules.maxVideoBytes) return 'video_too_large';
+    if (! itemIsVideo && rules.maxImageBytes && size > rules.maxImageBytes) return 'image_too_large';
 
     const duration = item.meta?.duration ?? 0;
-    if (isVideo && rules.maxVideoDurationSec && duration > rules.maxVideoDurationSec) {
+    if (itemIsVideo && rules.maxVideoDurationSec && duration > rules.maxVideoDurationSec) {
         return 'video_too_long';
     }
 
@@ -172,21 +177,4 @@ export const getMediaItemIssue = (item: MediaItem, contentType: string): string 
     }
 
     return null;
-};
-
-export const isVideoMedia = (item: MediaItem | null | undefined): boolean => {
-    if (! item) return false;
-    return item.type === 'video' || Boolean(item.mime_type?.startsWith('video/'));
-};
-
-export const isDocumentMedia = (item: MediaItem | null | undefined): boolean => {
-    if (! item) return false;
-    return item.type === 'document' || item.mime_type === 'application/pdf';
-};
-
-export const isImageMedia = (item: MediaItem | null | undefined): boolean => {
-    if (! item) return false;
-    if (isVideoMedia(item)) return false;
-    if (isDocumentMedia(item)) return false;
-    return true;
 };

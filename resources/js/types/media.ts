@@ -1,10 +1,12 @@
+import type { MediaType } from '@/lib/mediaType';
+
 export type MediaSource = 'ai' | 'unsplash' | 'giphy';
 
 export interface MediaItem {
     id: string;
     url: string;
     path?: string;
-    type?: string;
+    type?: MediaType;
     mime_type?: string;
     original_filename?: string;
     size?: number;
