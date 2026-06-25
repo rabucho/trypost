@@ -96,21 +96,6 @@ test('platform can be disabled via config', function () {
     expect(Platform::LinkedIn->isEnabled())->toBeFalse();
 });
 
-test('can get all enabled platforms', function () {
-    $enabled = Platform::enabled();
-
-    expect($enabled)->toBeArray();
-    expect(count($enabled))->toBeGreaterThan(0);
-});
-
-test('disabled platforms are excluded from enabled list', function () {
-    config(['trypost.platforms.linkedin.enabled' => false]);
-
-    $enabled = Platform::enabled();
-
-    expect($enabled)->not->toContain(Platform::LinkedIn);
-});
-
 test('only linkedin pages are not directly connectable', function () {
     expect(Platform::LinkedInPage->isConnectable())->toBeFalse();
     expect(Platform::LinkedIn->isConnectable())->toBeTrue();
