@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
 use App\Models\Workspace;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -24,15 +23,11 @@ class MastodonController extends SocialController
     /**
      * Show form to enter Mastodon instance URL
      */
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -44,7 +39,7 @@ class MastodonController extends SocialController
     /**
      * Register app on instance and redirect to OAuth
      */
-    public function authorizeInstance(Request $request): SymfonyResponse|RedirectResponse
+    public function authorizeInstance(Request $request): SymfonyResponse
     {
         $this->ensurePlatformEnabled();
 
@@ -53,10 +48,6 @@ class MastodonController extends SocialController
         ]);
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 

@@ -32,13 +32,9 @@ class SocialController extends Controller
         }
     }
 
-    public function index(Request $request): Response|RedirectResponse
+    public function index(Request $request): Response
     {
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -63,10 +59,6 @@ class SocialController extends Controller
     public function disconnect(Request $request, SocialAccount $account): RedirectResponse
     {
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -93,10 +85,6 @@ class SocialController extends Controller
     {
         $workspace = $request->user()->currentWorkspace;
 
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
-
         $this->authorize('manageAccounts', $workspace);
 
         if ($account->workspace_id !== $workspace->id) {
@@ -115,10 +103,6 @@ class SocialController extends Controller
     protected function redirectToProvider(Request $request, string $driver, array $scopes): SymfonyResponse
     {
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         session(['social_connect_workspace' => $workspace->id]);
 

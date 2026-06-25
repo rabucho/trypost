@@ -45,6 +45,7 @@ use App\Http\Controllers\Auth\TikTokController;
 use App\Http\Controllers\Auth\XController;
 use App\Http\Controllers\Auth\YouTubeController;
 use App\Http\Middleware\App\EnsureAccountReady;
+use App\Http\Middleware\App\EnsureHasWorkspace;
 use Illuminate\Support\Facades\Route;
 
 // Subscription selection (requires auth but not subscription)
@@ -76,7 +77,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Social Connect routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', EnsureHasWorkspace::class])->group(function () {
     Route::get('connect/linkedin', [LinkedInController::class, 'connect'])->name('app.social.linkedin.connect');
     Route::get('accounts/linkedin/callback', [LinkedInController::class, 'callback'])->name('app.social.linkedin.callback');
     Route::get('accounts/linkedin/select', [LinkedInController::class, 'selectIdentity'])->name('app.social.linkedin.select-identity');
@@ -133,7 +134,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Routes that require active subscription and completed onboarding
-Route::middleware(['auth', EnsureAccountReady::class])->group(function () {
+Route::middleware(['auth', EnsureAccountReady::class, EnsureHasWorkspace::class])->group(function () {
     // Discord — live lookups for the composer (channel picker + mention autocomplete).
     // Throttled because they proxy the shared bot's (rate-limited) Discord API.
     Route::get('discord/accounts/{account}/channels', [AppDiscordController::class, 'channels'])

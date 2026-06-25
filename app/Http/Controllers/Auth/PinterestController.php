@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
 use App\Models\Workspace;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Response as InertiaResponse;
@@ -28,15 +27,11 @@ class PinterestController extends SocialController
         'user_accounts:read',
     ];
 
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 

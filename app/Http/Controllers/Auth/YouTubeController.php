@@ -30,15 +30,11 @@ class YouTubeController extends SocialController
         'https://www.googleapis.com/auth/yt-analytics.readonly',
     ];
 
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 

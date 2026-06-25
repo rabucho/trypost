@@ -127,15 +127,13 @@ test('connect is forbidden when both linkedin capabilities are disabled', functi
         ->assertForbidden();
 });
 
-test('connect returns the popup callback when the user has no workspace', function () {
-    // Runs inside the OAuth popup, so it must not redirect away and strand it.
+test('connect redirects to workspace creation when there is no current workspace', function () {
+    // The EnsureHasWorkspace middleware guards the connect routes.
     $this->user->update(['current_workspace_id' => null]);
 
-    $response = $this->actingAs($this->user)->get(route('app.social.linkedin.connect'));
-
-    $response->assertOk();
-    $response->assertInertia(fn (Assert $page) => $page->component('accounts/PopupCallback'));
-    $response->assertInertia(fn (Assert $page) => $page->where('success', false));
+    $this->actingAs($this->user)
+        ->get(route('app.social.linkedin.connect'))
+        ->assertRedirect(route('app.workspaces.create'));
 });
 
 test('linkedin callback stores the person and organizations then redirects to the selector', function () {

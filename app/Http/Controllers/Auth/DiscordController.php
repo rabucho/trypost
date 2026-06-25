@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Enums\SocialAccount\Platform as SocialPlatform;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,15 +15,11 @@ class DiscordController extends SocialController
 
     protected SocialPlatform $platform = SocialPlatform::Discord;
 
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 

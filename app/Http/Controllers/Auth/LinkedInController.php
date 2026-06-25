@@ -38,15 +38,11 @@ class LinkedInController extends SocialController
         }
     }
 
-    public function connect(Request $request): Response|InertiaResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return $this->popupCallback(false, __('accounts.popup_callback.workspace_not_found'), $this->platform->value);
-        }
 
         $this->authorize('manageAccounts', $workspace);
 

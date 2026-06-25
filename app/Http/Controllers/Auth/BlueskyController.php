@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
 use App\Services\Social\BlueskyLexicon;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -19,15 +18,11 @@ class BlueskyController extends SocialController
 {
     protected SocialPlatform $platform = SocialPlatform::Bluesky;
 
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -36,7 +31,7 @@ class BlueskyController extends SocialController
         ]);
     }
 
-    public function store(Request $request): Response|RedirectResponse
+    public function store(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
@@ -46,10 +41,6 @@ class BlueskyController extends SocialController
         ]);
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
