@@ -86,6 +86,16 @@ test('fromExtension classifies broadly and is case-insensitive', function () {
     expect(Type::fromExtension(null))->toBeNull();
 });
 
+test('fromExtension covers every legacy image and video extension', function () {
+    foreach (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif'] as $ext) {
+        expect(Type::fromExtension($ext))->toBe(Type::Image, "expected {$ext} to be an image");
+    }
+
+    foreach (['mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'm4v'] as $ext) {
+        expect(Type::fromExtension($ext))->toBe(Type::Video, "expected {$ext} to be a video");
+    }
+});
+
 test('isGif only matches the gif mime', function () {
     expect(Type::isGif('image/gif'))->toBeTrue();
     expect(Type::isGif('image/png'))->toBeFalse();
