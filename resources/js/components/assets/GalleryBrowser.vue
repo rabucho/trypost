@@ -249,7 +249,7 @@ const uploadFiles = async (files: File[]) => {
                 collection: 'assets',
             });
         } catch {
-            // ignore individual failure
+            toast.error(trans('assets.upload.failed', { file: file.name }));
         }
     }
     uploading.value = false;
@@ -662,7 +662,7 @@ onUnmounted(() => {
                         :key="asset.id"
                         class="group relative overflow-hidden rounded-xl border-2 border-foreground bg-muted shadow-2xs transition-all hover:-translate-y-0.5 hover:shadow-md"
                         :class="[
-                            (isPicker || !isVideo(asset)) ? 'cursor-pointer' : '',
+                            'cursor-pointer',
                             isPicker && isSelected(asset.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : '',
                         ]"
                         @click="handleAssetClick(asset)"

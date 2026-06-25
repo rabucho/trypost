@@ -11,8 +11,9 @@ return [
 
     'upload' => [
         'drag_drop' => 'Drag & drop your files here, or click to select',
-        'formats' => 'JPEG, PNG, GIF, WebP, MP4',
+        'formats' => 'JPEG, PNG, GIF, WebP, MP4, PDF',
         'uploading' => 'Uploading...',
+        'failed' => 'Could not upload :file. Please try again.',
     ],
 
     'empty' => [

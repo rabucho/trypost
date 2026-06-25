@@ -12,7 +12,6 @@ interface Page {
     name: string;
     username: string | null;
     picture: string | null;
-    access_token: string;
 }
 
 interface Workspace {

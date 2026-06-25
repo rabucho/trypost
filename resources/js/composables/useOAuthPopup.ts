@@ -1,4 +1,6 @@
+import { trans } from 'laravel-vue-i18n';
 import { onMounted, onUnmounted } from 'vue';
+import { toast } from 'vue-sonner';
 
 import { connect as blueskyConnect } from '@/routes/app/social/bluesky';
 import { connect as discordConnect } from '@/routes/app/social/discord';
@@ -24,7 +26,6 @@ const CONNECT_ROUTES: Record<string, { url: () => string }> = {
     [Platform.Instagram]: instagramConnect,
     [Platform.InstagramFacebook]: instagramFacebookConnect,
     [Platform.LinkedIn]: linkedinConnect,
-    [Platform.LinkedInPage]: linkedinConnect,
     [Platform.Mastodon]: mastodonConnect,
     [Platform.Pinterest]: pinterestConnect,
     [Platform.Threads]: threadsConnect,
@@ -33,12 +34,18 @@ const CONNECT_ROUTES: Record<string, { url: () => string }> = {
     [Platform.YouTube]: youtubeConnect,
 };
 
+export interface SocialOAuthResult {
+    success: boolean;
+    message: string;
+    platform: string | null;
+}
+
 /**
  * Opens a platform's OAuth connect flow in a centered popup and invokes
- * `onSuccess` when the popup posts back the `social-oauth-callback` message.
- * The listener is wired to the calling component's lifecycle.
+ * `onResult` with the popup's `{success, message}` outcome. The listener is
+ * wired to the calling component's lifecycle.
  */
-export const useOAuthPopup = (onSuccess: () => void) => {
+export const useOAuthPopup = (onResult: (result: SocialOAuthResult) => void) => {
     const openOAuthPopup = (platform: string) => {
         const route = CONNECT_ROUTES[platform];
 
@@ -49,18 +56,26 @@ export const useOAuthPopup = (onSuccess: () => void) => {
         const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
         const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
 
-        window.open(
+        const popup = window.open(
             route.url(),
             'oauth-popup',
             `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},scrollbars=yes,resizable=yes`,
         );
+
+        if (!popup) {
+            toast.error(trans('accounts.popup_callback.popup_blocked'));
+        }
     };
 
     const handleMessage = (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return;
         if (event.data?.type !== 'social-oauth-callback') return;
 
-        onSuccess();
+        onResult({
+            success: Boolean(event.data.success),
+            message: String(event.data.message ?? ''),
+            platform: event.data.platform ?? null,
+        });
     };
 
     onMounted(() => window.addEventListener('message', handleMessage));

@@ -125,6 +125,8 @@ return [
         'title_success' => 'Conectado',
         'title_error' => 'Error',
         'closing' => 'Esta ventana se cerrará automáticamente...',
+        'manual_close' => 'Puedes cerrar esta ventana.',
+        'popup_blocked' => 'No se pudo abrir la ventana de conexión. Permite las ventanas emergentes e inténtalo de nuevo.',
         'connected' => '¡Cuenta conectada!',
         'reconnected' => '¡Cuenta reconectada!',
         'error_connecting' => 'Error al conectar la cuenta. Inténtalo de nuevo.',

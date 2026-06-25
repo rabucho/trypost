@@ -243,12 +243,12 @@ export default {
     /**
      * Format a duration in milliseconds (e.g. "—", "500ms", "1.5s", "2m 30s").
      */
-    formatDurationMs(ms: number | null): string {
-        if (ms === null) {
+    formatDurationMs(ms: number | null | undefined): string {
+        if (ms == null) {
             return '—';
         }
         if (ms < 1000) {
-            return `${ms}ms`;
+            return `${Math.round(ms)}ms`;
         }
 
         const seconds = ms / 1000;

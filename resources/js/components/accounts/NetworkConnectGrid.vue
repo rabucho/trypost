@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { IconAlertTriangle, IconCheck, IconPlus } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 
 import TelegramConnectDialog from '@/components/accounts/TelegramConnectDialog.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -153,8 +154,14 @@ const disconnectModal = ref<InstanceType<typeof ConfirmDeleteModal> | null>(
     null,
 );
 
-const { openOAuthPopup } = useOAuthPopup(() => {
-    router.reload();
+const { openOAuthPopup } = useOAuthPopup((result) => {
+    if (result.success) {
+        toast.success(result.message);
+        router.reload();
+        return;
+    }
+
+    toast.error(result.message);
 });
 
 const disconnectAccount = (account: ConnectedAccount) => {
