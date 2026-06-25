@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Social;
 
+use App\Enums\Media\Type as MediaType;
 use App\Enums\SocialAccount\Platform;
 use App\Exceptions\Social\MastodonPublishException;
 use App\Models\PostPlatform;
@@ -86,7 +87,7 @@ class MastodonPublisher
 
             // Optimize images (skip GIFs)
             $detectedMime = mime_content_type($tempFile) ?: '';
-            if (str_starts_with($detectedMime, 'image/') && ! str_starts_with($detectedMime, 'image/gif')) {
+            if (MediaType::classify($detectedMime) === MediaType::Image && ! MediaType::isGif($detectedMime)) {
                 $optimizer = app(MediaOptimizer::class);
                 $optimizedPath = $optimizer->optimizeImage($tempFile, Platform::Mastodon);
                 @unlink($tempFile);

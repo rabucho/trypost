@@ -53,3 +53,41 @@ test('media type document max size in mb is read from config', function () {
 
     expect(Type::Document->maxSizeInMb())->toBe(100);
 });
+
+test('classify resolves the type from any matching mime, broadly', function () {
+    expect(Type::classify('image/jpeg'))->toBe(Type::Image);
+    expect(Type::classify('image/heic'))->toBe(Type::Image); // not in the upload allow-list, but still an image
+    expect(Type::classify('video/quicktime'))->toBe(Type::Video);
+    expect(Type::classify('video/x-msvideo'))->toBe(Type::Video); // legacy avi, still a video
+    expect(Type::classify('application/pdf'))->toBe(Type::Document);
+    expect(Type::classify('application/zip'))->toBeNull();
+});
+
+test('classify falls back to the file extension when the mime is missing', function () {
+    expect(Type::classify(null, 'photo.PNG'))->toBe(Type::Image);
+    expect(Type::classify(null, 'clip.mkv'))->toBe(Type::Video);
+    expect(Type::classify(null, 'deck.pdf'))->toBe(Type::Document);
+    expect(Type::classify(null, 'archive.zip'))->toBeNull();
+    expect(Type::classify(null, null))->toBeNull();
+});
+
+test('classify prefers the mime over the extension', function () {
+    // A mismatched extension never overrides a present, recognized mime.
+    expect(Type::classify('video/mp4', 'thing.png'))->toBe(Type::Video);
+    // A present but unrecognized mime resolves to null without consulting the extension.
+    expect(Type::classify('application/zip', 'clip.mp4'))->toBeNull();
+});
+
+test('fromExtension classifies broadly and is case-insensitive', function () {
+    expect(Type::fromExtension('JPG'))->toBe(Type::Image);
+    expect(Type::fromExtension('webm'))->toBe(Type::Video);
+    expect(Type::fromExtension('pdf'))->toBe(Type::Document);
+    expect(Type::fromExtension('txt'))->toBeNull();
+    expect(Type::fromExtension(null))->toBeNull();
+});
+
+test('isGif only matches the gif mime', function () {
+    expect(Type::isGif('image/gif'))->toBeTrue();
+    expect(Type::isGif('image/png'))->toBeFalse();
+    expect(Type::isGif(null))->toBeFalse();
+});

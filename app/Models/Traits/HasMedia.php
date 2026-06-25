@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Traits;
 
+use App\Enums\Media\Type;
 use App\Models\Media;
 use App\Models\User;
 use App\Models\Workspace;
@@ -156,19 +157,8 @@ trait HasMedia
 
     private function getMediaType(string $mimeType): string
     {
-        if (str_starts_with($mimeType, 'image/')) {
-            return 'image';
-        }
-
-        if (str_starts_with($mimeType, 'video/')) {
-            return 'video';
-        }
-
-        if ($mimeType === 'application/pdf') {
-            return 'document';
-        }
-
-        throw new \InvalidArgumentException("Unsupported media MIME type: {$mimeType}");
+        return (Type::classify($mimeType)
+            ?? throw new \InvalidArgumentException("Unsupported media MIME type: {$mimeType}"))->value;
     }
 
     private function getMediaMeta(UploadedFile $file, string $type): array

@@ -61,33 +61,17 @@ class Media extends Model
 
     public function isVideo(): bool
     {
-        if ($this->mime_type) {
-            return str_starts_with($this->mime_type, 'video/');
-        }
-
-        $extension = strtolower(pathinfo($this->path, PATHINFO_EXTENSION));
-
-        return in_array($extension, ['mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'm4v']);
+        return MediaType::classify($this->mime_type, $this->path) === MediaType::Video;
     }
 
     public function isImage(): bool
     {
-        if ($this->mime_type) {
-            return str_starts_with($this->mime_type, 'image/');
-        }
-
-        $extension = strtolower(pathinfo($this->path, PATHINFO_EXTENSION));
-
-        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif']);
+        return MediaType::classify($this->mime_type, $this->path) === MediaType::Image;
     }
 
     public function isDocument(): bool
     {
-        if ($this->mime_type) {
-            return $this->mime_type === 'application/pdf';
-        }
-
-        return strtolower(pathinfo($this->path, PATHINFO_EXTENSION)) === 'pdf';
+        return MediaType::classify($this->mime_type, $this->path) === MediaType::Document;
     }
 
     public function getTemporaryUrl(int $expirationMinutes = 60): string

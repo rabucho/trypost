@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Social;
 
+use App\Enums\Media\Type as MediaType;
 use App\Enums\SocialAccount\Platform;
 use App\Exceptions\Social\LinkedInPublishException;
 use App\Exceptions\TokenExpiredException;
@@ -237,17 +238,11 @@ abstract class AbstractLinkedInPublisher
 
     private function uploadMedia($mediaItem): ?string
     {
-        $mimeType = $mediaItem->mime_type;
-
-        if (str_starts_with($mimeType, 'video/')) {
-            return $this->uploadVideo($mediaItem);
-        }
-
-        if (str_starts_with($mimeType, 'image/')) {
-            return $this->uploadImage($mediaItem);
-        }
-
-        return null;
+        return match (true) {
+            $mediaItem->isVideo() => $this->uploadVideo($mediaItem),
+            $mediaItem->isImage() => $this->uploadImage($mediaItem),
+            default => null,
+        };
     }
 
     private function uploadImage($mediaItem): ?string
@@ -276,7 +271,7 @@ abstract class AbstractLinkedInPublisher
             $this->downloadToTempFile($mediaItem->url, $tempFile);
 
             $detectedMime = mime_content_type($tempFile) ?: '';
-            if (str_starts_with($detectedMime, 'image/') && ! str_starts_with($detectedMime, 'image/gif')) {
+            if (MediaType::classify($detectedMime) === MediaType::Image && ! MediaType::isGif($detectedMime)) {
                 $optimizedPath = app(MediaOptimizer::class)->optimizeImage($tempFile, $this->platform());
                 @unlink($tempFile);
                 $tempFile = $optimizedPath;

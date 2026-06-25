@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Social;
 
+use App\Enums\Media\Type as MediaType;
 use App\Enums\SocialAccount\Platform;
 use App\Exceptions\Social\BlueskyPublishException;
 use App\Models\PostPlatform;
@@ -151,7 +152,7 @@ class BlueskyPublisher
 
         try {
             // Optimize images for Bluesky's 1MB limit (GIFs are passed through untouched).
-            if (str_starts_with($mimeType, 'image/') && ! str_starts_with($mimeType, 'image/gif')) {
+            if (MediaType::classify($mimeType) === MediaType::Image && ! MediaType::isGif($mimeType)) {
                 $optimizedPath = app(MediaOptimizer::class)->optimizeImage($tempFile, Platform::Bluesky);
                 @unlink($tempFile);
                 $tempFile = $optimizedPath;

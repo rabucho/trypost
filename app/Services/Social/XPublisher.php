@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Social;
 
+use App\Enums\Media\Type as MediaType;
 use App\Enums\SocialAccount\Platform;
 use App\Exceptions\Social\XPublishException;
 use App\Models\PostPlatform;
@@ -117,7 +118,7 @@ class XPublisher
             }
 
             // Optimize images (skip GIFs — they need special handling)
-            if (str_starts_with($mimeType, 'image/') && ! str_starts_with($mimeType, 'image/gif')) {
+            if ($mediaItem->isImage() && ! MediaType::isGif($mimeType)) {
                 $optimizer = app(MediaOptimizer::class);
                 $optimizedPath = $optimizer->optimizeImage($tempFile, Platform::X);
                 @unlink($tempFile);
@@ -128,8 +129,8 @@ class XPublisher
             $fileSize = filesize($tempFile);
             $mediaCategory = $this->getMediaCategory($mimeType, $fileSize);
 
-            $isVideo = str_starts_with($mimeType, 'video/');
-            $isGif = $mimeType === 'image/gif';
+            $isVideo = MediaType::classify($mimeType) === MediaType::Video;
+            $isGif = MediaType::isGif($mimeType);
 
             $useChunkedUpload = $isVideo || $isGif || $fileSize > 5 * 1024 * 1024;
 
@@ -256,7 +257,7 @@ class XPublisher
         $finalizeData = $finalizeResponse->json();
 
         // Wait for processing (videos need transcoding)
-        if (isset($finalizeData['processing_info']) || str_starts_with($mimeType, 'video/')) {
+        if (isset($finalizeData['processing_info']) || MediaType::classify($mimeType) === MediaType::Video) {
             $this->waitForProcessing($mediaId);
         }
 
@@ -270,15 +271,15 @@ class XPublisher
 
     private function getMediaCategory(string $mimeType, int $fileSize): ?string
     {
-        if (str_starts_with($mimeType, 'video/')) {
+        if (MediaType::classify($mimeType) === MediaType::Video) {
             return $fileSize > 15 * 1024 * 1024 ? 'amplify_video' : 'tweet_video';
         }
 
-        if ($mimeType === 'image/gif') {
+        if (MediaType::isGif($mimeType)) {
             return 'tweet_gif';
         }
 
-        if (str_starts_with($mimeType, 'image/')) {
+        if (MediaType::classify($mimeType) === MediaType::Image) {
             return 'tweet_image';
         }
 

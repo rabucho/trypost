@@ -173,11 +173,7 @@ class ContentTypeCompatibleWithMedia implements DataAwareRule, ValidationRule
      */
     private function isImage(array $item): bool
     {
-        if (data_get($item, 'type') === MediaType::Image->value) {
-            return true;
-        }
-
-        return str_starts_with((string) data_get($item, 'mime_type', ''), 'image/');
+        return $this->isType($item, MediaType::Image);
     }
 
     /**
@@ -185,11 +181,7 @@ class ContentTypeCompatibleWithMedia implements DataAwareRule, ValidationRule
      */
     private function isVideo(array $item): bool
     {
-        if (data_get($item, 'type') === MediaType::Video->value) {
-            return true;
-        }
-
-        return str_starts_with((string) data_get($item, 'mime_type', ''), 'video/');
+        return $this->isType($item, MediaType::Video);
     }
 
     /**
@@ -197,10 +189,18 @@ class ContentTypeCompatibleWithMedia implements DataAwareRule, ValidationRule
      */
     private function isDocument(array $item): bool
     {
-        if (data_get($item, 'type') === MediaType::Document->value) {
-            return true;
-        }
+        return $this->isType($item, MediaType::Document);
+    }
 
-        return data_get($item, 'mime_type') === 'application/pdf';
+    /**
+     * A media item matches a type when it carries that explicit `type`, or when
+     * its MIME classifies as that type.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function isType(array $item, MediaType $type): bool
+    {
+        return data_get($item, 'type') === $type->value
+            || MediaType::classify(data_get($item, 'mime_type')) === $type;
     }
 }
