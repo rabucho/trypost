@@ -58,6 +58,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('subscribe', [BillingController::class, 'subscribe'])->name('app.subscribe');
     Route::get('onboarding', [OnboardingController::class, 'index'])->name('app.onboarding');
     Route::post('onboarding', [OnboardingController::class, 'store'])->name('app.onboarding.store');
+    Route::get('onboarding/goals', [OnboardingController::class, 'goals'])->name('app.onboarding.goals');
+    Route::post('onboarding/goals', [OnboardingController::class, 'storeGoals'])->name('app.onboarding.goals.store');
     Route::get('onboarding/connect', [OnboardingController::class, 'connect'])->name('app.onboarding.connect');
     Route::post('onboarding/connect', [OnboardingController::class, 'checkout'])->name('app.onboarding.checkout');
     Route::get('billing/processing', [BillingController::class, 'processing'])->name('app.billing.processing');

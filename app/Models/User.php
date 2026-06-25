@@ -44,6 +44,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
         'utm_content',
         'registration_ip',
         'persona',
+        'goals',
     ];
 
     /**
@@ -78,6 +79,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'persona' => Persona::class,
+            'goals' => 'array',
         ];
     }
 

@@ -7,7 +7,9 @@ namespace App\Http\Controllers\App;
 use App\Actions\Billing\StartSubscriptionCheckout;
 use App\Enums\Plan\Slug;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
+use App\Enums\User\Goal;
 use App\Enums\User\Persona;
+use App\Http\Requests\App\Onboarding\StoreOnboardingGoalsRequest;
 use App\Http\Requests\App\Onboarding\StoreOnboardingRequest;
 use App\Http\Resources\App\SocialAccountResource;
 use App\Models\Account;
@@ -59,6 +61,53 @@ class OnboardingController extends Controller
             'persona' => $persona,
         ]);
 
+        return redirect()->route('app.onboarding.goals');
+    }
+
+    public function goals(Request $request): Response|RedirectResponse
+    {
+        if (config('trypost.self_hosted')) {
+            return redirect()->route('app.calendar');
+        }
+
+        $user = $request->user();
+
+        if ($user->account?->subscribed(Account::SUBSCRIPTION_NAME)) {
+            return redirect()->route('app.calendar');
+        }
+
+        if (! $user->persona) {
+            return redirect()->route('app.onboarding');
+        }
+
+        return Inertia::render('onboarding/Goals', [
+            'goals' => array_map(fn (Goal $goal): string => $goal->value, Goal::cases()),
+            'selected' => $user->goals ?? [],
+        ]);
+    }
+
+    public function storeGoals(StoreOnboardingGoalsRequest $request, PostHogService $postHog): RedirectResponse
+    {
+        if (config('trypost.self_hosted')) {
+            return redirect()->route('app.calendar');
+        }
+
+        $user = $request->user();
+
+        if ($user->account?->subscribed(Account::SUBSCRIPTION_NAME)) {
+            return redirect()->route('app.calendar');
+        }
+
+        if (! $user->persona) {
+            return redirect()->route('app.onboarding');
+        }
+
+        $goals = array_values($request->validated('goals'));
+
+        $user->update(['goals' => $goals]);
+
+        $postHog->identify($user->id, $this->goalProperties($goals));
+
         return redirect()->route('app.onboarding.connect');
     }
 
@@ -76,6 +125,10 @@ class OnboardingController extends Controller
 
         if (! $user->persona) {
             return redirect()->route('app.onboarding');
+        }
+
+        if (! $user->goals) {
+            return redirect()->route('app.onboarding.goals');
         }
 
         $workspace = $user->currentWorkspace;
@@ -129,5 +182,23 @@ class OnboardingController extends Controller
             (string) $plan->stripe_monthly_price_id,
             route('app.onboarding.connect'),
         );
+    }
+
+    /**
+     * PostHog person properties for the selected goals: the full array plus a
+     * boolean per goal, so campaigns can be cross-tabbed against each intent.
+     *
+     * @param  array<int, string>  $goals
+     * @return array<string, mixed>
+     */
+    private function goalProperties(array $goals): array
+    {
+        $properties = ['onboarding_goals' => $goals];
+
+        foreach (Goal::cases() as $goal) {
+            $properties["goal_{$goal->value}"] = in_array($goal->value, $goals, true);
+        }
+
+        return $properties;
     }
 }
