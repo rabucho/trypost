@@ -481,10 +481,60 @@ test('pinterest publisher can publish video pin', function () {
     expect($result['id'])->toBe('video_pin_999');
     expect($result['url'])->toBe('https://pinterest.com/pin/video_pin_999');
 
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/v5/pins')
-            && data_get($request->data(), 'media_source.source_type') === 'video_id';
+    Http::assertSent(fn ($request) => $request->url() === config('trypost.platforms.pinterest.api').'/pins'
+        && data_get($request->data(), 'media_source.source_type') === 'video_id'
+        && data_get($request->data(), 'media_source.cover_image_key_frame_time') === 0);
+});
+
+test('pinterest video pin uses the provided cover image url over the default frame', function () {
+    $this->postPlatform->update([
+        'content_type' => ContentType::PinterestVideoPin,
+        'meta' => ['board_id' => 'board_123', 'cover_image_url' => 'https://example.com/cover.jpg'],
+    ]);
+
+    $this->post->update([
+        'media' => [[
+            'id' => 'test-media-video',
+            'path' => 'media/2026-01/video.mp4',
+            'url' => 'https://example.com/media/2026-01/video.mp4',
+            'mime_type' => 'video/mp4',
+            'original_filename' => 'video.mp4',
+        ]],
+    ]);
+
+    $s3UploadUrl = 'https://pinterest-media-upload.s3.amazonaws.com/upload';
+
+    Http::fake(function ($request) use ($s3UploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/v5/media') && $request->method() === 'POST') {
+            return Http::response([
+                'media_id' => 'media_video_789',
+                'upload_url' => $s3UploadUrl,
+                'upload_parameters' => [],
+            ], 201);
+        }
+
+        if ($url === $s3UploadUrl) {
+            return Http::response('', 204);
+        }
+
+        if (str_contains($url, '/v5/media/media_video_789')) {
+            return Http::response(['status' => 'succeeded'], 200);
+        }
+
+        if (str_contains($url, '/v5/pins')) {
+            return Http::response(['id' => 'video_pin_cover'], 200);
+        }
+
+        return Http::response('fake-video-content', 200);
     });
+
+    $this->publisher->publish($this->postPlatform);
+
+    Http::assertSent(fn ($request) => $request->url() === config('trypost.platforms.pinterest.api').'/pins'
+        && data_get($request->data(), 'media_source.cover_image_url') === 'https://example.com/cover.jpg'
+        && data_get($request->data(), 'media_source.cover_image_key_frame_time') === null);
 });
 
 test('pinterest publisher throws exception for unsupported content type', function () {

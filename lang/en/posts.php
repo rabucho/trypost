@@ -353,6 +353,7 @@ return [
             'document_too_large' => 'PDF exceeds the size limit for this platform.',
             'aspect_ratio_invalid' => 'Aspect ratio is not supported by this format.',
             'no_content_type' => 'Pick a content type for this platform.',
+            'requires_text' => 'Add text — this format needs a title.',
         ],
         'publishing' => 'Publishing...',
         'publishing_overlay_title' => 'Your post is being published',

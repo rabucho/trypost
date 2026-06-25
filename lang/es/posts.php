@@ -353,6 +353,7 @@ return [
             'document_too_large' => 'El PDF supera el límite de tamaño de esta plataforma.',
             'aspect_ratio_invalid' => 'La proporción de aspecto no es compatible con este formato.',
             'no_content_type' => 'Elige un tipo de contenido para esta plataforma.',
+            'requires_text' => 'Agrega texto — este formato necesita un título.',
         ],
         'publishing' => 'Publicando...',
         'publishing_overlay_title' => 'Tu publicación se está enviando',

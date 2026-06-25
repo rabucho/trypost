@@ -273,6 +273,8 @@ class PinterestPublisher
 
         if (! empty(data_get($postPlatform->meta, 'cover_image_url'))) {
             $payload['media_source']['cover_image_url'] = data_get($postPlatform->meta, 'cover_image_url');
+        } else {
+            $payload['media_source']['cover_image_key_frame_time'] = 0;
         }
 
         $response = $this->socialHttp()->withToken($account->access_token)

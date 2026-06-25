@@ -30,6 +30,10 @@ export const PLATFORM_VARIANTS: Record<string, string[]> = {
     [Platform.Pinterest]: [ContentType.PinterestPin, ContentType.PinterestVideoPin, ContentType.PinterestCarousel],
 };
 
+// Content types whose post needs text to publish — YouTube Shorts derive their
+// required title from the post content, so an empty post can't be scheduled.
+const CONTENT_TYPES_REQUIRING_TEXT = new Set<string>([ContentType.YouTubeShort]);
+
 type MetaRule = (meta: Record<string, any>) => { valid: boolean; tooltipKey: string | null };
 
 // Platforms whose `meta` blob has publish-time requirements. `valid` gates
@@ -195,6 +199,11 @@ export const usePostCompliance = (opts: UsePostComplianceOptions) => {
             const contentType = platformContentTypes.value[pp.id];
             if (!contentType) {
                 issues[pp.id] = trans('posts.edit.compliance.no_content_type');
+                continue;
+            }
+
+            if (CONTENT_TYPES_REQUIRING_TEXT.has(contentType) && content.value.trim() === '') {
+                issues[pp.id] = trans('posts.edit.compliance.requires_text');
                 continue;
             }
 
