@@ -45,7 +45,7 @@ test('platform has correct allowed media types', function () {
 });
 
 test('platform has correct max images', function () {
-    expect(Platform::LinkedIn->maxImages())->toBe(20);
+    expect(Platform::LinkedIn->maxImages())->toBe(10);
     expect(Platform::X->maxImages())->toBe(4);
     expect(Platform::TikTok->maxImages())->toBe(0);
     expect(Platform::YouTube->maxImages())->toBe(0);

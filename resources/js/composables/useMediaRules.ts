@@ -62,14 +62,14 @@ const CONTENT_TYPE_RULES: Record<string, MediaRules> = {
 
     // LinkedIn — one type per account kind; the publish format (single image,
     // multi-image, video, or PDF document) is inferred from the attached media.
-    // Images (up to 20) XOR one video XOR one PDF, never mixed.
+    // Images (up to 10) XOR one video XOR one PDF, never mixed.
     linkedin_post: {
-        maxFiles: 20, acceptImages: true, acceptVideos: true, acceptDocuments: true,
+        maxFiles: 10, acceptImages: true, acceptVideos: true, acceptDocuments: true,
         requiresMedia: false, acceptsGif: false, forbidsMixedMedia: true,
         maxImageBytes: 5 * MB, maxVideoBytes: 5 * GB, maxVideoDurationSec: 10 * 60, maxDocumentBytes: 100 * MB,
     },
     linkedin_page_post: {
-        maxFiles: 20, acceptImages: true, acceptVideos: true, acceptDocuments: true,
+        maxFiles: 10, acceptImages: true, acceptVideos: true, acceptDocuments: true,
         requiresMedia: false, acceptsGif: false, forbidsMixedMedia: true,
         maxImageBytes: 5 * MB, maxVideoBytes: 5 * GB, maxVideoDurationSec: 10 * 60, maxDocumentBytes: 100 * MB,
     },

@@ -112,7 +112,7 @@ enum Platform: string
     public function maxImages(): int
     {
         return match ($this) {
-            self::LinkedIn, self::LinkedInPage => 20,
+            self::LinkedIn, self::LinkedInPage => 10,
             self::X => 4,
             self::TikTok => 0,
             self::YouTube => 0,

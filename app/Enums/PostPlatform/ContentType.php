@@ -162,7 +162,7 @@ enum ContentType: string
         return match ($this) {
             self::InstagramFeed => 10,
             self::InstagramReel, self::InstagramStory => 1,
-            self::LinkedInPost, self::LinkedInPagePost => 20,
+            self::LinkedInPost, self::LinkedInPagePost => 10,
             self::FacebookPost => 10,
             self::FacebookReel, self::FacebookStory => 1,
             self::TikTokVideo => 1,

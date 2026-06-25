@@ -59,7 +59,7 @@ test('instagram_carousel is not a content type — it is an AI generation format
 test('content type has correct max media count', function () {
     expect(ContentType::InstagramFeed->maxMediaCount())->toBe(10);
     expect(ContentType::InstagramReel->maxMediaCount())->toBe(1);
-    expect(ContentType::LinkedInPost->maxMediaCount())->toBe(20);
+    expect(ContentType::LinkedInPost->maxMediaCount())->toBe(10);
     expect(ContentType::XPost->maxMediaCount())->toBe(4);
     expect(ContentType::PinterestCarousel->maxMediaCount())->toBe(5);
     expect(ContentType::BlueskyPost->maxMediaCount())->toBe(4);
@@ -157,7 +157,7 @@ test('linkedin post content types accept images, videos and documents but never 
         expect($type->supportsDocument())->toBeTrue();
         expect($type->supportsMixedMedia())->toBeFalse();
         expect($type->requiresMedia())->toBeFalse();
-        expect($type->maxMediaCount())->toBe(20);
+        expect($type->maxMediaCount())->toBe(10);
     }
 });
 
