@@ -46,6 +46,8 @@ return [
         'max_size_mb' => [
             'image' => (int) env('MEDIA_IMAGE_MAX_SIZE_MB', 10),
             'video' => (int) env('MEDIA_VIDEO_MAX_SIZE_MB', 1024),
+            // LinkedIn caps document (PDF carousel) uploads at 100MB.
+            'document' => (int) env('MEDIA_DOCUMENT_MAX_SIZE_MB', 100),
         ],
     ],
 

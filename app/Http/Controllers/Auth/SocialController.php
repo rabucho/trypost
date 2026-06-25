@@ -16,7 +16,6 @@ use App\Models\Workspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Socialite\Facades\Socialite;
@@ -33,22 +32,20 @@ class SocialController extends Controller
         }
     }
 
-    public function index(Request $request): Response|RedirectResponse
+    public function index(Request $request): Response
     {
         $workspace = $request->user()->currentWorkspace;
 
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
-
         $this->authorize('manageAccounts', $workspace);
 
-        $platforms = collect(SocialPlatform::enabled())->map(fn ($platform) => [
-            'value' => $platform->value,
-            'label' => $platform->label(),
-            'color' => $platform->color(),
-            'network' => $platform->network(),
-        ])->values();
+        $platforms = collect(SocialPlatform::cases())
+            ->filter(fn ($platform) => $platform->isConnectable())
+            ->map(fn ($platform) => [
+                'value' => $platform->value,
+                'label' => $platform->label(),
+                'color' => $platform->color(),
+                'network' => $platform->network(),
+            ])->values();
 
         return Inertia::render('accounts/Index', [
             'workspace' => $workspace,
@@ -62,10 +59,6 @@ class SocialController extends Controller
     public function disconnect(Request $request, SocialAccount $account): RedirectResponse
     {
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -92,10 +85,6 @@ class SocialController extends Controller
     {
         $workspace = $request->user()->currentWorkspace;
 
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
-
         $this->authorize('manageAccounts', $workspace);
 
         if ($account->workspace_id !== $workspace->id) {
@@ -115,10 +104,6 @@ class SocialController extends Controller
     {
         $workspace = $request->user()->currentWorkspace;
 
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
-
         session(['social_connect_workspace' => $workspace->id]);
 
         return Inertia::location(
@@ -133,7 +118,7 @@ class SocialController extends Controller
         Request $request,
         SocialPlatform $platform,
         string $driver
-    ): View {
+    ): Response {
         $workspaceId = session('social_connect_workspace');
 
         if (! $workspaceId) {
@@ -189,13 +174,15 @@ class SocialController extends Controller
     }
 
     /**
-     * Return a view that closes the popup and notifies the parent window.
+     * Render the Inertia page that notifies the opener and closes the connect
+     * popup. Used by both the GET OAuth callbacks (a fresh popup page load) and
+     * the XHR selection submits (an Inertia visit that swaps to this page).
      */
-    protected function popupCallback(bool $success, string $message, ?string $platform = null): View
+    protected function popupCallback(bool $success, string $message, ?string $platform = null): Response
     {
         $this->forgetSocialConnectSession();
 
-        return view('auth.social-callback', [
+        return Inertia::render('accounts/PopupCallback', [
             'success' => $success,
             'message' => $message,
             'platform' => $platform,

@@ -22,6 +22,7 @@ class StoreUploadRequest extends FormRequest
         $allowed = implode(',', array_merge(
             MediaType::Image->allowedMimeTypes(),
             MediaType::Video->allowedMimeTypes(),
+            MediaType::Document->allowedMimeTypes(),
         ));
 
         $maxKb = (int) config('ai.mcp.upload.max_size_mb') * 1024;

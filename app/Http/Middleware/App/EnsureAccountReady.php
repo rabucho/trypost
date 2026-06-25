@@ -22,9 +22,8 @@ class EnsureAccountReady
             return $next($request);
         }
 
-        $account = $user->account;
-
         if (! config('trypost.self_hosted')) {
+            $account = $user->account;
             $requiresCardForTrial = (bool) config('trypost.billing.require_card_for_trial', true);
             $hasAccess = $account && (
                 $account->subscribed(Account::SUBSCRIPTION_NAME)
@@ -34,10 +33,6 @@ class EnsureAccountReady
             if (! $hasAccess) {
                 return redirect()->route('app.onboarding');
             }
-        }
-
-        if (! $user->workspaces()->exists()) {
-            return redirect()->route('app.workspaces.create');
         }
 
         return $next($request);

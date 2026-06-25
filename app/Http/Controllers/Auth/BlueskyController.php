@@ -7,27 +7,22 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
 use App\Services\Social\BlueskyLexicon;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 
 class BlueskyController extends SocialController
 {
     protected SocialPlatform $platform = SocialPlatform::Bluesky;
 
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): InertiaResponse
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -36,7 +31,7 @@ class BlueskyController extends SocialController
         ]);
     }
 
-    public function store(Request $request): View|RedirectResponse
+    public function store(Request $request): InertiaResponse
     {
         $this->ensurePlatformEnabled();
 
@@ -46,10 +41,6 @@ class BlueskyController extends SocialController
         ]);
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -74,7 +65,7 @@ class BlueskyController extends SocialController
                     $errorMessage = $body['message'];
                 }
 
-                return back()->withErrors(['password' => $errorMessage]);
+                throw ValidationException::withMessages(['password' => $errorMessage]);
             }
 
             $data = $response->json();
@@ -113,13 +104,15 @@ class BlueskyController extends SocialController
             );
 
             return $this->popupCallback(true, __('accounts.popup_callback.connected'), $this->platform->value);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Bluesky connection error', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return back()->withErrors(['password' => 'Error connecting to Bluesky. Please try again.']);
+            throw ValidationException::withMessages(['password' => 'Error connecting to Bluesky. Please try again.']);
         }
     }
 }

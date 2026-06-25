@@ -15,7 +15,7 @@ return [
     'disconnect' => 'Desconectar',
 
     'descriptions' => [
-        'linkedin' => 'Conecta tu perfil personal de LinkedIn',
+        'linkedin' => 'Conecta tu perfil de LinkedIn o página de empresa',
         'linkedin-page' => 'Conecta una página de empresa de LinkedIn',
         'x' => 'Conecta tu cuenta de X (Twitter)',
         'tiktok' => 'Conecta tu cuenta de TikTok',
@@ -83,6 +83,8 @@ return [
         'no_pages' => 'No se encontraron páginas',
         'no_pages_description' => 'No eres administrador de ninguna página de Facebook.',
         'page_label' => 'Página de Facebook',
+        'view' => 'Ver',
+        'choose' => 'Elegir',
     ],
 
     'instagram_facebook' => [
@@ -90,6 +92,8 @@ return [
         'description' => 'Elige qué cuenta de Instagram deseas conectar',
         'no_pages' => 'No se encontraron cuentas de Instagram',
         'no_pages_description' => 'No se encontraron páginas de Facebook con cuentas Instagram Business vinculadas.',
+        'view' => 'Ver',
+        'choose' => 'Elegir',
     ],
 
     'linkedin' => [
@@ -98,6 +102,12 @@ return [
         'no_pages' => 'No se encontraron páginas',
         'no_pages_description' => 'No eres administrador de ninguna página de LinkedIn.',
         'page_label' => 'Página de LinkedIn',
+        'select_title' => '¿Dónde quieres publicar?',
+        'select_subtitle' => 'Publica como tú mismo o elige una página de empresa que administres.',
+        'person_tag' => 'Persona',
+        'organization_tag' => 'Empresa',
+        'view' => 'Ver',
+        'choose' => 'Elegir',
     ],
 
     'flash' => [
@@ -115,7 +125,8 @@ return [
         'title_success' => 'Conectado',
         'title_error' => 'Error',
         'closing' => 'Esta ventana se cerrará automáticamente...',
-        'close_now' => 'Puedes cerrar esta ventana ahora.',
+        'manual_close' => 'Puedes cerrar esta ventana.',
+        'popup_blocked' => 'No se pudo abrir la ventana de conexión. Permite las ventanas emergentes e inténtalo de nuevo.',
         'connected' => '¡Cuenta conectada!',
         'reconnected' => '¡Cuenta reconectada!',
         'error_connecting' => 'Error al conectar la cuenta. Inténtalo de nuevo.',

@@ -14,7 +14,7 @@ use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tool;
 
-#[Description('Download images or videos from public URLs and attach them to a post. Each URL is fetched, stored, and registered as a Media record on the workspace. Allowed types are intersected with the platforms enabled on the post (e.g. nothing accepted if no platform supports the media type).')]
+#[Description('Download images, videos, or PDF documents from public URLs and attach them to a post. Each URL is fetched, stored, and registered as a Media record on the workspace. Allowed types are intersected with the platforms enabled on the post (e.g. nothing accepted if no platform supports the media type).')]
 class AttachMediaFromUrlTool extends Tool
 {
     public function handle(Request $request): Response|ResponseFactory
@@ -53,7 +53,7 @@ class AttachMediaFromUrlTool extends Tool
             'urls' => $schema->array()
                 ->items($schema->string())
                 ->required()
-                ->description('Public HTTP/HTTPS URLs of images or videos. Max 10 URLs per call, 50MB per file. Allowed types: image/jpeg, image/png, image/gif, image/webp, video/mp4, video/quicktime, video/webm.'),
+                ->description('Public HTTP/HTTPS URLs of images, videos, or PDFs. Max 10 URLs per call, 50MB per file. Allowed types: image/jpeg, image/png, image/gif, image/webp, video/mp4, video/quicktime, application/pdf.'),
         ];
     }
 }

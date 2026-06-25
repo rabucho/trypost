@@ -5,12 +5,13 @@ import { computed, ref } from 'vue';
 import GalleryBrowser from '@/components/assets/GalleryBrowser.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { type MediaType } from '@/lib/mediaType';
 
 interface PickedMedia {
     id: string;
     path: string;
     url: string;
-    type: string;
+    type: MediaType;
     mime_type: string;
     original_filename?: string;
     size?: number;

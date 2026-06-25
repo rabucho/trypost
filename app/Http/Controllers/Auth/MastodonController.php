@@ -7,14 +7,12 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
 use App\Models\Workspace;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
 use Inertia\Inertia;
-use Inertia\Response;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class MastodonController extends SocialController
 {
@@ -25,15 +23,11 @@ class MastodonController extends SocialController
     /**
      * Show form to enter Mastodon instance URL
      */
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): InertiaResponse
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -45,7 +39,7 @@ class MastodonController extends SocialController
     /**
      * Register app on instance and redirect to OAuth
      */
-    public function authorizeInstance(Request $request): SymfonyResponse|RedirectResponse
+    public function authorizeInstance(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
@@ -54,10 +48,6 @@ class MastodonController extends SocialController
         ]);
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -117,7 +107,7 @@ class MastodonController extends SocialController
     /**
      * Handle OAuth callback
      */
-    public function callback(Request $request): View
+    public function callback(Request $request): InertiaResponse
     {
         $workspaceId = session('social_connect_workspace');
         $savedState = session('mastodon_oauth_state');

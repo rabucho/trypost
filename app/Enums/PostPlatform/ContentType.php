@@ -13,13 +13,12 @@ enum ContentType: string
     case InstagramReel = 'instagram_reel';
     case InstagramStory = 'instagram_story';
 
-    // LinkedIn
+    // LinkedIn — one type per account kind; the publish format (single image,
+    // multi-image, video, or PDF document) is inferred from the attached media.
     case LinkedInPost = 'linkedin_post';
-    case LinkedInCarousel = 'linkedin_carousel';
 
     // LinkedIn Page
     case LinkedInPagePost = 'linkedin_page_post';
-    case LinkedInPageCarousel = 'linkedin_page_carousel';
 
     // Facebook
     case FacebookPost = 'facebook_post';
@@ -69,7 +68,6 @@ enum ContentType: string
             self::InstagramReel => 'Reel',
             self::InstagramStory => 'Story',
             self::LinkedInPost, self::LinkedInPagePost => 'Post',
-            self::LinkedInCarousel, self::LinkedInPageCarousel => 'Carousel',
             self::FacebookPost => 'Post',
             self::FacebookReel => 'Reel',
             self::FacebookStory => 'Story',
@@ -97,8 +95,8 @@ enum ContentType: string
     {
         return match ($this) {
             self::InstagramFeed, self::InstagramReel, self::InstagramStory => SocialPlatform::Instagram,
-            self::LinkedInPost, self::LinkedInCarousel => SocialPlatform::LinkedIn,
-            self::LinkedInPagePost, self::LinkedInPageCarousel => SocialPlatform::LinkedInPage,
+            self::LinkedInPost => SocialPlatform::LinkedIn,
+            self::LinkedInPagePost => SocialPlatform::LinkedInPage,
             self::FacebookPost, self::FacebookReel, self::FacebookStory => SocialPlatform::Facebook,
             self::TikTokVideo, self::TikTokPhoto => SocialPlatform::TikTok,
             self::YouTubeShort => SocialPlatform::YouTube,
@@ -164,8 +162,7 @@ enum ContentType: string
         return match ($this) {
             self::InstagramFeed => 10,
             self::InstagramReel, self::InstagramStory => 1,
-            self::LinkedInPost, self::LinkedInPagePost => 1,
-            self::LinkedInCarousel, self::LinkedInPageCarousel => 20,
+            self::LinkedInPost, self::LinkedInPagePost => 10,
             self::FacebookPost => 10,
             self::FacebookReel, self::FacebookStory => 1,
             self::TikTokVideo => 1,
@@ -187,7 +184,6 @@ enum ContentType: string
         return match ($this) {
             self::InstagramFeed, self::InstagramReel, self::InstagramStory => true,
             self::LinkedInPost, self::LinkedInPagePost => true,
-            self::LinkedInCarousel, self::LinkedInPageCarousel => false,
             self::FacebookPost, self::FacebookReel, self::FacebookStory => true,
             self::TikTokVideo => true,
             self::TikTokPhoto => false,
@@ -217,6 +213,19 @@ enum ContentType: string
     }
 
     /**
+     * Whether this content type can carry a PDF document (the swipeable LinkedIn
+     * document/carousel). LinkedIn infers the document format from a PDF being
+     * attached; the document is always the only attachment (see the media rule).
+     */
+    public function supportsDocument(): bool
+    {
+        return match ($this) {
+            self::LinkedInPost, self::LinkedInPagePost => true,
+            default => false,
+        };
+    }
+
+    /**
      * Whether a single post may carry images and a video together. Most
      * targets accept only one or the other; this is conservative and lists
      * only the types we've confirmed reject mixed media (e.g. a Bluesky post
@@ -226,6 +235,8 @@ enum ContentType: string
     {
         return match ($this) {
             self::BlueskyPost => false,
+            // LinkedIn publishes images XOR one video XOR one document — never mixed.
+            self::LinkedInPost, self::LinkedInPagePost => false,
             default => true,
         };
     }

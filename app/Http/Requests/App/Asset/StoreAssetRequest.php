@@ -16,7 +16,7 @@ class StoreAssetRequest extends FormRequest
 
     public function rules(): array
     {
-        $allowedMimes = [...MediaType::Image->allowedMimeTypes(), ...MediaType::Video->allowedMimeTypes()];
+        $allowedMimes = [...MediaType::Image->allowedMimeTypes(), ...MediaType::Video->allowedMimeTypes(), ...MediaType::Document->allowedMimeTypes()];
 
         return [
             // Use the largest per-type cap as the upper bound; per-type

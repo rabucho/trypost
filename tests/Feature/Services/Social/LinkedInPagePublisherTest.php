@@ -47,7 +47,7 @@ beforeEach(function () {
 
 test('linkedin page publisher can publish text-only post', function () {
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response(null, 201, [
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response(null, 201, [
             'x-restli-id' => 'urn:li:share:1234567890',
         ]),
     ]);
@@ -69,7 +69,7 @@ test('linkedin page publisher can publish text-only post', function () {
 
 test('linkedin page publisher uses organization urn', function () {
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response(null, 201, [
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response(null, 201, [
             'x-restli-id' => 'urn:li:share:1234567890',
         ]),
     ]);
@@ -82,15 +82,19 @@ test('linkedin page publisher uses organization urn', function () {
 });
 
 test('linkedin page publisher throws exception when organization id missing', function () {
+    Http::fake();
     $this->socialAccount->update(['meta' => []]);
 
     expect(fn () => $this->publisher->publish($this->postPlatform))
         ->toThrow(Exception::class, 'LinkedIn Page organization ID not configured');
+
+    // Fail-fast: the missing org id must abort before any LinkedIn request.
+    Http::assertNothingSent();
 });
 
 test('linkedin page publisher uses correct headers', function () {
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response(null, 201, [
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response(null, 201, [
             'x-restli-id' => 'urn:li:share:1234567890',
         ]),
     ]);
@@ -107,7 +111,7 @@ test('linkedin page publisher uses correct headers', function () {
 
 test('linkedin page publisher throws exception on api error', function () {
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response([
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response([
             'message' => 'Invalid request',
             'status' => 400,
         ], 400),
@@ -119,11 +123,11 @@ test('linkedin page publisher throws exception on api error', function () {
 
 test('linkedin page publisher throws token expired exception on auth error after retry', function () {
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response([
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response([
             'code' => 'EXPIRED_ACCESS_TOKEN',
             'message' => 'The token used in the request has expired',
         ], 401),
-        'https://www.linkedin.com/oauth/v2/accessToken' => Http::response([
+        config('trypost.platforms.linkedin.oauth_api').'/oauth/v2/accessToken' => Http::response([
             'error' => 'invalid_grant',
             'error_description' => 'The refresh token is invalid',
         ], 400),
@@ -137,12 +141,12 @@ test('linkedin page publisher refreshes token when expired', function () {
     $this->socialAccount->update(['token_expires_at' => now()->subHour()]);
 
     Http::fake([
-        'https://www.linkedin.com/oauth/v2/accessToken' => Http::response([
+        config('trypost.platforms.linkedin.oauth_api').'/oauth/v2/accessToken' => Http::response([
             'access_token' => 'new-access-token',
             'refresh_token' => 'new-refresh-token',
             'expires_in' => 5184000,
         ], 200),
-        'https://api.linkedin.com/rest/posts' => Http::response(null, 201, [
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response(null, 201, [
             'x-restli-id' => 'urn:li:share:1234567890',
         ]),
     ]);
@@ -171,7 +175,7 @@ test('linkedin page publisher throws TokenExpiredException when refresh_token is
     $this->socialAccount->update(['token_expires_at' => now()->subHour()]);
 
     Http::fake([
-        'https://www.linkedin.com/oauth/v2/accessToken' => Http::response([
+        config('trypost.platforms.linkedin.oauth_api').'/oauth/v2/accessToken' => Http::response([
             'error' => 'invalid_grant',
             'error_description' => 'The refresh token is invalid',
         ], 400),
@@ -185,7 +189,7 @@ test('linkedin page publisher handles empty content', function () {
     $this->post->update(['content' => '']);
 
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response(null, 201, [
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response(null, 201, [
             'x-restli-id' => 'urn:li:share:1234567890',
         ]),
     ]);
@@ -199,16 +203,9 @@ test('linkedin page publisher handles empty content', function () {
     });
 });
 
-test('linkedin page publisher throws exception for unsupported content type', function () {
-    $this->postPlatform->update(['content_type' => ContentType::InstagramFeed]);
-
-    expect(fn () => $this->publisher->publish($this->postPlatform))
-        ->toThrow(Exception::class, 'Unsupported LinkedIn Page content type');
-});
-
 test('linkedin page publisher builds correct company url when username present', function () {
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response(null, 201, [
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response(null, 201, [
             'x-restli-id' => 'urn:li:share:1234567890',
         ]),
     ]);
@@ -222,7 +219,7 @@ test('linkedin page publisher builds feed url when username missing', function (
     $this->socialAccount->update(['username' => null]);
 
     Http::fake([
-        'https://api.linkedin.com/rest/posts' => Http::response(null, 201, [
+        config('trypost.platforms.linkedin-page.api').'/rest/posts' => Http::response(null, 201, [
             'x-restli-id' => 'urn:li:share:1234567890',
         ]),
     ]);
@@ -282,4 +279,158 @@ test('linkedin page publisher can publish post with image using organization urn
         && ($request['author'] ?? '') === 'urn:li:organization:123456'
         && isset($request['content']['media']['id'])
     );
+});
+
+test('linkedin page publisher publishes a multi-image carousel with image ids under the organization', function () {
+    $this->post->update([
+        'media' => [
+            ['id' => 'm1', 'path' => 'media/c1.jpg', 'url' => 'https://example.com/c1.jpg', 'mime_type' => 'image/jpeg', 'original_filename' => 'c1.jpg'],
+            ['id' => 'm2', 'path' => 'media/c2.jpg', 'url' => 'https://example.com/c2.jpg', 'mime_type' => 'image/jpeg', 'original_filename' => 'c2.jpg'],
+        ],
+    ]);
+
+    $imageUrns = ['urn:li:image:OrgCarousel1', 'urn:li:image:OrgCarousel2'];
+    $uploadUrls = ['https://www.linkedin.com/dms/upload/org/1', 'https://www.linkedin.com/dms/upload/org/2'];
+    $initCount = 0;
+
+    Http::fake(function ($request) use ($imageUrns, $uploadUrls, &$initCount) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/images')) {
+            $idx = $initCount % 2;
+            $initCount++;
+
+            return Http::response(['value' => ['uploadUrl' => $uploadUrls[$idx], 'image' => $imageUrns[$idx]]], 200);
+        }
+
+        foreach ($uploadUrls as $uploadUrl) {
+            if ($url === $uploadUrl) {
+                return Http::response(null, 201);
+            }
+        }
+
+        if (str_contains($url, '/rest/posts')) {
+            return Http::response(null, 201, ['x-restli-id' => 'urn:li:share:orgcarousel']);
+        }
+
+        return Http::response('fake-image-content', 200);
+    });
+
+    $result = $this->publisher->publish($this->postPlatform);
+
+    expect($result['id'])->toBe('urn:li:share:orgcarousel');
+
+    // Org carousel must author as the organization and send image URNs under `id` (not `media`).
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/rest/posts')) {
+            return false;
+        }
+        $data = $request->data();
+        $images = data_get($data, 'content.multiImage.images');
+
+        return data_get($data, 'author') === 'urn:li:organization:123456'
+            && is_array($images)
+            && count($images) === 2
+            && data_get($images, '0.id') === 'urn:li:image:OrgCarousel1'
+            && ! array_key_exists('media', $images[0]);
+    });
+});
+
+test('linkedin page publisher can publish a document (pdf carousel) using organization urn', function () {
+    $this->postPlatform->update([
+        'content_type' => ContentType::LinkedInPagePost,
+        'meta' => ['document_title' => 'Company Deck'],
+    ]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'doc-media-1',
+                'path' => 'media/2026-01/company-deck.pdf',
+                'url' => 'https://example.com/media/2026-01/company-deck.pdf',
+                'mime_type' => 'application/pdf',
+                'original_filename' => 'company-deck.pdf',
+            ],
+        ],
+    ]);
+
+    $uploadUrl = 'https://www.linkedin.com/dms-uploads/document/org/0';
+
+    Http::fake(function ($request) use ($uploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/documents') && str_contains($url, 'initializeUpload')) {
+            return Http::response([
+                'value' => [
+                    'uploadUrl' => $uploadUrl,
+                    'document' => 'urn:li:document:OrgDocUrn',
+                ],
+            ], 200);
+        }
+
+        if ($url === $uploadUrl) {
+            return Http::response(null, 201);
+        }
+
+        if (str_contains($url, '/rest/documents/')) {
+            return Http::response(['status' => 'AVAILABLE'], 200);
+        }
+
+        if (str_contains($url, '/rest/posts')) {
+            return Http::response(null, 201, ['x-restli-id' => 'urn:li:share:orgdoc999']);
+        }
+
+        return Http::response('fake-pdf-bytes', 200);
+    });
+
+    $result = $this->publisher->publish($this->postPlatform);
+
+    expect($result['id'])->toBe('urn:li:share:orgdoc999');
+    expect($result['url'])->toContain('linkedin.com/company/testcompany/posts/');
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/rest/documents') && str_contains($request->url(), 'initializeUpload'));
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/rest/posts')) {
+            return false;
+        }
+
+        return ($request['author'] ?? '') === 'urn:li:organization:123456'
+            && data_get($request->data(), 'content.media.id') === 'urn:li:document:OrgDocUrn'
+            && data_get($request->data(), 'content.media.title') === 'Company Deck';
+    });
+});
+
+test('linkedin page publisher throws and does not post when document processing fails', function () {
+    $this->postPlatform->update(['content_type' => ContentType::LinkedInPagePost]);
+    $this->post->update([
+        'media' => [[
+            'id' => 'doc-media-1', 'path' => 'media/2026-01/company-deck.pdf',
+            'url' => 'https://example.com/media/2026-01/company-deck.pdf',
+            'mime_type' => 'application/pdf', 'original_filename' => 'company-deck.pdf',
+        ]],
+    ]);
+
+    $uploadUrl = 'https://www.linkedin.com/dms-uploads/document/org/fail';
+
+    Http::fake(function ($request) use ($uploadUrl) {
+        $url = $request->url();
+
+        if (str_contains($url, '/rest/documents') && str_contains($url, 'initializeUpload')) {
+            return Http::response(['value' => ['uploadUrl' => $uploadUrl, 'document' => 'urn:li:document:OrgFail']], 200);
+        }
+
+        if ($url === $uploadUrl) {
+            return Http::response(null, 201);
+        }
+
+        if (str_contains($url, '/rest/documents/')) {
+            return Http::response(['status' => 'PROCESSING_FAILED'], 200);
+        }
+
+        return Http::response('fake-pdf-bytes', 200);
+    });
+
+    expect(fn () => $this->publisher->publish($this->postPlatform))
+        ->toThrow(Exception::class, 'LinkedIn Page document processing failed');
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/rest/posts'));
 });

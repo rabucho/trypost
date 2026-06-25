@@ -1,7 +1,7 @@
 import { trans } from 'laravel-vue-i18n';
 import { computed, type ComputedRef, type Ref } from 'vue';
 
-import { getMediaItemIssue } from '@/composables/useMedia';
+import { getMediaItemIssue, getMediaValidationWarning } from '@/composables/useMedia';
 import { getMediaRulesForContentType } from '@/composables/useMediaRules';
 import { getPlatformLabel } from '@/composables/usePlatformLogo';
 import { ContentType } from '@/types/content-type';
@@ -24,11 +24,15 @@ export const PLATFORM_VARIANTS: Record<string, string[]> = {
     [Platform.Facebook]: [ContentType.FacebookPost, ContentType.FacebookReel, ContentType.FacebookStory],
     [Platform.Instagram]: [ContentType.InstagramFeed, ContentType.InstagramReel, ContentType.InstagramStory],
     [Platform.InstagramFacebook]: [ContentType.InstagramFeed, ContentType.InstagramReel, ContentType.InstagramStory],
-    [Platform.LinkedIn]: [ContentType.LinkedInPost, ContentType.LinkedInCarousel],
-    [Platform.LinkedInPage]: [ContentType.LinkedInPagePost, ContentType.LinkedInPageCarousel],
+    [Platform.LinkedIn]: [ContentType.LinkedInPost],
+    [Platform.LinkedInPage]: [ContentType.LinkedInPagePost],
     [Platform.TikTok]: [ContentType.TikTokVideo, ContentType.TikTokPhoto],
     [Platform.Pinterest]: [ContentType.PinterestPin, ContentType.PinterestVideoPin, ContentType.PinterestCarousel],
 };
+
+// Content types whose post needs text to publish — YouTube Shorts derive their
+// required title from the post content, so an empty post can't be scheduled.
+const CONTENT_TYPES_REQUIRING_TEXT = new Set<string>([ContentType.YouTubeShort]);
 
 type MetaRule = (meta: Record<string, any>) => { valid: boolean; tooltipKey: string | null };
 
@@ -86,48 +90,47 @@ export const getPlatformMetaIssue = (platform: string, meta: Record<string, any>
     return result.tooltipKey ? trans(result.tooltipKey) : trans('posts.edit.compliance_incomplete');
 };
 
+// The editor's compliance copy keyed by the shared media-warning core's key.
+// Detection + rule evaluation live once in getMediaValidationWarning; only the
+// wording (and a couple of params) differ between the settings dialogs and this
+// publish gate.
+const COMPLIANCE_KEY_BY_WARNING: Record<string, string> = {
+    no_variant: 'no_content_type',
+    requires_media: 'requires_media',
+    max_files_exceeded: 'too_many_files',
+    min_files_required: 'too_few_files',
+    no_video_allowed: 'no_videos',
+    no_image_allowed: 'no_images',
+    no_document_allowed: 'no_documents',
+    no_mixed_media: 'no_mixed_media',
+    document_not_alone: 'document_not_alone',
+    gif_not_allowed: 'no_gifs',
+    image_too_large: 'image_too_large',
+    video_too_large: 'video_too_large',
+    document_too_large: 'document_too_large',
+    video_too_long: 'video_too_long',
+    aspect_ratio_too_narrow: 'aspect_ratio_invalid',
+    aspect_ratio_too_wide: 'aspect_ratio_invalid',
+};
+
 export const getMediaIncompatibilityReason = (
     contentType: string,
     mediaItems: MediaItem[],
 ): string | null => {
-    const rules = getMediaRulesForContentType(contentType);
-    const videos = mediaItems.filter((m) => m.type === 'video' || m.mime_type?.startsWith('video/'));
-    const images = mediaItems.filter((m) => m.type === 'image' || m.mime_type?.startsWith('image/'));
-    const gifs = mediaItems.filter((m) => m.mime_type === 'image/gif');
-    const total = mediaItems.length;
+    const warning = getMediaValidationWarning(contentType, mediaItems);
+    if (!warning) return null;
 
-    if (rules.requiresMedia && total === 0) return trans('posts.edit.compliance.requires_media');
-    if (!rules.acceptVideos && videos.length > 0) return trans('posts.edit.compliance.no_videos');
-    if (!rules.acceptImages && images.length > 0) return trans('posts.edit.compliance.no_images');
-    if (rules.forbidsMixedMedia && videos.length > 0 && images.length > 0) return trans('posts.edit.compliance.no_mixed_media');
-    if (!rules.acceptsGif && gifs.length > 0) return trans('posts.edit.compliance.no_gifs');
-    if (total > rules.maxFiles) return trans('posts.edit.compliance.too_many_files', { max: String(rules.maxFiles) });
-    if (rules.minFiles && total < rules.minFiles) return trans('posts.edit.compliance.too_few_files', { min: String(rules.minFiles) });
+    const complianceKey = COMPLIANCE_KEY_BY_WARNING[warning.key];
+    if (!complianceKey) return trans('posts.edit.compliance_incomplete');
 
-    for (const m of mediaItems) {
-        const isVideo = m.type === 'video' || m.mime_type?.startsWith('video/');
-        const size = m.size ?? 0;
-        const duration = m.meta?.duration ?? 0;
-        const width = m.meta?.width ?? 0;
-        const height = m.meta?.height ?? 0;
-
-        if (isVideo) {
-            if (rules.maxVideoBytes && size > 0 && size > rules.maxVideoBytes) return trans('posts.edit.compliance.video_too_large');
-            if (rules.maxVideoDurationSec && duration > 0 && duration > rules.maxVideoDurationSec) {
-                return trans('posts.edit.compliance.video_too_long', { seconds: String(rules.maxVideoDurationSec) });
-            }
-        } else if (rules.maxImageBytes && size > 0 && size > rules.maxImageBytes) {
-            return trans('posts.edit.compliance.image_too_large');
-        }
-
-        if (width > 0 && height > 0 && (rules.aspectRatioMin || rules.aspectRatioMax)) {
-            const ratio = width / height;
-            if (rules.aspectRatioMin && ratio < rules.aspectRatioMin) return trans('posts.edit.compliance.aspect_ratio_invalid');
-            if (rules.aspectRatioMax && ratio > rules.aspectRatioMax) return trans('posts.edit.compliance.aspect_ratio_invalid');
-        }
+    const params: Record<string, string> = {};
+    if (warning.key === 'max_files_exceeded') params.max = warning.params.max;
+    if (warning.key === 'min_files_required') params.min = warning.params.min;
+    if (warning.key === 'video_too_long') {
+        params.seconds = String(getMediaRulesForContentType(contentType).maxVideoDurationSec ?? '');
     }
 
-    return null;
+    return trans(`posts.edit.compliance.${complianceKey}`, params);
 };
 
 export const firstCompatibleVariant = (
@@ -196,6 +199,11 @@ export const usePostCompliance = (opts: UsePostComplianceOptions) => {
             const contentType = platformContentTypes.value[pp.id];
             if (!contentType) {
                 issues[pp.id] = trans('posts.edit.compliance.no_content_type');
+                continue;
+            }
+
+            if (CONTENT_TYPES_REQUIRING_TEXT.has(contentType) && content.value.trim() === '') {
+                issues[pp.id] = trans('posts.edit.compliance.requires_text');
                 continue;
             }
 

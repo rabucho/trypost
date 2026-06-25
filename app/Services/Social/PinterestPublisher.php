@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Social;
 
+use App\Enums\Media\Type as MediaType;
 use App\Enums\PostPlatform\ContentType;
 use App\Enums\SocialAccount\Platform;
 use App\Exceptions\Social\ErrorCategory;
@@ -85,7 +86,7 @@ class PinterestPublisher
             }
 
             $detectedMime = mime_content_type($tempFile) ?: '';
-            if (str_starts_with($detectedMime, 'image/') && ! str_starts_with($detectedMime, 'image/gif')) {
+            if (MediaType::classify($detectedMime) === MediaType::Image && ! MediaType::isGif($detectedMime)) {
                 $optimizer = app(MediaOptimizer::class);
                 $optimizedPath = $optimizer->optimizeImage($tempFile, Platform::Pinterest);
                 @unlink($tempFile);
@@ -272,6 +273,8 @@ class PinterestPublisher
 
         if (! empty(data_get($postPlatform->meta, 'cover_image_url'))) {
             $payload['media_source']['cover_image_url'] = data_get($postPlatform->meta, 'cover_image_url');
+        } else {
+            $payload['media_source']['cover_image_key_frame_time'] = 0;
         }
 
         $response = $this->socialHttp()->withToken($account->access_token)

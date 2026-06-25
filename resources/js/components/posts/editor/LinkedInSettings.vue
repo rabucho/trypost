@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { IconAlertTriangle, IconChevronDown, IconChevronUp } from '@tabler/icons-vue';
+import { IconChevronDown, IconChevronUp } from '@tabler/icons-vue';
 import { computed, ref } from 'vue';
 
 import { Avatar } from '@/components/ui/avatar';
-import { getMediaValidationWarning } from '@/composables/useMedia';
+import { Input } from '@/components/ui/input';
+import { isDocumentMedia } from '@/composables/useMedia';
 import { getPlatformLogo } from '@/composables/usePlatformLogo';
-import { ContentType } from '@/types/content-type';
 import type { MediaItem } from '@/types/media';
+import { Platform } from '@/types/platform';
 
 interface SocialAccount {
     id: string;
@@ -19,47 +20,43 @@ interface SocialAccount {
 interface Props {
     socialAccount: SocialAccount | null;
     platform: string;
-    contentType: string;
     media: MediaItem[];
+    meta?: Record<string, any>;
     disabled?: boolean;
     previewOnly?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    meta: () => ({}),
     disabled: false,
     previewOnly: false,
 });
 
 const emit = defineEmits<{
-    'update:contentType': [value: string];
+    'update:meta': [value: Record<string, any>];
 }>();
 
 const open = ref(false);
 
-const isPage = computed(() => props.platform === 'linkedin-page');
+const isPage = computed(() => props.platform === Platform.LinkedInPage);
 
-const variants = computed(() =>
-    isPage.value
-        ? [
-            { value: ContentType.LinkedInPagePost, labelKey: 'posts.form.linkedin.variant.post' },
-            { value: ContentType.LinkedInPageCarousel, labelKey: 'posts.form.linkedin.variant.carousel' },
-        ]
-        : [
-            { value: ContentType.LinkedInPost, labelKey: 'posts.form.linkedin.variant.post' },
-            { value: ContentType.LinkedInCarousel, labelKey: 'posts.form.linkedin.variant.carousel' },
-        ],
+const pdfDocument = computed(
+    () => props.media.find((item) => isDocumentMedia(item)) ?? null,
 );
 
-const pickVariant = (value: string) => {
-    if (props.disabled) return;
-    emit('update:contentType', value);
-};
+const hasPdf = computed(() => pdfDocument.value !== null);
 
-const warning = computed(() => getMediaValidationWarning(props.contentType, props.media));
+const documentTitle = computed({
+    get: () =>
+        (props.meta?.document_title as string | undefined) ||
+        pdfDocument.value?.original_filename ||
+        '',
+    set: (value: string) => emit('update:meta', { ...props.meta, document_title: value || null }),
+});
 </script>
 
 <template>
-    <div class="rounded-xl border-2 border-foreground bg-card shadow-2xs">
+    <div v-if="hasPdf" class="rounded-xl border-2 border-foreground bg-card shadow-2xs">
         <button
             type="button"
             class="flex w-full cursor-pointer items-center justify-between gap-3 p-4 text-sm"
@@ -93,31 +90,14 @@ const warning = computed(() => getMediaValidationWarning(props.contentType, prop
             </div>
 
             <div class="space-y-2">
-                <p class="text-[11px] font-black uppercase tracking-widest text-foreground/60">{{ $t('posts.form.linkedin.variant_label') }}</p>
-                <div class="flex flex-wrap gap-2">
-                    <button
-                        v-for="variant in variants"
-                        :key="variant.value"
-                        type="button"
-                        class="cursor-pointer rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-widest transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                        :class="contentType === variant.value
-                            ? 'border-foreground bg-violet-100 text-foreground shadow-2xs'
-                            : 'border-foreground/30 text-foreground/70 hover:border-foreground hover:text-foreground'"
-                        :disabled="disabled"
-                        @click="pickVariant(variant.value)"
-                    >
-                        {{ $t(variant.labelKey) }}
-                    </button>
-                </div>
+                <p class="text-[11px] font-black uppercase tracking-widest text-foreground/60">{{ $t('posts.form.linkedin.document_title') }}</p>
+                <Input
+                    v-model="documentTitle"
+                    type="text"
+                    :placeholder="$t('posts.form.linkedin.document_title_placeholder')"
+                    :disabled="disabled || previewOnly"
+                />
             </div>
-
-            <p
-                v-if="warning && !previewOnly"
-                class="flex items-start gap-2 rounded-lg border-2 border-foreground bg-rose-50 p-2 text-xs font-semibold text-rose-700"
-            >
-                <IconAlertTriangle class="mt-0.5 size-3.5 shrink-0" />
-                {{ $t(`posts.form.warnings.${warning.key}`, warning.params) }}
-            </p>
         </div>
     </div>
 </template>

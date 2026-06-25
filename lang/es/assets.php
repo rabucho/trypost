@@ -13,8 +13,9 @@ return [
 
     'upload' => [
         'drag_drop' => 'Arrastra y suelta tus archivos aquí o haz clic para seleccionar',
-        'formats' => 'JPEG, PNG, GIF, WebP, MP4',
+        'formats' => 'JPEG, PNG, GIF, WebP, MP4, PDF',
         'uploading' => 'Subiendo...',
+        'failed' => 'No se pudo subir :file. Inténtalo de nuevo.',
     ],
 
     'empty' => [

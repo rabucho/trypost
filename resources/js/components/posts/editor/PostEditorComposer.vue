@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
     IconAlertTriangle,
+    IconFileTypePdf,
     IconGripVertical,
     IconHash,
     IconLibraryPhoto,
@@ -22,6 +23,8 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatBytes } from '@/composables/useMedia';
 import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo';
+import date from '@/date';
+import { classify, isDocument, isVideo, MediaType } from '@/lib/mediaType';
 import type { MediaItem } from '@/types/media';
 
 interface Signature {
@@ -78,20 +81,10 @@ const openPreview = (item: MediaItem) => {
     lightbox.value?.openCollection(
         media.value.map((m) => ({
             url: m.url,
-            type: isVideo(m) ? 'video' as const : 'image' as const,
+            type: classify(m) ?? MediaType.Image,
         })),
         idx,
     );
-};
-
-const isVideo = (item: MediaItem): boolean =>
-    item.type === 'video' || Boolean(item.mime_type?.startsWith('video/'));
-
-const formatDuration = (seconds: number): string => {
-    const total = Math.round(seconds);
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
 const limitsWithUsage = computed(() =>
@@ -245,6 +238,13 @@ const canRegenerateWithAi = (item: MediaItem): boolean => props.allowAiRegenerat
                             class="h-full w-full object-cover"
                             muted
                         />
+                        <div
+                            v-else-if="isDocument(item)"
+                            class="flex h-full w-full flex-col items-center justify-center gap-1 bg-rose-50 p-2 text-center"
+                        >
+                            <IconFileTypePdf class="size-7 text-rose-600" />
+                            <span class="line-clamp-2 break-all text-[10px] font-medium text-foreground/70">{{ item.original_filename || 'PDF' }}</span>
+                        </div>
                         <img
                             v-else
                             :src="item.url"
@@ -261,7 +261,7 @@ const canRegenerateWithAi = (item: MediaItem): boolean => props.allowAiRegenerat
                                 class="inline-flex items-center gap-0.5 rounded-md bg-black/65 px-1.5 py-0.5 backdrop-blur-sm"
                             >
                                 <IconVideo class="size-2.5" />
-                                {{ formatDuration(item.meta.duration) }}
+                                {{ date.formatClock(item.meta.duration) }}
                             </span>
                             <span
                                 v-if="item.size"

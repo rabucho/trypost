@@ -36,7 +36,6 @@ use App\Http\Controllers\Auth\FacebookController;
 use App\Http\Controllers\Auth\InstagramController;
 use App\Http\Controllers\Auth\InstagramFacebookController;
 use App\Http\Controllers\Auth\LinkedInController;
-use App\Http\Controllers\Auth\LinkedInPageController;
 use App\Http\Controllers\Auth\MastodonController;
 use App\Http\Controllers\Auth\PinterestController;
 use App\Http\Controllers\Auth\SocialController;
@@ -46,6 +45,7 @@ use App\Http\Controllers\Auth\TikTokController;
 use App\Http\Controllers\Auth\XController;
 use App\Http\Controllers\Auth\YouTubeController;
 use App\Http\Middleware\App\EnsureAccountReady;
+use App\Http\Middleware\App\EnsureHasWorkspace;
 use Illuminate\Support\Facades\Route;
 
 // Subscription selection (requires auth but not subscription)
@@ -78,66 +78,69 @@ Route::middleware(['auth'])->group(function () {
 
 // Social Connect routes
 Route::middleware(['auth'])->group(function () {
-    Route::get('connect/linkedin', [LinkedInController::class, 'connect'])->name('app.social.linkedin.connect');
+    // Starting a connection reads the user's current workspace, so these require
+    // one — during onboarding they redirect to workspace creation. Disconnecting
+    // lives here too (and not behind EnsureAccountReady) so it works before a
+    // subscription exists; the controller still authorizes workspace ownership.
+    Route::middleware(EnsureHasWorkspace::class)->group(function () {
+        Route::get('connect/linkedin', [LinkedInController::class, 'connect'])->name('app.social.linkedin.connect');
+        Route::get('connect/x', [XController::class, 'connect'])->name('app.social.x.connect');
+        Route::get('connect/tiktok', [TikTokController::class, 'connect'])->name('app.social.tiktok.connect');
+        Route::get('connect/youtube', [YouTubeController::class, 'connect'])->name('app.social.youtube.connect');
+        Route::get('connect/facebook', [FacebookController::class, 'connect'])->name('app.social.facebook.connect');
+        Route::get('connect/instagram', [InstagramController::class, 'connect'])->name('app.social.instagram.connect');
+        Route::get('connect/instagram-facebook', [InstagramFacebookController::class, 'connect'])->name('app.social.instagram-facebook.connect');
+        Route::get('connect/threads', [ThreadsController::class, 'connect'])->name('app.social.threads.connect');
+        Route::get('connect/pinterest', [PinterestController::class, 'connect'])->name('app.social.pinterest.connect');
+        Route::get('connect/bluesky', [BlueskyController::class, 'connect'])->name('app.social.bluesky.connect');
+        Route::post('connect/bluesky', [BlueskyController::class, 'store'])->name('app.social.bluesky.store');
+        Route::get('connect/mastodon', [MastodonController::class, 'connect'])->name('app.social.mastodon.connect');
+        Route::post('connect/mastodon', [MastodonController::class, 'authorizeInstance'])->name('app.social.mastodon.authorize');
+        Route::post('connect/telegram', [TelegramController::class, 'connect'])->name('app.social.telegram.connect');
+        Route::get('connect/discord', [DiscordController::class, 'connect'])->name('app.social.discord.connect');
+
+        Route::delete('accounts/{account}', [SocialController::class, 'disconnect'])->name('app.accounts.disconnect');
+    });
+
+    // OAuth callbacks and identity selection resolve their workspace from the
+    // session set when the flow started, then self-close the popup. They run
+    // without the current-workspace gate so a momentarily missing current
+    // workspace can't HTML-redirect the popup instead of closing it cleanly.
     Route::get('accounts/linkedin/callback', [LinkedInController::class, 'callback'])->name('app.social.linkedin.callback');
+    Route::get('accounts/linkedin/select', [LinkedInController::class, 'selectIdentity'])->name('app.social.linkedin.select-identity');
+    Route::post('accounts/linkedin/select', [LinkedInController::class, 'select'])->name('app.social.linkedin.select');
 
-    Route::get('connect/linkedin-page', [LinkedInPageController::class, 'connect'])->name('app.social.linkedin-page.connect');
-    Route::get('accounts/linkedin-page/callback', [LinkedInPageController::class, 'callback'])->name('app.social.linkedin-page.callback');
-    Route::get('accounts/linkedin-page/select', [LinkedInPageController::class, 'selectPage'])->name('app.social.linkedin-page.select-page');
-    Route::post('accounts/linkedin-page/select', [LinkedInPageController::class, 'select'])->name('app.social.linkedin-page.select');
-
-    Route::get('connect/x', [XController::class, 'connect'])->name('app.social.x.connect');
     Route::get('accounts/x/callback', [XController::class, 'callback'])->name('app.social.x.callback');
 
-    Route::get('connect/tiktok', [TikTokController::class, 'connect'])->name('app.social.tiktok.connect');
     Route::get('accounts/tiktok/callback', [TikTokController::class, 'callback'])->name('app.social.tiktok.callback');
 
-    Route::get('connect/youtube', [YouTubeController::class, 'connect'])->name('app.social.youtube.connect');
     Route::get('accounts/youtube/callback', [YouTubeController::class, 'callback'])->name('app.social.youtube.callback');
     Route::get('accounts/youtube/select', [YouTubeController::class, 'selectChannel'])->name('app.social.youtube.select-channel');
     Route::post('accounts/youtube/select', [YouTubeController::class, 'select'])->name('app.social.youtube.select');
 
-    Route::get('connect/facebook', [FacebookController::class, 'connect'])->name('app.social.facebook.connect');
     Route::get('accounts/facebook/callback', [FacebookController::class, 'callback'])->name('app.social.facebook.callback');
     Route::get('accounts/facebook/select', [FacebookController::class, 'selectPage'])->name('app.social.facebook.select-page');
     Route::post('accounts/facebook/select', [FacebookController::class, 'select'])->name('app.social.facebook.select');
 
-    Route::get('connect/instagram', [InstagramController::class, 'connect'])->name('app.social.instagram.connect');
     Route::get('accounts/instagram/callback', [InstagramController::class, 'callback'])->name('app.social.instagram.callback');
     Route::get('accounts/instagram/select', [InstagramController::class, 'selectAccount'])->name('app.social.instagram.select-account');
     Route::post('accounts/instagram/select', [InstagramController::class, 'select'])->name('app.social.instagram.select');
 
-    Route::get('connect/instagram-facebook', [InstagramFacebookController::class, 'connect'])->name('app.social.instagram-facebook.connect');
     Route::get('accounts/instagram-facebook/callback', [InstagramFacebookController::class, 'callback'])->name('app.social.instagram-facebook.callback');
     Route::get('accounts/instagram-facebook/select-page', [InstagramFacebookController::class, 'selectPage'])->name('app.social.instagram-facebook.select-page');
     Route::post('accounts/instagram-facebook/select', [InstagramFacebookController::class, 'select'])->name('app.social.instagram-facebook.select');
 
-    Route::get('connect/threads', [ThreadsController::class, 'connect'])->name('app.social.threads.connect');
     Route::get('accounts/threads/callback', [ThreadsController::class, 'callback'])->name('app.social.threads.callback');
 
-    Route::get('connect/pinterest', [PinterestController::class, 'connect'])->name('app.social.pinterest.connect');
     Route::get('accounts/pinterest/callback', [PinterestController::class, 'callback'])->name('app.social.pinterest.callback');
 
-    Route::get('connect/bluesky', [BlueskyController::class, 'connect'])->name('app.social.bluesky.connect');
-    Route::post('connect/bluesky', [BlueskyController::class, 'store'])->name('app.social.bluesky.store');
-
-    Route::get('connect/mastodon', [MastodonController::class, 'connect'])->name('app.social.mastodon.connect');
-    Route::post('connect/mastodon', [MastodonController::class, 'authorizeInstance'])->name('app.social.mastodon.authorize');
     Route::get('accounts/mastodon/callback', [MastodonController::class, 'callback'])->name('app.social.mastodon.callback');
 
-    Route::post('connect/telegram', [TelegramController::class, 'connect'])->name('app.social.telegram.connect');
-
-    Route::get('connect/discord', [DiscordController::class, 'connect'])->name('app.social.discord.connect');
     Route::get('accounts/discord/callback', [DiscordController::class, 'callback'])->name('app.social.discord.callback');
-
-    // Disconnecting must also work during onboarding (before a subscription
-    // exists), so it lives here rather than behind EnsureAccountReady — the
-    // controller still authorizes workspace ownership.
-    Route::delete('accounts/{account}', [SocialController::class, 'disconnect'])->name('app.accounts.disconnect');
 });
 
 // Routes that require active subscription and completed onboarding
-Route::middleware(['auth', EnsureAccountReady::class])->group(function () {
+Route::middleware(['auth', EnsureAccountReady::class, EnsureHasWorkspace::class])->group(function () {
     // Discord — live lookups for the composer (channel picker + mention autocomplete).
     // Throttled because they proxy the shared bot's (rate-limited) Discord API.
     Route::get('discord/accounts/{account}/channels', [AppDiscordController::class, 'channels'])

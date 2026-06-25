@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\DataTransferObjects;
 
 use App\Enums\Media\Source;
+use App\Enums\Media\Type;
 
 class MediaItem
 {
@@ -23,29 +24,19 @@ class MediaItem
 
     public function isVideo(): bool
     {
-        if ($this->mime_type) {
-            return str_starts_with($this->mime_type, 'video/');
-        }
-
-        $extension = strtolower(pathinfo($this->path, PATHINFO_EXTENSION));
-
-        return in_array($extension, ['mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'm4v']);
+        return Type::classify($this->mime_type, $this->path) === Type::Video;
     }
 
     public function isImage(): bool
     {
-        if ($this->mime_type) {
-            return str_starts_with($this->mime_type, 'image/');
-        }
-
-        $extension = strtolower(pathinfo($this->path, PATHINFO_EXTENSION));
-
-        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'heic', 'heif']);
+        return Type::classify($this->mime_type, $this->path) === Type::Image;
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
+    public function isDocument(): bool
+    {
+        return Type::classify($this->mime_type, $this->path) === Type::Document;
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -63,6 +54,7 @@ class MediaItem
                 'webp' => 'image/webp',
                 'mp4' => 'video/mp4',
                 'mov' => 'video/quicktime',
+                'pdf' => 'application/pdf',
                 default => null,
             };
         }

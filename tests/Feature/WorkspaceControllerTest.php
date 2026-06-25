@@ -431,6 +431,16 @@ test('destroy workspace clears current workspace if deleting current', function 
     expect($this->user->current_workspace_id)->toBeNull();
 });
 
+test('destroy workspace reassigns current to another joined workspace', function () {
+    $other = Workspace::factory()->create(['user_id' => $this->user->id]);
+    $other->members()->attach($this->user->id, ['role' => Role::Member->value]);
+
+    $this->actingAs($this->user)->delete(route('app.workspaces.destroy', $this->workspace));
+
+    $this->user->refresh();
+    expect($this->user->current_workspace_id)->toBe($other->id);
+});
+
 test('destroy workspace is blocked when it is the only workspace', function () {
     config(['trypost.self_hosted' => false]);
     $this->user->account->subscriptions()->create([

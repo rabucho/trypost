@@ -86,12 +86,14 @@ class OnboardingController extends Controller
 
         $accounts = $workspace->socialAccounts()->orderBy('id')->get();
 
-        $platforms = collect(SocialPlatform::enabled())->map(fn (SocialPlatform $platform): array => [
-            'value' => $platform->value,
-            'label' => $platform->label(),
-            'color' => $platform->color(),
-            'network' => $platform->network(),
-        ])->values();
+        $platforms = collect(SocialPlatform::cases())
+            ->filter(fn (SocialPlatform $platform): bool => $platform->isConnectable())
+            ->map(fn (SocialPlatform $platform): array => [
+                'value' => $platform->value,
+                'label' => $platform->label(),
+                'color' => $platform->color(),
+                'network' => $platform->network(),
+            ])->values();
 
         return Inertia::render('onboarding/Connect', [
             'platforms' => $platforms,

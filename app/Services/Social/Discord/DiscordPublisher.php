@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Social\Discord;
 
 use App\DataTransferObjects\MediaItem;
+use App\Enums\Media\Type as MediaType;
 use App\Enums\SocialAccount\Platform;
 use App\Exceptions\Social\DiscordPublishException;
 use App\Exceptions\Social\ErrorCategory;
@@ -156,7 +157,7 @@ class DiscordPublisher
         }
 
         // Images are downsized to Discord's limit; videos/gifs are sent as-is.
-        if ($item->mime_type && str_starts_with($item->mime_type, 'image/') && ! str_contains($item->mime_type, 'gif')) {
+        if ($item->isImage() && ! MediaType::isGif($item->mime_type)) {
             try {
                 return app(MediaOptimizer::class)->optimizeImage($tempFile, Platform::Discord);
             } catch (Throwable) {

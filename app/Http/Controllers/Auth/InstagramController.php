@@ -8,11 +8,10 @@ use App\Enums\SocialAccount\Platform as SocialPlatform;
 use App\Enums\SocialAccount\Status;
 use App\Exceptions\SocialAccount\NetworkAlreadyConnectedException;
 use App\Models\Workspace;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
 use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -28,15 +27,11 @@ class InstagramController extends SocialController
         'instagram_business_manage_insights',
     ];
 
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -53,7 +48,7 @@ class InstagramController extends SocialController
         return Inertia::location($url);
     }
 
-    public function callback(Request $request): View
+    public function callback(Request $request): InertiaResponse
     {
         $workspaceId = session('social_connect_workspace');
 

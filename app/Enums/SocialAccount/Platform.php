@@ -94,7 +94,7 @@ enum Platform: string
     public function allowedMediaTypes(): array
     {
         return match ($this) {
-            self::LinkedIn, self::LinkedInPage => [MediaType::Image, MediaType::Video],
+            self::LinkedIn, self::LinkedInPage => [MediaType::Image, MediaType::Video, MediaType::Document],
             self::X => [MediaType::Image, MediaType::Video],
             self::TikTok => [MediaType::Video],
             self::YouTube => [MediaType::Video],
@@ -112,7 +112,7 @@ enum Platform: string
     public function maxImages(): int
     {
         return match ($this) {
-            self::LinkedIn, self::LinkedInPage => 1,
+            self::LinkedIn, self::LinkedInPage => 10,
             self::X => 4,
             self::TikTok => 0,
             self::YouTube => 0,
@@ -288,6 +288,22 @@ enum Platform: string
     }
 
     /**
+     * Whether this platform gets its own "Connect" card in the accounts grid.
+     * LinkedIn company pages are reached through the unified LinkedIn connect
+     * flow's identity picker, never a standalone card. The single LinkedIn card
+     * stands for the whole network, so it shows whenever the profile OR the
+     * company-page capability is enabled (self-hosters may run with only one).
+     */
+    public function isConnectable(): bool
+    {
+        return match ($this) {
+            self::LinkedInPage => false,
+            self::LinkedIn => self::LinkedIn->isEnabled() || self::LinkedInPage->isEnabled(),
+            default => $this->isEnabled(),
+        };
+    }
+
+    /**
      * Static, platform-specific data exposed to the frontend (e.g. TikTok privacy options,
      * compliance URLs). Returns an empty array for platforms with no extra config.
      *
@@ -308,15 +324,5 @@ enum Platform: string
             ],
             default => [],
         };
-    }
-
-    /**
-     * Get all enabled platforms.
-     *
-     * @return array<self>
-     */
-    public static function enabled(): array
-    {
-        return array_filter(self::cases(), fn (self $platform) => $platform->isEnabled());
     }
 }

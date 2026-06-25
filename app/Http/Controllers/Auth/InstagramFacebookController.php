@@ -13,8 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
 use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -34,15 +34,11 @@ class InstagramFacebookController extends SocialController
         'instagram_manage_insights',
     ];
 
-    public function connect(Request $request): Response|RedirectResponse
+    public function connect(Request $request): Response
     {
         $this->ensurePlatformEnabled();
 
         $workspace = $request->user()->currentWorkspace;
-
-        if (! $workspace) {
-            return redirect()->route('app.workspaces.create');
-        }
 
         $this->authorize('manageAccounts', $workspace);
 
@@ -61,7 +57,7 @@ class InstagramFacebookController extends SocialController
         return Inertia::location($url);
     }
 
-    public function callback(Request $request): View|RedirectResponse
+    public function callback(Request $request): InertiaResponse|RedirectResponse
     {
         $workspaceId = session('social_connect_workspace');
 
@@ -150,7 +146,7 @@ class InstagramFacebookController extends SocialController
         ]);
     }
 
-    public function select(Request $request): View
+    public function select(Request $request): InertiaResponse
     {
         $request->validate([
             'page_id' => 'required|string',
@@ -193,7 +189,7 @@ class InstagramFacebookController extends SocialController
         }
     }
 
-    private function connectInstagramAccount(Workspace $workspace, array $pageData, $existingAccount): View
+    private function connectInstagramAccount(Workspace $workspace, array $pageData, $existingAccount): InertiaResponse
     {
         $avatarPath = data_get($pageData, 'ig_picture') ? uploadFromUrl(data_get($pageData, 'ig_picture')) : null;
 

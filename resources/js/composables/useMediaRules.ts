@@ -1,15 +1,19 @@
 import { computed, type Ref, type ComputedRef } from 'vue';
 
+import { fromMimeType, MediaType } from '@/lib/mediaType';
+
 export interface MediaRules {
     maxFiles: number;
     minFiles?: number;
     acceptImages: boolean;
     acceptVideos: boolean;
+    acceptDocuments?: boolean;
     requiresMedia: boolean;
     acceptsGif: boolean;
     forbidsMixedMedia?: boolean;
     maxImageBytes?: number;
     maxVideoBytes?: number;
+    maxDocumentBytes?: number;
     maxVideoDurationSec?: number;
     aspectRatioMin?: number;
     aspectRatioMax?: number;
@@ -58,28 +62,18 @@ const CONTENT_TYPE_RULES: Record<string, MediaRules> = {
         aspectRatioMin: 0.5, aspectRatioMax: 0.6,
     },
 
-    // LinkedIn
+    // LinkedIn — one type per account kind; the publish format (single image,
+    // multi-image, video, or PDF document) is inferred from the attached media.
+    // Images (up to 10) XOR one video XOR one PDF, never mixed.
     linkedin_post: {
-        maxFiles: 1, acceptImages: true, acceptVideos: true, requiresMedia: false,
-        acceptsGif: false,
-        maxImageBytes: 5 * MB, maxVideoBytes: 5 * GB, maxVideoDurationSec: 10 * 60,
-    },
-    linkedin_carousel: {
-        maxFiles: 20, acceptImages: true, acceptVideos: false, requiresMedia: true,
-        acceptsGif: false,
-        maxImageBytes: 5 * MB,
-        aspectRatioMin: 0.5, aspectRatioMax: 1,
+        maxFiles: 10, acceptImages: true, acceptVideos: true, acceptDocuments: true,
+        requiresMedia: false, acceptsGif: false, forbidsMixedMedia: true,
+        maxImageBytes: 5 * MB, maxVideoBytes: 5 * GB, maxVideoDurationSec: 10 * 60, maxDocumentBytes: 100 * MB,
     },
     linkedin_page_post: {
-        maxFiles: 1, acceptImages: true, acceptVideos: true, requiresMedia: false,
-        acceptsGif: false,
-        maxImageBytes: 5 * MB, maxVideoBytes: 5 * GB, maxVideoDurationSec: 10 * 60,
-    },
-    linkedin_page_carousel: {
-        maxFiles: 20, acceptImages: true, acceptVideos: false, requiresMedia: true,
-        acceptsGif: false,
-        maxImageBytes: 5 * MB,
-        aspectRatioMin: 0.5, aspectRatioMax: 1,
+        maxFiles: 10, acceptImages: true, acceptVideos: true, acceptDocuments: true,
+        requiresMedia: false, acceptsGif: false, forbidsMixedMedia: true,
+        maxImageBytes: 5 * MB, maxVideoBytes: 5 * GB, maxVideoDurationSec: 10 * 60, maxDocumentBytes: 100 * MB,
     },
 
     // TikTok
@@ -169,6 +163,9 @@ export function useMediaRules(contentType: Ref<string> | ComputedRef<string>) {
         if (rules.value.acceptVideos) {
             types.push('video/*');
         }
+        if (rules.value.acceptDocuments) {
+            types.push('application/pdf');
+        }
         return types.join(',');
     });
 
@@ -178,20 +175,25 @@ export function useMediaRules(contentType: Ref<string> | ComputedRef<string>) {
 
     const isValidFileType = computed(() => {
         return (file: File): boolean => {
-            const isImage = file.type.startsWith('image/');
-            const isVideo = file.type.startsWith('video/');
+            const type = fromMimeType(file.type);
 
-            if (isImage && !rules.value.acceptImages) {
+            if (type === MediaType.Image && !rules.value.acceptImages) {
                 return false;
             }
-            if (isVideo && !rules.value.acceptVideos) {
+            if (type === MediaType.Video && !rules.value.acceptVideos) {
                 return false;
             }
-            return isImage || isVideo;
+            if (type === MediaType.Document) {
+                return Boolean(rules.value.acceptDocuments);
+            }
+            return type === MediaType.Image || type === MediaType.Video;
         };
     });
 
     const getAcceptDescription = computed<string>(() => {
+        if (rules.value.acceptDocuments && !rules.value.acceptImages && !rules.value.acceptVideos) {
+            return 'PDF document';
+        }
         if (rules.value.acceptImages && rules.value.acceptVideos) {
             return 'Images or videos';
         }

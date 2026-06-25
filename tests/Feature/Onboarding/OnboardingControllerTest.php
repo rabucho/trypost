@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Billing\StartSubscriptionCheckout;
 use App\Enums\Plan\Slug;
+use App\Enums\SocialAccount\Platform;
 use App\Enums\User\Persona;
 use App\Jobs\PostHog\SendEvent;
 use App\Models\Account;
@@ -132,6 +133,21 @@ test('connect renders the network grid for an unsubscribed account that picked a
         ->has('platforms')
         ->has('platforms.0.network')
         ->has('accounts')
+    );
+});
+
+test('connect offers a single linkedin card and no standalone linkedin page card', function () {
+    $this->user->update(['persona' => Persona::Agency->value]);
+    onboardingWorkspace($this->user);
+
+    $response = $this->actingAs($this->user->fresh())->get(route('app.onboarding.connect'));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('onboarding/Connect')
+        ->where('platforms', fn ($platforms) => collect($platforms)->contains('value', Platform::LinkedIn->value)
+            && ! collect($platforms)->contains('value', Platform::LinkedInPage->value)
+        )
     );
 });
 

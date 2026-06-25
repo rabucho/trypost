@@ -166,9 +166,18 @@ test('add media detects video type', function () {
     expect($media->type->value)->toBe('video');
 });
 
+test('add media detects document type for a pdf', function () {
+    $workspace = Workspace::factory()->create();
+    $file = UploadedFile::fake()->create('deck.pdf', 1000, 'application/pdf');
+
+    $media = $workspace->addMedia($file, 'logo');
+
+    expect($media->type->value)->toBe('document');
+});
+
 test('add media throws on unsupported MIME type', function () {
     $workspace = Workspace::factory()->create();
-    $file = UploadedFile::fake()->create('document.pdf', 1000, 'application/pdf');
+    $file = UploadedFile::fake()->create('archive.zip', 1000, 'application/zip');
 
     expect(fn () => $workspace->addMedia($file, 'logo'))
         ->toThrow(InvalidArgumentException::class);

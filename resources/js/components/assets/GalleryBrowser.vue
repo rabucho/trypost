@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useHttp } from '@inertiajs/vue3';
-import { IconCloudUpload, IconLoader2, IconPencilPlus, IconPhoto, IconPlus, IconSearch, IconTrash } from '@tabler/icons-vue';
+import { IconCloudUpload, IconFileTypePdf, IconLoader2, IconPencilPlus, IconPhoto, IconPlus, IconSearch, IconTrash } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
 import { toast } from 'vue-sonner';
@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import debounce from '@/debounce';
+import { acceptAttribute, classify, isDocument, isVideo, MediaType } from '@/lib/mediaType';
 import { destroy as assetsDestroy, search as assetsSearch, storeChunked as assetsStoreChunked, storeFromUrl } from '@/routes/app/assets';
 import { search as giphySearch, trending as giphyTrending } from '@/routes/app/assets/giphy';
 import { search as unsplashSearch, trending as unsplashTrending } from '@/routes/app/assets/unsplash';
@@ -24,7 +25,7 @@ interface AssetMedia {
     id: string;
     path: string;
     url: string;
-    type: string;
+    type: MediaType;
     mime_type: string;
     original_filename: string;
     size: number;
@@ -59,7 +60,7 @@ interface SavedMedia {
     id: string;
     path: string;
     url: string;
-    type: string;
+    type: MediaType;
     mime_type: string;
 }
 
@@ -67,7 +68,7 @@ interface PickedMedia {
     id: string;
     path: string;
     url: string;
-    type: string;
+    type: MediaType;
     mime_type: string;
     original_filename?: string;
     size?: number;
@@ -84,6 +85,9 @@ const selected = defineModel<PickedMedia[]>('selected', { default: () => [] });
 
 const isPicker = computed(() => props.mode === 'picker');
 
+// The upload file picker accepts everything the backend's Media\Type allow-list does.
+const acceptedUploadTypes = acceptAttribute();
+
 const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
 
 const handleAssetClick = (asset: AssetMedia) => {
@@ -93,7 +97,7 @@ const handleAssetClick = (asset: AssetMedia) => {
     }
     const items = uploads.value.map((a) => ({
         url: a.url,
-        type: a.type === 'video' ? ('video' as const) : ('image' as const),
+        type: classify(a) ?? MediaType.Image,
     }));
     const idx = uploads.value.findIndex((a) => a.id === asset.id);
     lightbox.value?.openCollection(items, idx);
@@ -134,6 +138,9 @@ const toggleSelect = (asset: AssetMedia | SavedMedia, extra?: Partial<PickedMedi
                 url: asset.url,
                 type: asset.type,
                 mime_type: asset.mime_type,
+                original_filename: 'original_filename' in asset ? asset.original_filename : undefined,
+                size: 'size' in asset ? asset.size : undefined,
+                meta: 'meta' in asset ? (asset.meta ?? undefined) : undefined,
                 ...extra,
             },
         ];
@@ -242,7 +249,7 @@ const uploadFiles = async (files: File[]) => {
                 collection: 'assets',
             });
         } catch {
-            // ignore individual failure
+            toast.error(trans('assets.upload.failed', { file: file.name }));
         }
     }
     uploading.value = false;
@@ -617,7 +624,7 @@ onUnmounted(() => {
                         type="file"
                         class="hidden"
                         multiple
-                        accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+                        :accept="acceptedUploadTypes"
                         @change="handleFileSelect"
                     />
                     <div v-if="uploading" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-card/85">
@@ -655,19 +662,26 @@ onUnmounted(() => {
                         :key="asset.id"
                         class="group relative overflow-hidden rounded-xl border-2 border-foreground bg-muted shadow-2xs transition-all hover:-translate-y-0.5 hover:shadow-md"
                         :class="[
-                            (isPicker || asset.type !== 'video') ? 'cursor-pointer' : '',
+                            'cursor-pointer',
                             isPicker && isSelected(asset.id) ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : '',
                         ]"
                         @click="handleAssetClick(asset)"
                     >
                         <div class="aspect-square">
                             <video
-                                v-if="asset.type === 'video'"
+                                v-if="isVideo(asset)"
                                 :src="asset.url"
                                 class="size-full object-cover"
                                 muted
                                 preload="metadata"
                             />
+                            <div
+                                v-else-if="isDocument(asset)"
+                                class="flex size-full flex-col items-center justify-center gap-1.5 bg-rose-50 p-3 text-center"
+                            >
+                                <IconFileTypePdf class="size-9 text-rose-600" />
+                                <span class="line-clamp-2 break-all text-[11px] font-medium text-foreground/70">{{ asset.original_filename }}</span>
+                            </div>
                             <img
                                 v-else
                                 :src="asset.url"

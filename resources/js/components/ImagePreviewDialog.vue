@@ -3,13 +3,14 @@ import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue';
 import { computed, onUnmounted, ref, watch } from 'vue';
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { MediaType } from '@/lib/mediaType';
 
-interface MediaItem {
+interface PreviewItem {
     url: string;
-    type: 'image' | 'video';
+    type: MediaType;
 }
 
-const items = ref<MediaItem[]>([]);
+const items = ref<PreviewItem[]>([]);
 const index = ref<number | null>(null);
 
 const isOpen = computed({
@@ -27,12 +28,12 @@ const hasPrev = computed(() => safeIndex.value > 0);
 const hasNext = computed(() => safeIndex.value < items.value.length - 1);
 const showNav = computed(() => items.value.length > 1);
 
-const open = (url: string, type: 'image' | 'video' = 'image') => {
+const open = (url: string, type: MediaType = MediaType.Image) => {
     items.value = [{ url, type }];
     index.value = 0;
 };
 
-const openCollection = (collection: MediaItem[], startIndex = 0) => {
+const openCollection = (collection: PreviewItem[], startIndex = 0) => {
     if (collection.length === 0) return;
     items.value = [...collection];
     index.value = Math.max(0, Math.min(startIndex, collection.length - 1));
@@ -103,6 +104,15 @@ defineExpose({ open, openCollection, close });
                     autoplay
                     preload="metadata"
                     playsinline
+                    @click.stop
+                />
+
+                <iframe
+                    v-else-if="currentItem && currentItem.type === 'document'"
+                    :key="currentItem.url"
+                    :src="currentItem.url"
+                    title="PDF preview"
+                    class="h-[85vh] w-full rounded-2xl bg-white"
                     @click.stop
                 />
 

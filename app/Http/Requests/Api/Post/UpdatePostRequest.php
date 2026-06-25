@@ -10,6 +10,7 @@ use App\Enums\SocialAccount\Platform;
 use App\Models\Post;
 use App\Models\PostPlatform;
 use App\Rules\ContentFitsPlatformLimits;
+use App\Rules\ContentTypeCompatibleWithMedia;
 use App\Rules\ContentTypeMatchesPostPlatform;
 use App\Support\PostPlatformMetaRules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -73,6 +74,8 @@ class UpdatePostRequest extends FormRequest
                 return;
             }
 
+            $this->addMediaCompatibilityErrors($validator);
+
             $platformsById = $this->resolveSelectedPlatforms();
 
             PostPlatformMetaRules::addRequiredOnPublishErrors(
@@ -81,6 +84,35 @@ class UpdatePostRequest extends FormRequest
                 fn ($platform) => $platformsById[data_get($platform, 'id')] ?? null,
             );
         });
+    }
+
+    /**
+     * On publish/schedule, validate every platform's *effective* content_type
+     * (resubmitted in this request, or its stored value) against the *effective*
+     * media (the request's media when sent, otherwise the post's stored media).
+     * This closes the gap where a client publishes a misconfigured post — e.g. a
+     * PDF on a regular LinkedIn post — without resubmitting content_type, which a
+     * field-level rule on `platforms.*.content_type` would skip.
+     */
+    private function addMediaCompatibilityErrors(Validator $validator): void
+    {
+        $routePost = $this->route('post');
+        $post = $routePost instanceof Post ? $routePost : Post::find($routePost);
+
+        if (! $post) {
+            return;
+        }
+
+        $media = $this->has('media') ? (array) $this->input('media', []) : (array) ($post->media ?? []);
+
+        $entries = ContentTypeCompatibleWithMedia::entriesForUpdate(
+            $post,
+            $this->has('platforms') ? (array) $this->input('platforms', []) : null,
+        );
+
+        foreach (ContentTypeCompatibleWithMedia::errorsFor($entries, $media) as $key => $message) {
+            $validator->errors()->add($key, $message);
+        }
     }
 
     /**

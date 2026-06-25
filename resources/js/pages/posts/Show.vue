@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { IconArrowLeft, IconCalendar, IconExternalLink, IconLoader2 } from '@tabler/icons-vue';
+import { IconArrowLeft, IconCalendar, IconExternalLink, IconFileTypePdf, IconLoader2 } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
 
@@ -17,6 +17,7 @@ import { getPlatformLabel, getPlatformLogo } from '@/composables/usePlatformLogo
 import { getPlatformStatusConfig, getPostStatusConfig } from '@/composables/usePostStatus';
 import dayjs from '@/dayjs';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { classify, isDocument as isDocumentItem, isVideo as isVideoItem, MediaType } from '@/lib/mediaType';
 import { index as postsIndex } from '@/routes/app/posts';
 import type { MediaItem } from '@/types/media';
 import { PostPlatformStatus, PostStatus } from '@/types/post';
@@ -87,13 +88,10 @@ const formatDateTime = (date: string | null): string =>
 
 const lightbox = ref<InstanceType<typeof ImagePreviewDialog> | null>(null);
 
-const isVideoItem = (item: MediaItem): boolean =>
-    item.type === 'video' || (item.mime_type?.startsWith('video/') ?? false);
-
 const openLightbox = (i: number) => {
     const collection = props.post.media.map((m) => ({
         url: m.url,
-        type: isVideoItem(m) ? ('video' as const) : ('image' as const),
+        type: classify(m) ?? MediaType.Image,
     }));
     lightbox.value?.openCollection(collection, i);
 };
@@ -171,6 +169,13 @@ usePostEcho(props.post.id, '.post.platform.status.updated', () => {
                                         class="h-full w-full object-cover"
                                         muted
                                     />
+                                    <div
+                                        v-else-if="isDocumentItem(item)"
+                                        class="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-rose-50 p-2 text-center"
+                                    >
+                                        <IconFileTypePdf class="size-8 text-rose-600" />
+                                        <span class="line-clamp-2 break-all text-[10px] font-medium text-foreground/70">{{ item.original_filename || 'PDF' }}</span>
+                                    </div>
                                     <img
                                         v-else
                                         :src="item.url"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import VideoPreview from "@/components/posts/previews/VideoPreview.vue";
-import { isVideoMedia } from '@/composables/useMedia';
+import { isDocumentMedia, isVideoMedia } from '@/composables/useMedia';
 import type { MediaItem } from '@/types/media';
 
 interface SocialAccount {
@@ -77,7 +77,12 @@ defineProps<Props>();
                             'row-span-2': media.length === 3 && index === 0,
                             'aspect-square': media.length > 1,
                         }">
-                        <img v-if="!isVideoMedia(item)" :src="item.url" :alt="item.original_filename"
+                        <div v-if="isDocumentMedia(item)" class="aspect-[4/5] w-full bg-[#f4f2ee] dark:bg-[#38434f]">
+                            <iframe :src="`${item.url}#toolbar=0&navpanes=0&view=FitH`"
+                                :title="item.original_filename || 'PDF document'"
+                                class="h-full w-full border-0" loading="lazy" />
+                        </div>
+                        <img v-else-if="!isVideoMedia(item)" :src="item.url" :alt="item.original_filename"
                             class="w-full h-full object-cover" />
                         <VideoPreview v-else :src="item.url" video-class="w-full h-full object-cover bg-black" />
                         <div v-if="media.length > 4 && index === 3"

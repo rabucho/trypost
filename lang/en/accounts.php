@@ -15,7 +15,7 @@ return [
     'disconnect' => 'Disconnect',
 
     'descriptions' => [
-        'linkedin' => 'Connect your LinkedIn personal profile',
+        'linkedin' => 'Connect your LinkedIn profile or company page',
         'linkedin-page' => 'Connect a LinkedIn company page',
         'x' => 'Connect your X (Twitter) account',
         'tiktok' => 'Connect your TikTok account',
@@ -83,6 +83,8 @@ return [
         'no_pages' => 'No pages found',
         'no_pages_description' => 'You are not an admin of any Facebook page.',
         'page_label' => 'Facebook Page',
+        'view' => 'View',
+        'choose' => 'Choose',
     ],
 
     'instagram_facebook' => [
@@ -90,6 +92,8 @@ return [
         'description' => 'Choose which Instagram account you want to connect',
         'no_pages' => 'No Instagram accounts found',
         'no_pages_description' => 'No Facebook Pages with linked Instagram Business accounts were found.',
+        'view' => 'View',
+        'choose' => 'Choose',
     ],
 
     'linkedin' => [
@@ -98,6 +102,12 @@ return [
         'no_pages' => 'No pages found',
         'no_pages_description' => 'You are not an administrator of any LinkedIn page.',
         'page_label' => 'LinkedIn Page',
+        'select_title' => 'Where do you want to post?',
+        'select_subtitle' => 'Post as yourself or choose a company page you manage.',
+        'person_tag' => 'Person',
+        'organization_tag' => 'Organization',
+        'view' => 'View',
+        'choose' => 'Choose',
     ],
 
     'flash' => [
@@ -115,7 +125,8 @@ return [
         'title_success' => 'Connected',
         'title_error' => 'Error',
         'closing' => 'This window will close automatically...',
-        'close_now' => 'You can close this window now.',
+        'manual_close' => 'You can close this window.',
+        'popup_blocked' => 'Could not open the connection window. Please allow popups and try again.',
         'connected' => 'Account connected!',
         'reconnected' => 'Account reconnected!',
         'error_connecting' => 'Error connecting account. Please try again.',

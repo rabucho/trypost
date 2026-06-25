@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { IconAlertTriangle, IconCheck, IconPlus } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
 import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 
 import TelegramConnectDialog from '@/components/accounts/TelegramConnectDialog.vue';
 import ConfirmDeleteModal from '@/components/ConfirmDeleteModal.vue';
@@ -21,6 +22,7 @@ export interface AvailablePlatform {
 export interface ConnectedAccount {
     id: string;
     platform: string;
+    network: string;
     username: string;
     display_name: string;
     avatar_url: string | null;
@@ -44,8 +46,8 @@ const getPlatformDescription = (platform: string): string =>
 
 // Mirrors `NetworksGrid.vue` from the marketing site — pastel tile bg
 // + ink 2px border + slight rotation per platform, real PNG logo inside.
-// `linkedin-page` / `instagram-facebook` fall back to the base brand
-// image and same color since they're variants of the same network.
+// `instagram-facebook` falls back to the base brand image and same color
+// since it's a variant of the same network.
 const platformTheme: Record<
     string,
     { bg: string; rotate: string; image: string }
@@ -66,11 +68,6 @@ const platformTheme: Record<
         image: '/images/accounts/facebook.png',
     },
     linkedin: {
-        bg: 'bg-blue-200',
-        rotate: '-rotate-1',
-        image: '/images/accounts/linkedin.png',
-    },
-    'linkedin-page': {
         bg: 'bg-blue-200',
         rotate: '-rotate-1',
         image: '/images/accounts/linkedin.png',
@@ -125,20 +122,14 @@ const platformTheme: Record<
 const themeFor = (value: string) =>
     platformTheme[value] ?? { bg: 'bg-muted', rotate: '', image: '' };
 
-const networkOf = (value: string): string =>
-    props.platforms.find((platform) => platform.value === value)?.network ??
-    value;
-
 // One account per network: map each connected network to its account so every
 // platform card belonging to that network reflects the connection.
 const connectedByNetwork = computed((): Record<string, ConnectedAccount> => {
     const map: Record<string, ConnectedAccount> = {};
 
     for (const account of props.connectedAccounts) {
-        const network = networkOf(account.platform);
-
-        if (!map[network]) {
-            map[network] = account;
+        if (!map[account.network]) {
+            map[account.network] = account;
         }
     }
 
@@ -163,8 +154,14 @@ const disconnectModal = ref<InstanceType<typeof ConfirmDeleteModal> | null>(
     null,
 );
 
-const { openOAuthPopup } = useOAuthPopup(() => {
-    router.reload();
+const { openOAuthPopup } = useOAuthPopup((result) => {
+    if (result.success) {
+        toast.success(result.message);
+        router.reload();
+        return;
+    }
+
+    toast.error(result.message);
 });
 
 const disconnectAccount = (account: ConnectedAccount) => {
@@ -176,6 +173,9 @@ const disconnectAccount = (account: ConnectedAccount) => {
 
 const needsReconnect = (account: ConnectedAccount): boolean =>
     account.status === 'disconnected' || account.status === 'token_expired';
+
+const connectEntryFor = (platformValue: string): string =>
+    platformValue === Platform.LinkedInPage ? Platform.LinkedIn : platformValue;
 
 const openConnect = (platformValue: string) => {
     if (platformValue === Platform.Telegram) {
@@ -195,7 +195,7 @@ const connectPlatform = (platformValue: string) => {
 };
 
 const reconnectAccount = (account: ConnectedAccount) => {
-    openConnect(account.platform);
+    openConnect(connectEntryFor(account.platform));
 };
 
 const CardState = {

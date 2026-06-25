@@ -35,15 +35,17 @@ test('platform has correct colors', function () {
 });
 
 test('platform has correct allowed media types', function () {
-    expect(Platform::LinkedIn->allowedMediaTypes())->toContain(MediaType::Image, MediaType::Video);
+    expect(Platform::LinkedIn->allowedMediaTypes())->toContain(MediaType::Image, MediaType::Video, MediaType::Document);
+    expect(Platform::LinkedInPage->allowedMediaTypes())->toContain(MediaType::Image, MediaType::Video, MediaType::Document);
     expect(Platform::X->allowedMediaTypes())->toContain(MediaType::Image, MediaType::Video);
+    expect(Platform::X->allowedMediaTypes())->not->toContain(MediaType::Document);
     expect(Platform::TikTok->allowedMediaTypes())->toBe([MediaType::Video]);
     expect(Platform::YouTube->allowedMediaTypes())->toBe([MediaType::Video]);
     expect(Platform::Instagram->allowedMediaTypes())->toContain(MediaType::Image, MediaType::Video);
 });
 
 test('platform has correct max images', function () {
-    expect(Platform::LinkedIn->maxImages())->toBe(1);
+    expect(Platform::LinkedIn->maxImages())->toBe(10);
     expect(Platform::X->maxImages())->toBe(4);
     expect(Platform::TikTok->maxImages())->toBe(0);
     expect(Platform::YouTube->maxImages())->toBe(0);
@@ -94,17 +96,24 @@ test('platform can be disabled via config', function () {
     expect(Platform::LinkedIn->isEnabled())->toBeFalse();
 });
 
-test('can get all enabled platforms', function () {
-    $enabled = Platform::enabled();
-
-    expect($enabled)->toBeArray();
-    expect(count($enabled))->toBeGreaterThan(0);
+test('only linkedin pages are not directly connectable', function () {
+    expect(Platform::LinkedInPage->isConnectable())->toBeFalse();
+    expect(Platform::LinkedIn->isConnectable())->toBeTrue();
+    expect(Platform::InstagramFacebook->isConnectable())->toBeTrue();
+    expect(Platform::Instagram->isConnectable())->toBeTrue();
 });
 
-test('disabled platforms are excluded from enabled list', function () {
-    config(['trypost.platforms.linkedin.enabled' => false]);
+test('the linkedin card is connectable while either capability is enabled', function () {
+    config(['trypost.platforms.linkedin.enabled' => true, 'trypost.platforms.linkedin-page.enabled' => false]);
+    expect(Platform::LinkedIn->isConnectable())->toBeTrue();
 
-    $enabled = Platform::enabled();
+    config(['trypost.platforms.linkedin.enabled' => false, 'trypost.platforms.linkedin-page.enabled' => true]);
+    expect(Platform::LinkedIn->isConnectable())->toBeTrue();
 
-    expect($enabled)->not->toContain(Platform::LinkedIn);
+    config(['trypost.platforms.linkedin.enabled' => false, 'trypost.platforms.linkedin-page.enabled' => false]);
+    expect(Platform::LinkedIn->isConnectable())->toBeFalse();
+
+    // A company page never gets its own card regardless of toggles.
+    config(['trypost.platforms.linkedin-page.enabled' => true]);
+    expect(Platform::LinkedInPage->isConnectable())->toBeFalse();
 });

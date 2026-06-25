@@ -51,6 +51,24 @@ test('refreshes linkedin token before verifying when expired', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), 'linkedin.com/oauth/v2/accessToken'));
 });
 
+test('refreshing one linkedin row leaves a sibling linkedin-page row untouched', function () {
+    Http::fake([
+        'www.linkedin.com/oauth/v2/accessToken' => Http::response([
+            'access_token' => 'new_token',
+            'refresh_token' => 'new_refresh_token',
+            'expires_in' => 5184000,
+        ], 200),
+    ]);
+
+    $person = SocialAccount::factory()->linkedin()->create(['refresh_token' => 'old_refresh_token']);
+    $page = SocialAccount::factory()->linkedinPage()->create(['refresh_token' => 'old_refresh_token']);
+
+    (new ConnectionVerifier)->refreshToken($person);
+
+    expect($person->fresh()->refresh_token)->toBe('new_refresh_token');
+    expect($page->fresh()->refresh_token)->toBe('old_refresh_token');
+});
+
 test('refreshes x token before verifying when expired', function () {
     Http::fake([
         'api.x.com/2/oauth2/token' => Http::response([
