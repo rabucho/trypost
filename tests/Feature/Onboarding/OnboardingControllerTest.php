@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Billing\StartSubscriptionCheckout;
 use App\Enums\Plan\Slug;
 use App\Enums\SocialAccount\Platform;
+use App\Enums\User\Goal;
 use App\Enums\User\Persona;
 use App\Jobs\PostHog\SendEvent;
 use App\Models\Account;
@@ -96,7 +97,7 @@ test('onboarding store does nothing in self-hosted mode', function () {
     expect($this->user->fresh()->persona)->toBeNull();
 });
 
-test('onboarding store saves the persona, mirrors to PostHog and advances to the connect step', function () {
+test('onboarding store saves the persona, mirrors to PostHog and advances to the goals step', function () {
     config(['services.posthog.enabled' => true, 'services.posthog.api_key' => 'phc_test']);
     Bus::fake();
 
@@ -104,7 +105,7 @@ test('onboarding store saves the persona, mirrors to PostHog and advances to the
         'persona' => Persona::Agency->value,
     ]);
 
-    $response->assertRedirect(route('app.onboarding.connect'));
+    $response->assertRedirect(route('app.onboarding.goals'));
     expect($this->user->fresh()->persona)->toBe(Persona::Agency);
 
     Bus::assertDispatched(SendEvent::class);
@@ -121,8 +122,134 @@ test('onboarding store redirects an already-subscribed account to the calendar',
     expect($this->user->fresh()->persona)->toBeNull();
 });
 
-test('connect renders the network grid for an unsubscribed account that picked a persona', function () {
+test('goals renders the goal selection for an account that picked a persona', function () {
     $this->user->update(['persona' => Persona::Agency->value]);
+
+    $response = $this->actingAs($this->user->fresh())->get(route('app.onboarding.goals'));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('onboarding/Goals')
+        ->has('goals', count(Goal::cases()))
+    );
+});
+
+test('goals redirects to the persona step when no persona was chosen', function () {
+    $response = $this->actingAs($this->user)->get(route('app.onboarding.goals'));
+
+    $response->assertRedirect(route('app.onboarding'));
+});
+
+test('goals redirects to calendar in self-hosted mode', function () {
+    config(['trypost.self_hosted' => true]);
+
+    $response = $this->actingAs($this->user)->get(route('app.onboarding.goals'));
+
+    $response->assertRedirect(route('app.calendar'));
+});
+
+test('goals redirects to calendar when already subscribed', function () {
+    subscribeOnboardingAccount($this->user->account);
+
+    $response = $this->actingAs($this->user->fresh())->get(route('app.onboarding.goals'));
+
+    $response->assertRedirect(route('app.calendar'));
+});
+
+test('goals store requires at least one goal', function () {
+    $this->user->update(['persona' => Persona::Agency->value]);
+
+    $response = $this->actingAs($this->user->fresh())->post(route('app.onboarding.goals.store'), ['goals' => []]);
+
+    $response->assertSessionHasErrors('goals');
+    expect($this->user->fresh()->goals)->toBeNull();
+});
+
+test('goals store rejects an invalid goal', function () {
+    $this->user->update(['persona' => Persona::Agency->value]);
+
+    $response = $this->actingAs($this->user->fresh())->post(route('app.onboarding.goals.store'), [
+        'goals' => ['not-a-goal'],
+    ]);
+
+    $response->assertSessionHasErrors('goals.0');
+});
+
+test('goals store accepts any combination of valid goals', function () {
+    $this->user->update(['persona' => Persona::Agency->value]);
+
+    $response = $this->actingAs($this->user->fresh())->post(route('app.onboarding.goals.store'), [
+        'goals' => [Goal::JustExploring->value, Goal::SaveTime->value],
+    ]);
+
+    $response->assertRedirect(route('app.onboarding.connect'));
+    expect($this->user->fresh()->goals)->toBe([Goal::JustExploring->value, Goal::SaveTime->value]);
+});
+
+test('goals store saves the goals, mirrors to PostHog and advances to the connect step', function () {
+    config(['services.posthog.enabled' => true, 'services.posthog.api_key' => 'phc_test']);
+    Bus::fake();
+
+    $this->user->update(['persona' => Persona::Agency->value]);
+
+    $response = $this->actingAs($this->user->fresh())->post(route('app.onboarding.goals.store'), [
+        'goals' => [Goal::SaveTime->value, Goal::AiContent->value],
+    ]);
+
+    $response->assertRedirect(route('app.onboarding.connect'));
+    expect($this->user->fresh()->goals)->toBe([Goal::SaveTime->value, Goal::AiContent->value]);
+
+    Bus::assertDispatched(SendEvent::class);
+});
+
+test('goals store saves just exploring on its own as a real signal', function () {
+    config(['services.posthog.enabled' => true, 'services.posthog.api_key' => 'phc_test']);
+    Bus::fake();
+
+    $this->user->update(['persona' => Persona::Agency->value]);
+
+    $response = $this->actingAs($this->user->fresh())->post(route('app.onboarding.goals.store'), [
+        'goals' => [Goal::JustExploring->value],
+    ]);
+
+    $response->assertRedirect(route('app.onboarding.connect'));
+    expect($this->user->fresh()->goals)->toBe([Goal::JustExploring->value]);
+
+    Bus::assertDispatched(SendEvent::class);
+});
+
+test('goals store redirects to the persona step when no persona was chosen', function () {
+    $response = $this->actingAs($this->user)->post(route('app.onboarding.goals.store'), [
+        'goals' => [Goal::SaveTime->value],
+    ]);
+
+    $response->assertRedirect(route('app.onboarding'));
+    expect($this->user->fresh()->goals)->toBeNull();
+});
+
+test('goals store does nothing in self-hosted mode', function () {
+    config(['trypost.self_hosted' => true]);
+    $this->user->update(['persona' => Persona::Agency->value]);
+
+    $response = $this->actingAs($this->user->fresh())->post(route('app.onboarding.goals.store'), [
+        'goals' => [Goal::SaveTime->value],
+    ]);
+
+    $response->assertRedirect(route('app.calendar'));
+    expect($this->user->fresh()->goals)->toBeNull();
+});
+
+test('connect redirects to the goals step when a persona was chosen but no goals', function () {
+    $this->user->update(['persona' => Persona::Agency->value]);
+    onboardingWorkspace($this->user);
+
+    $response = $this->actingAs($this->user->fresh())->get(route('app.onboarding.connect'));
+
+    $response->assertRedirect(route('app.onboarding.goals'));
+});
+
+test('connect renders the network grid for an unsubscribed account that picked a persona', function () {
+    $this->user->update(['persona' => Persona::Agency->value, 'goals' => [Goal::SaveTime->value]]);
     onboardingWorkspace($this->user);
 
     $response = $this->actingAs($this->user->fresh())->get(route('app.onboarding.connect'));
@@ -137,7 +264,7 @@ test('connect renders the network grid for an unsubscribed account that picked a
 });
 
 test('connect offers a single linkedin card and no standalone linkedin page card', function () {
-    $this->user->update(['persona' => Persona::Agency->value]);
+    $this->user->update(['persona' => Persona::Agency->value, 'goals' => [Goal::SaveTime->value]]);
     onboardingWorkspace($this->user);
 
     $response = $this->actingAs($this->user->fresh())->get(route('app.onboarding.connect'));
@@ -152,7 +279,7 @@ test('connect offers a single linkedin card and no standalone linkedin page card
 });
 
 test('connect lists the workspace social accounts already connected', function () {
-    $this->user->update(['persona' => Persona::Agency->value]);
+    $this->user->update(['persona' => Persona::Agency->value, 'goals' => [Goal::SaveTime->value]]);
     $workspace = onboardingWorkspace($this->user);
     SocialAccount::factory()->create(['workspace_id' => $workspace->id]);
 
@@ -190,7 +317,7 @@ test('connect redirects to calendar when already subscribed', function () {
 });
 
 test('checkout blocks and redirects back when no network is connected', function () {
-    $this->user->update(['persona' => Persona::Agency->value]);
+    $this->user->update(['persona' => Persona::Agency->value, 'goals' => [Goal::SaveTime->value]]);
     onboardingWorkspace($this->user);
 
     $this->mock(StartSubscriptionCheckout::class)
@@ -203,7 +330,7 @@ test('checkout blocks and redirects back when no network is connected', function
 });
 
 test('checkout starts monthly checkout once at least one network is connected', function () {
-    $this->user->update(['persona' => Persona::Agency->value]);
+    $this->user->update(['persona' => Persona::Agency->value, 'goals' => [Goal::SaveTime->value]]);
     $workspace = onboardingWorkspace($this->user);
     SocialAccount::factory()->create(['workspace_id' => $workspace->id]);
 
@@ -245,4 +372,64 @@ test('checkout does nothing in self-hosted mode', function () {
     $response = $this->actingAs($this->user)->post(route('app.onboarding.checkout'));
 
     $response->assertRedirect(route('app.calendar'));
+});
+
+test('connect redirects to workspace creation when no workspace exists', function () {
+    $this->user->update(['persona' => Persona::Agency->value, 'goals' => [Goal::SaveTime->value]]);
+
+    $response = $this->actingAs($this->user->fresh())->get(route('app.onboarding.connect'));
+
+    $response->assertRedirect(route('app.workspaces.create'));
+});
+
+test('a user walks the full onboarding flow from the account gate to stripe checkout', function () {
+    Plan::where('slug', Slug::Workspace)->firstOrFail()->update(['stripe_monthly_price_id' => 'price_monthly_test']);
+    $workspace = onboardingWorkspace($this->user);
+
+    // The account gate sends an unsubscribed user into onboarding.
+    $this->actingAs($this->user->fresh())->get(route('app.calendar'))
+        ->assertRedirect(route('app.onboarding'));
+
+    // Persona advances to goals.
+    $this->actingAs($this->user->fresh())->post(route('app.onboarding.store'), ['persona' => Persona::Creator->value])
+        ->assertRedirect(route('app.onboarding.goals'));
+
+    // Goals advances to connect.
+    $this->actingAs($this->user->fresh())->post(route('app.onboarding.goals.store'), [
+        'goals' => [Goal::AiContent->value, Goal::SaveTime->value],
+    ])->assertRedirect(route('app.onboarding.connect'));
+
+    // Connect renders now that persona, goals and a workspace are present.
+    $this->actingAs($this->user->fresh())->get(route('app.onboarding.connect'))->assertOk();
+
+    // Checkout blocks until a network is connected.
+    $this->actingAs($this->user->fresh())->post(route('app.onboarding.checkout'))
+        ->assertRedirect(route('app.onboarding.connect'));
+
+    // Once a network is connected, checkout hands off to Stripe.
+    SocialAccount::factory()->create(['workspace_id' => $workspace->id]);
+
+    $this->mock(StartSubscriptionCheckout::class)
+        ->shouldReceive('redirect')
+        ->once()
+        ->andReturn(redirect('https://checkout.stripe.test/session'));
+
+    $this->actingAs($this->user->fresh())->post(route('app.onboarding.checkout'))
+        ->assertRedirect('https://checkout.stripe.test/session');
+
+    expect($this->user->fresh()->persona)->toBe(Persona::Creator);
+    expect($this->user->fresh()->goals)->toBe([Goal::AiContent->value, Goal::SaveTime->value]);
+});
+
+test('a self-hosted user never enters the onboarding flow', function () {
+    config(['trypost.self_hosted' => true]);
+    onboardingWorkspace($this->user);
+
+    // The app is reachable directly, with no subscription.
+    $this->actingAs($this->user->fresh())->get(route('app.calendar'))->assertOk();
+
+    // Every onboarding step just bounces to the calendar.
+    foreach (['app.onboarding', 'app.onboarding.goals', 'app.onboarding.connect'] as $routeName) {
+        $this->actingAs($this->user->fresh())->get(route($routeName))->assertRedirect(route('app.calendar'));
+    }
 });
