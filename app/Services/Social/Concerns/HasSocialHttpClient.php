@@ -32,7 +32,7 @@ trait HasSocialHttpClient
         return Http::retry(
             times: 3,
             sleepMilliseconds: 5000,
-            when: fn ($exception, $request) => $exception->response?->status() === 429,
+            when: fn ($exception, $request) => ($exception->response ?? null)?->status() === 429,
             throw: false,
         )->timeout(120);
     }

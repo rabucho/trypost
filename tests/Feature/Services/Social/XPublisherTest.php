@@ -304,3 +304,52 @@ test('x publisher uploads video via chunked upload', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), '/finalize'));
     Http::assertSent(fn ($request) => str_contains($request->url(), '/2/tweets'));
 });
+
+test('x publisher uploads a large video in sequential 1MB segments', function () {
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'test-media-video',
+                'path' => 'media/2026-01/big-video.mp4',
+                'url' => 'https://example.com/media/2026-01/big-video.mp4',
+                'mime_type' => 'video/mp4',
+                'original_filename' => 'big-video.mp4',
+            ],
+        ],
+    ]);
+
+    $appendCount = 0;
+
+    Http::fake(function ($request) use (&$appendCount) {
+        $url = $request->url();
+
+        if (str_contains($url, '/2/media/upload/initialize')) {
+            return Http::response(['data' => ['id' => 'media_id_999']], 200);
+        }
+
+        if (str_contains($url, '/append')) {
+            $appendCount++;
+
+            return Http::response(null, 204);
+        }
+
+        if (str_contains($url, '/finalize')) {
+            return Http::response(['data' => ['id' => 'media_id_999']], 200);
+        }
+
+        if (str_contains($url, '/2/media/')) {
+            return Http::response(['processing_info' => ['state' => 'succeeded']], 200);
+        }
+
+        if (str_contains($url, '/2/tweets')) {
+            return Http::response(['data' => ['id' => '9876543210987654321', 'text' => 'Hello from X!']], 200);
+        }
+
+        // ~2.5MB download -> at least three 1MB segments.
+        return Http::response(str_repeat('x', (int) (2.5 * 1024 * 1024)), 200);
+    });
+
+    $this->publisher->publish($this->postPlatform);
+
+    expect($appendCount)->toBeGreaterThan(1);
+});

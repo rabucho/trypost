@@ -236,6 +236,12 @@ class XPublisher
                 }
 
                 $index++;
+
+                // The HTTP client/retry wrapper keeps each segment's body alive
+                // through reference cycles, so without forcing collection a large
+                // video accumulates its full size in memory and exhausts the limit.
+                unset($chunk, $appendResponse);
+                gc_collect_cycles();
             }
         } finally {
             fclose($handle);
