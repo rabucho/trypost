@@ -11,8 +11,10 @@ use App\Models\PostPlatform;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Media\MediaOptimizer;
 use App\Services\Social\TikTokPublisher;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -92,6 +94,7 @@ test('tiktok publisher can publish photos', function () {
                 'url' => 'https://example.com/media/2026-01/image1.jpg',
                 'mime_type' => 'image/jpeg',
                 'original_filename' => 'image1.jpg',
+                'meta' => ['width' => 1080, 'height' => 1080],
             ],
         ],
     ]);
@@ -487,6 +490,7 @@ test('tiktok publisher sends auto_add_music for photo posts', function () {
                 'url' => 'https://example.com/media/2026-01/photo.jpg',
                 'mime_type' => 'image/jpeg',
                 'original_filename' => 'photo.jpg',
+                'meta' => ['width' => 1080, 'height' => 1080],
             ],
         ],
     ]);
@@ -690,4 +694,154 @@ test('tiktok publisher throws when meta.privacy_level is missing and user did no
 
     expect(fn () => $this->publisher->publish($this->postPlatform))
         ->toThrow(TikTokPublishException::class);
+});
+
+test('tiktok publisher resizes an oversized photo and pulls a hosted compliant copy', function () {
+    Storage::fake();
+
+    // TikTok rejects images wider than 1080px; this one is 1254px wide.
+    $this->postPlatform->update(['meta' => ['privacy_level' => 'SELF_ONLY']]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'test-media-oversized',
+                'path' => 'media/2026-01/big.jpg',
+                'url' => 'https://example.com/media/2026-01/big.jpg',
+                'mime_type' => 'image/jpeg',
+                'original_filename' => 'big.jpg',
+                'meta' => ['width' => 1254, 'height' => 1254],
+            ],
+        ],
+    ]);
+
+    $mockOptimizer = Mockery::mock(MediaOptimizer::class);
+    $mockOptimizer->shouldReceive('maxWidthForPlatform')->andReturn(1080);
+    $mockOptimizer->shouldReceive('optimizeImage')->andReturnUsing(function (string $tempFile) {
+        $optimized = tempnam(sys_get_temp_dir(), 'tt_opt_');
+        copy($tempFile, $optimized);
+
+        return $optimized;
+    });
+    app()->instance(MediaOptimizer::class, $mockOptimizer);
+
+    Http::fake([
+        'https://open.tiktokapis.com/v2/post/publish/content/init/' => Http::response([
+            'data' => ['publish_id' => 'pub_resize_123'],
+        ], 200),
+        'https://open.tiktokapis.com/v2/post/publish/status/fetch/' => Http::response([
+            'data' => ['status' => 'PUBLISH_COMPLETE'],
+        ], 200),
+        '*' => Http::response('fake-image-content', 200),
+    ]);
+
+    $this->publisher->publish($this->postPlatform);
+
+    // TikTok must be handed the hosted derivative, never the oversized original.
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/post/publish/content/init/')) {
+            return false;
+        }
+        $photoUrl = data_get(json_decode($request->body(), true), 'source_info.photo_images.0');
+
+        return str_contains($photoUrl, 'social-tiktok-photos/')
+            && ! str_contains($photoUrl, 'example.com');
+    });
+
+    // The derivative is pruned once TikTok has pulled it.
+    expect(Storage::allFiles('social-tiktok-photos'))->toBeEmpty();
+});
+
+test('tiktok publisher passes a compliant photo through without hosting a copy', function () {
+    Storage::fake();
+
+    $this->postPlatform->update(['meta' => ['privacy_level' => 'SELF_ONLY']]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'test-media-compliant',
+                'path' => 'media/2026-01/ok.jpg',
+                'url' => 'https://example.com/media/2026-01/ok.jpg',
+                'mime_type' => 'image/jpeg',
+                'original_filename' => 'ok.jpg',
+                'meta' => ['width' => 1080, 'height' => 1920],
+            ],
+        ],
+    ]);
+
+    Http::fake([
+        'https://open.tiktokapis.com/v2/post/publish/content/init/' => Http::response([
+            'data' => ['publish_id' => 'pub_passthrough_123'],
+        ], 200),
+        'https://open.tiktokapis.com/v2/post/publish/status/fetch/' => Http::response([
+            'data' => ['status' => 'PUBLISH_COMPLETE'],
+        ], 200),
+    ]);
+
+    $this->publisher->publish($this->postPlatform);
+
+    // The original URL is published unchanged and nothing is downloaded or hosted.
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/post/publish/content/init/')) {
+            return false;
+        }
+
+        return data_get(json_decode($request->body(), true), 'source_info.photo_images.0')
+            === 'https://example.com/media/2026-01/ok.jpg';
+    });
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'example.com'));
+    expect(Storage::allFiles('social-tiktok-photos'))->toBeEmpty();
+});
+
+test('tiktok publisher resizes a photo when its dimensions are unknown', function () {
+    Storage::fake();
+
+    // No width/height metadata: fall back to the safe path and host a compliant copy.
+    $this->postPlatform->update(['meta' => ['privacy_level' => 'SELF_ONLY']]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'test-media-unknown',
+                'path' => 'media/2026-01/unknown.jpg',
+                'url' => 'https://example.com/media/2026-01/unknown.jpg',
+                'mime_type' => 'image/jpeg',
+                'original_filename' => 'unknown.jpg',
+            ],
+        ],
+    ]);
+
+    $mockOptimizer = Mockery::mock(MediaOptimizer::class);
+    $mockOptimizer->shouldReceive('maxWidthForPlatform')->andReturn(1080);
+    $mockOptimizer->shouldReceive('optimizeImage')->andReturnUsing(function (string $tempFile) {
+        $optimized = tempnam(sys_get_temp_dir(), 'tt_opt_');
+        copy($tempFile, $optimized);
+
+        return $optimized;
+    });
+    app()->instance(MediaOptimizer::class, $mockOptimizer);
+
+    Http::fake([
+        'https://open.tiktokapis.com/v2/post/publish/content/init/' => Http::response([
+            'data' => ['publish_id' => 'pub_unknown_123'],
+        ], 200),
+        'https://open.tiktokapis.com/v2/post/publish/status/fetch/' => Http::response([
+            'data' => ['status' => 'PUBLISH_COMPLETE'],
+        ], 200),
+        '*' => Http::response('fake-image-content', 200),
+    ]);
+
+    $this->publisher->publish($this->postPlatform);
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/post/publish/content/init/')) {
+            return false;
+        }
+
+        return str_contains(
+            (string) data_get(json_decode($request->body(), true), 'source_info.photo_images.0'),
+            'social-tiktok-photos/'
+        );
+    });
+
+    expect(Storage::allFiles('social-tiktok-photos'))->toBeEmpty();
 });
