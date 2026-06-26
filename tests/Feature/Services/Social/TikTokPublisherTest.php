@@ -715,8 +715,8 @@ test('tiktok publisher resizes an oversized photo and pulls a hosted compliant c
     ]);
 
     $mockOptimizer = Mockery::mock(MediaOptimizer::class);
-    $mockOptimizer->shouldReceive('maxWidthForPlatform')->andReturn(1080);
-    $mockOptimizer->shouldReceive('optimizeImage')->andReturnUsing(function (string $tempFile) {
+    $mockOptimizer->shouldReceive('maxWidthForPlatform')->with(Platform::TikTok)->andReturn(1080);
+    $mockOptimizer->shouldReceive('optimizeImage')->with(Mockery::type('string'), Platform::TikTok)->andReturnUsing(function (string $tempFile) {
         $optimized = tempnam(sys_get_temp_dir(), 'tt_opt_');
         copy($tempFile, $optimized);
 
@@ -811,8 +811,8 @@ test('tiktok publisher resizes a photo when its dimensions are unknown', functio
     ]);
 
     $mockOptimizer = Mockery::mock(MediaOptimizer::class);
-    $mockOptimizer->shouldReceive('maxWidthForPlatform')->andReturn(1080);
-    $mockOptimizer->shouldReceive('optimizeImage')->andReturnUsing(function (string $tempFile) {
+    $mockOptimizer->shouldReceive('maxWidthForPlatform')->with(Platform::TikTok)->andReturn(1080);
+    $mockOptimizer->shouldReceive('optimizeImage')->with(Mockery::type('string'), Platform::TikTok)->andReturnUsing(function (string $tempFile) {
         $optimized = tempnam(sys_get_temp_dir(), 'tt_opt_');
         copy($tempFile, $optimized);
 
@@ -843,5 +843,39 @@ test('tiktok publisher resizes a photo when its dimensions are unknown', functio
         );
     });
 
+    expect(Storage::allFiles('social-tiktok-photos'))->toBeEmpty();
+});
+
+test('tiktok publisher fails clearly when an oversized photo cannot be downloaded for resizing', function () {
+    Storage::fake();
+
+    $this->postPlatform->update(['meta' => ['privacy_level' => 'SELF_ONLY']]);
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'test-media-oversized',
+                'path' => 'media/2026-01/big.jpg',
+                'url' => 'https://example.com/media/2026-01/big.jpg',
+                'mime_type' => 'image/jpeg',
+                'original_filename' => 'big.jpg',
+                'meta' => ['width' => 1254, 'height' => 1254],
+            ],
+        ],
+    ]);
+
+    // optimizeImage is intentionally not stubbed: it must never be reached when the
+    // download fails, and the strict mock would throw if it were called.
+    $mockOptimizer = Mockery::mock(MediaOptimizer::class);
+    $mockOptimizer->shouldReceive('maxWidthForPlatform')->with(Platform::TikTok)->andReturn(1080);
+    app()->instance(MediaOptimizer::class, $mockOptimizer);
+
+    Http::fake([
+        '*' => Http::response('not found', 500),
+    ]);
+
+    expect(fn () => $this->publisher->publish($this->postPlatform))
+        ->toThrow(TikTokPublishException::class, 'Failed to download image for TikTok resizing');
+
+    // Nothing should be left hosted when resizing never completes.
     expect(Storage::allFiles('social-tiktok-photos'))->toBeEmpty();
 });
