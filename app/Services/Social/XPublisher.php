@@ -236,6 +236,9 @@ class XPublisher
                 }
 
                 $index++;
+
+                unset($chunk, $appendResponse);
+                $this->freeChunkMemory();
             }
         } finally {
             fclose($handle);

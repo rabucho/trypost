@@ -32,7 +32,7 @@ trait HasSocialHttpClient
         return Http::retry(
             times: 3,
             sleepMilliseconds: 5000,
-            when: fn ($exception, $request) => $exception->response?->status() === 429,
+            when: fn ($exception, $request) => ($exception->response ?? null)?->status() === 429,
             throw: false,
         )->timeout(120);
     }
@@ -40,5 +40,17 @@ trait HasSocialHttpClient
     protected function redactResponseBody(string $body): string
     {
         return TokenRedactor::redact($body);
+    }
+
+    /**
+     * Reclaim memory between chunks of a streaming upload. Each request's body
+     * and the HTTP client's request/response objects are held alive by reference
+     * cycles the PHP runtime only frees when the cycle collector runs, so a
+     * long chunked upload accumulates the whole file in memory without this.
+     * Callers must `unset()` the chunk and response first.
+     */
+    protected function freeChunkMemory(): void
+    {
+        gc_collect_cycles();
     }
 }

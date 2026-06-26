@@ -431,6 +431,75 @@ test('linkedin publisher can publish post with video', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), '/rest/posts'));
 });
 
+test('linkedin publisher uploads a video across multiple chunks', function () {
+    $this->post->update([
+        'media' => [
+            [
+                'id' => 'test-media-video',
+                'path' => 'media/2026-01/test-video.mp4',
+                'url' => 'https://example.com/media/2026-01/test-video.mp4',
+                'mime_type' => 'video/mp4',
+                'original_filename' => 'test-video.mp4',
+            ],
+        ],
+    ]);
+
+    $chunkBase = 'https://www.linkedin.com/dms/upload/v2/chunk/video/';
+    $chunkPuts = 0;
+
+    Http::fake(function ($request) use ($chunkBase, &$chunkPuts) {
+        $url = $request->url();
+
+        if (str_contains($url, 'initializeUpload') && str_contains($url, '/rest/videos')) {
+            return Http::response([
+                'value' => [
+                    'video' => 'urn:li:video:FakeVideoUrn',
+                    'uploadToken' => 'upload-token-abc',
+                    'uploadInstructions' => [
+                        ['uploadUrl' => $chunkBase.'0', 'firstByte' => 0, 'lastByte' => 1023],
+                        ['uploadUrl' => $chunkBase.'1', 'firstByte' => 1024, 'lastByte' => 2047],
+                        ['uploadUrl' => $chunkBase.'2', 'firstByte' => 2048, 'lastByte' => 3071],
+                    ],
+                ],
+            ], 200);
+        }
+
+        if (str_starts_with($url, $chunkBase)) {
+            $chunkPuts++;
+
+            return Http::response(null, 200, ['etag' => '"etag-'.$chunkPuts.'"']);
+        }
+
+        if (str_contains($url, 'finalizeUpload') && str_contains($url, '/rest/videos')) {
+            return Http::response(null, 200);
+        }
+
+        if (str_contains($url, '/rest/videos/')) {
+            return Http::response(['status' => 'AVAILABLE'], 200);
+        }
+
+        if (str_contains($url, '/rest/posts')) {
+            return Http::response(null, 201, ['x-restli-id' => 'urn:li:share:multichunk']);
+        }
+
+        return Http::response(str_repeat('x', 4096), 200);
+    });
+
+    $result = $this->publisher->publish($this->postPlatform);
+
+    expect($result['id'])->toBe('urn:li:share:multichunk');
+    expect($chunkPuts)->toBe(3);
+
+    // All three chunk etags are collected and sent to finalize.
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), 'finalizeUpload')) {
+            return false;
+        }
+
+        return count(data_get($request->data(), 'finalizeUploadRequest.uploadedPartIds', [])) === 3;
+    });
+});
+
 test('linkedin publisher can publish a document (pdf carousel) with a title', function () {
     $this->postPlatform->update([
         'content_type' => ContentType::LinkedInPost,
