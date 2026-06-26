@@ -19,7 +19,6 @@ return [
     ],
     'goals_title' => 'Qual o seu objetivo com o TryPost?',
     'goals_description' => 'Marque tudo que faz sentido e a gente ajusta o TryPost pra você.',
-    'goals_exclusive' => 'Se você só está dando uma olhada, deixe os outros desmarcados.',
     'goals' => [
         'save_time' => 'Economizar tempo postando em todas as redes de uma vez',
         'ai_content' => 'Criar posts mais rápido com IA',

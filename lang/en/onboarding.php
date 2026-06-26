@@ -19,7 +19,6 @@ return [
     ],
     'goals_title' => 'What\'s your goal with TryPost?',
     'goals_description' => 'Pick everything that fits and we\'ll set TryPost up for you.',
-    'goals_exclusive' => 'If you\'re just exploring, leave the other goals unchecked.',
     'goals' => [
         'save_time' => 'Save time by posting everywhere at once',
         'ai_content' => 'Create posts faster with AI',

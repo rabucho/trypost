@@ -18,13 +18,4 @@ enum Goal: string
     case TrackPerformance = 'track_performance';
     case JustExploring = 'just_exploring';
     case Other = 'other';
-
-    /**
-     * Selecting this goal means the user has no specific intent yet, so it is
-     * mutually exclusive with every other goal.
-     */
-    public function isExclusive(): bool
-    {
-        return $this === self::JustExploring;
-    }
 }
