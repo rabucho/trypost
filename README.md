@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/trypostit/trypost/public/images/trypost/logo-dark.png" alt="TryPost" width="190">
+  <img src="public/images/trypost/logo-dark.png" alt="TryPost" width="190">
 </p>
 
 <h1 align="center">Run your whole social presence from one calendar</h1>
