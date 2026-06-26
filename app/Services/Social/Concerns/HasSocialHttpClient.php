@@ -41,4 +41,16 @@ trait HasSocialHttpClient
     {
         return TokenRedactor::redact($body);
     }
+
+    /**
+     * Reclaim memory between chunks of a streaming upload. Each request's body
+     * and the HTTP client's request/response objects are held alive by reference
+     * cycles the PHP runtime only frees when the cycle collector runs, so a
+     * long chunked upload accumulates the whole file in memory without this.
+     * Callers must `unset()` the chunk and response first.
+     */
+    protected function freeChunkMemory(): void
+    {
+        gc_collect_cycles();
+    }
 }

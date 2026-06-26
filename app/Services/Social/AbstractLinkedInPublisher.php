@@ -370,6 +370,9 @@ abstract class AbstractLinkedInPublisher
                 if ($etag) {
                     $uploadedPartIds[] = $etag;
                 }
+
+                unset($chunkData, $chunkResponse);
+                $this->freeChunkMemory();
             }
         } finally {
             fclose($handle);
