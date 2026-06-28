@@ -12,6 +12,7 @@ use App\Models\PostPlatform;
 use App\Rules\ContentFitsPlatformLimits;
 use App\Rules\ContentTypeCompatibleWithMedia;
 use App\Rules\ContentTypeMatchesPostPlatform;
+use App\Support\PostMediaRules;
 use App\Support\PostPlatformMetaRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
@@ -44,15 +45,7 @@ class UpdatePostRequest extends FormRequest
                     [new ContentFitsPlatformLimits($this->resolveSelectedPlatforms())]
                 ),
             ],
-            'media' => ['sometimes', 'array'],
-            'media.*.id' => ['sometimes', 'nullable', 'string'],
-            'media.*.path' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'media.*.url' => ['required', 'string', 'max:2048', 'url:http,https'],
-            'media.*.type' => ['sometimes', 'nullable', 'string', 'max:32'],
-            'media.*.mime_type' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'media.*.original_filename' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'media.*.size' => ['sometimes', 'nullable', 'integer'],
-            'media.*.meta' => ['sometimes', 'nullable', 'array'],
+            ...PostMediaRules::rules(hosted: false),
             'platforms' => ['sometimes', 'array'],
             'platforms.*.id' => ['required', 'uuid', Rule::exists('post_platforms', 'id')->where('post_id', $this->route('post') instanceof Post ? $this->route('post')->id : $this->route('post'))],
             'platforms.*.content_type' => [
