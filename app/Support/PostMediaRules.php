@@ -17,13 +17,13 @@ class PostMediaRules
 {
     /**
      * @param  bool  $hosted  true (web): items must already be hosted (id + path
-     *                        required) and may carry source metadata; false (API):
-     *                        a bare external `url` is accepted and downloaded.
+     *                        required); false (API): a bare external `url` is
+     *                        accepted (and downloaded).
      * @return array<string, mixed>
      */
     public static function rules(bool $hosted): array
     {
-        $rules = [
+        return [
             'media' => ['sometimes', 'array'],
             'media.*.id' => $hosted ? ['required', 'string'] : ['sometimes', 'nullable', 'string'],
             'media.*.path' => $hosted ? ['required', 'string', 'max:500'] : ['sometimes', 'nullable', 'string', 'max:500'],
@@ -35,13 +35,8 @@ class PostMediaRules
             'media.*.original_filename' => ['sometimes', 'nullable', 'string', 'max:500'],
             'media.*.size' => ['sometimes', 'nullable', 'integer'],
             'media.*.meta' => ['sometimes', 'nullable', 'array'],
+            'media.*.source' => ['sometimes', 'nullable', 'string', Rule::in(array_column(Source::cases(), 'value'))],
+            'media.*.source_meta' => ['sometimes', 'nullable', 'array'],
         ];
-
-        if ($hosted) {
-            $rules['media.*.source'] = ['sometimes', 'nullable', 'string', Rule::in(array_column(Source::cases(), 'value'))];
-            $rules['media.*.source_meta'] = ['sometimes', 'nullable', 'array'];
-        }
-
-        return $rules;
     }
 }

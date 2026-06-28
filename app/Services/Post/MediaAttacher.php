@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Post;
 
 use App\Enums\Media\Type as MediaType;
+use App\Models\Media;
 use App\Models\Post;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Http;
@@ -46,7 +47,8 @@ class MediaAttacher
 
     /**
      * Resolve an inline media array into hosted items: items with a `path` pass
-     * through, external URLs are downloaded and hosted.
+     * through, external URLs are downloaded and hosted. Atomic — when any item
+     * fails, media hosted in this call is rolled back so nothing is orphaned.
      *
      * @param  array<MediaType>  $allowedTypes
      * @param  array<int, array<string, mixed>>  $items
@@ -56,6 +58,7 @@ class MediaAttacher
     {
         $media = [];
         $failed = [];
+        $hostedIds = [];
 
         foreach ($items as $item) {
             if (filled(data_get($item, 'path'))) {
@@ -65,10 +68,20 @@ class MediaAttacher
             }
 
             $url = (string) data_get($item, 'url', '');
+            $hosted = $this->fetchToWorkspace($workspace, $allowedTypes, $url);
 
-            ($hosted = $this->fetchToWorkspace($workspace, $allowedTypes, $url)) === null
-                ? $failed[] = $url
-                : $media[] = $hosted;
+            if ($hosted === null) {
+                $failed[] = $url;
+
+                continue;
+            }
+
+            $media[] = $hosted;
+            $hostedIds[] = data_get($hosted, 'id');
+        }
+
+        if ($failed !== [] && $hostedIds !== []) {
+            Media::query()->whereKey($hostedIds)->get()->each->delete();
         }
 
         return ['media' => $media, 'failed' => $failed];
@@ -80,7 +93,7 @@ class MediaAttacher
      * @param  array<MediaType>  $allowedTypes
      * @return array<string, mixed>|null
      */
-    public function fetchToWorkspace(Workspace $workspace, array $allowedTypes, string $url): ?array
+    private function fetchToWorkspace(Workspace $workspace, array $allowedTypes, string $url): ?array
     {
         $download = $this->download($url);
 

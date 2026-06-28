@@ -4,22 +4,20 @@ declare(strict_types=1);
 
 use App\Support\PostMediaRules;
 
-test('hosted media rules require id and path and allow source', function () {
+test('hosted media rules require id and path', function () {
     $rules = PostMediaRules::rules(hosted: true);
 
     expect($rules['media.*.id'])->toContain('required')
         ->and($rules['media.*.path'])->toContain('required')
-        ->and($rules)->toHaveKey('media.*.source')
-        ->and($rules)->toHaveKey('media.*.source_meta');
+        ->and($rules['media.*.url'])->not->toContain('url:http,https');
 });
 
-test('api media rules accept a bare external url and omit source', function () {
+test('api media rules accept a bare external url with nullable id/path', function () {
     $rules = PostMediaRules::rules(hosted: false);
 
     expect($rules['media.*.id'])->toContain('nullable')
-        ->and($rules['media.*.url'])->toContain('url:http,https')
-        ->and($rules)->not->toHaveKey('media.*.source')
-        ->and($rules)->not->toHaveKey('media.*.source_meta');
+        ->and($rules['media.*.path'])->toContain('nullable')
+        ->and($rules['media.*.url'])->toContain('url:http,https');
 });
 
 test('both variants keep the shared item keys so validated() preserves them', function () {

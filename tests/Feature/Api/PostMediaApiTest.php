@@ -269,6 +269,36 @@ it('rejects creating a post when an external media url cannot be fetched', funct
     expect(Media::where('mediable_id', $this->workspace->id)->count())->toBe(0);
 });
 
+it('rolls back already-hosted media when another url in the batch fails', function () {
+    $this->socialAccount->update(['is_active' => true]);
+
+    Http::fake([
+        'cdn.example.com/good.jpg' => Http::response(
+            file_get_contents(__DIR__.'/../../fixtures/1x1.png'),
+            200,
+            ['Content-Type' => 'image/png'],
+        ),
+        'cdn.example.com/missing.jpg' => Http::response(null, 404),
+    ]);
+
+    $this->withHeaders(['Authorization' => 'Bearer '.$this->plainToken])
+        ->postJson(route('api.posts.store'), [
+            'content' => 'Partial media post',
+            'media' => [
+                ['url' => 'https://cdn.example.com/good.jpg'],
+                ['url' => 'https://cdn.example.com/missing.jpg'],
+            ],
+            'platforms' => [
+                ['social_account_id' => $this->socialAccount->id, 'content_type' => 'linkedin_post'],
+            ],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['media']);
+
+    expect(Post::where('content', 'Partial media post')->exists())->toBeFalse();
+    expect(Media::where('mediable_id', $this->workspace->id)->count())->toBe(0);
+});
+
 it('passes already-hosted media through on create without downloading', function () {
     $this->socialAccount->update(['is_active' => true]);
     Http::preventStrayRequests();
