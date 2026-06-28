@@ -6,6 +6,7 @@ namespace App\Services\Social;
 
 use App\Enums\Media\Type as MediaType;
 use App\Enums\SocialAccount\Platform;
+use App\Exceptions\Social\ErrorCategory;
 use App\Exceptions\Social\XPublishException;
 use App\Models\PostPlatform;
 use App\Services\Media\MediaOptimizer;
@@ -117,8 +118,22 @@ class XPublisher
                 throw new \Exception('Failed to download media: HTTP '.$downloadResponse->status());
             }
 
+            // Recover the MIME from the downloaded bytes when the item carries
+            // none (e.g. media attached by URL), and fail cleanly rather than
+            // with a TypeError when it still can't be determined.
+            if (blank($mimeType)) {
+                $mimeType = mime_content_type($tempFile) ?: null;
+            }
+
+            if (blank($mimeType)) {
+                throw new XPublishException(
+                    userMessage: 'Unsupported media type for X.',
+                    category: ErrorCategory::MediaFormat,
+                );
+            }
+
             // Optimize images (skip GIFs — they need special handling)
-            if ($mediaItem->isImage() && ! MediaType::isGif($mimeType)) {
+            if (MediaType::classify($mimeType) === MediaType::Image && ! MediaType::isGif($mimeType)) {
                 $optimizer = app(MediaOptimizer::class);
                 $optimizedPath = $optimizer->optimizeImage($tempFile, Platform::X);
                 @unlink($tempFile);

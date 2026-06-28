@@ -10,6 +10,7 @@ use App\Models\PostPlatform;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Media\MediaOptimizer;
 use App\Services\Social\XPublisher;
 use Illuminate\Support\Facades\Http;
 
@@ -250,6 +251,51 @@ test('x publisher handles gif upload with processing', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), '/finalize'));
     // waitForProcessing was called
     Http::assertSent(fn ($request) => str_contains($request->url(), '/2/media/gif_media_555'));
+});
+
+test('x publisher recovers a missing mime type from the downloaded bytes', function () {
+    // Media attached by URL can arrive without a mime_type; X must still publish
+    // it instead of crashing with a TypeError in getMediaCategory().
+    $this->post->update([
+        'media' => [
+            ['url' => 'https://cdn.example.com/listing'],
+        ],
+    ]);
+
+    // The resize itself is covered by MediaOptimizerTest; here we only need the
+    // MIME to be recovered so the upload doesn't crash on a null mime.
+    $mockOptimizer = Mockery::mock(MediaOptimizer::class);
+    $mockOptimizer->shouldReceive('optimizeImage')->andReturnUsing(function (string $tempFile) {
+        $optimized = tempnam(sys_get_temp_dir(), 'x_opt_');
+        copy($tempFile, $optimized);
+
+        return $optimized;
+    });
+    app()->instance(MediaOptimizer::class, $mockOptimizer);
+
+    Http::fake(function ($request) {
+        $url = $request->url();
+
+        if (str_contains($url, '/media/upload')) {
+            return Http::response(['data' => ['id' => 'media_id_111']], 200);
+        }
+
+        if (str_contains($url, '/2/tweets')) {
+            return Http::response(['data' => ['id' => '1212121212', 'text' => 'Hello from X!']], 200);
+        }
+
+        // The media download — real image bytes so the MIME can be sniffed.
+        return Http::response(
+            file_get_contents(__DIR__.'/../../../fixtures/1x1.png'),
+            200,
+            ['Content-Type' => 'image/png'],
+        );
+    });
+
+    $result = $this->publisher->publish($this->postPlatform);
+
+    expect($result['id'])->toBe('1212121212');
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/media/upload'));
 });
 
 test('x publisher uploads video via chunked upload', function () {
