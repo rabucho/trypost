@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Throwable;
 
 /**
  * Downloads public URLs and attaches them as media to a post — used by
@@ -153,7 +154,8 @@ class MediaAttacher
                     },
                 ])
                 ->get($url);
-        } catch (RuntimeException) {
+        } catch (Throwable) {
+            // Any fetch failure (timeout, DNS, refused, oversize) is a failed download.
             @unlink($temp);
 
             return null;
