@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\Post\CreatePost;
 use App\Actions\Post\DeletePost;
+use App\Actions\Post\HostInlineMedia;
 use App\Actions\Post\UpdatePost;
 use App\Enums\Media\Type as MediaType;
 use App\Enums\Post\Action as PostAction;
@@ -18,7 +19,6 @@ use App\Http\Resources\Api\PostMetricsResource;
 use App\Http\Resources\Api\PostPreviewResource;
 use App\Http\Resources\Api\PostResource;
 use App\Models\Post;
-use App\Models\Workspace;
 use App\Services\Post\MediaAttacher;
 use App\Support\PostStatusRules;
 use Illuminate\Http\JsonResponse;
@@ -54,7 +54,7 @@ class PostController extends Controller
         $data = $request->validated();
 
         if (array_key_exists('media', $data)) {
-            $data['media'] = $this->hostInlineMedia(
+            $data['media'] = HostInlineMedia::execute(
                 $workspace,
                 Post::allowedMediaTypesFor($request->selectedPlatforms()),
                 $data['media'],
@@ -77,7 +77,7 @@ class PostController extends Controller
         $data = $request->validated();
 
         if (array_key_exists('media', $data)) {
-            $data['media'] = $this->hostInlineMedia(
+            $data['media'] = HostInlineMedia::execute(
                 $request->user()->currentWorkspace,
                 $post->allowedMediaTypes(),
                 $data['media'],
@@ -97,32 +97,6 @@ class PostController extends Controller
         $updated->load(['postPlatforms.socialAccount']);
 
         return new PostResource($updated);
-    }
-
-    /**
-     * Download and host external media URLs; reject (422) if one can't be fetched.
-     *
-     * @param  array<MediaType>  $allowedTypes
-     * @param  array<int, array<string, mixed>>  $media
-     * @return array<int, array<string, mixed>>
-     *
-     * @throws ValidationException
-     */
-    private function hostInlineMedia(Workspace $workspace, array $allowedTypes, array $media): array
-    {
-        if ($media === []) {
-            return $media;
-        }
-
-        $result = app(MediaAttacher::class)->resolveInlineMedia($workspace, $allowedTypes, $media);
-
-        if ($result['failed'] !== []) {
-            throw ValidationException::withMessages([
-                'media' => ['Could not fetch media from URL: '.implode(', ', $result['failed'])],
-            ]);
-        }
-
-        return $result['media'];
     }
 
     public function destroy(Request $request, Post $post): JsonResponse
