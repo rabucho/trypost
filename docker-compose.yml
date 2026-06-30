@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  trypost:
+    image: ghcr.io/trypost/trypost:latest
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_URL=https://your-trypost-domain.com
+      - APP_DEBUG=false
+      - APP_ENV=production
+      - DB_CONNECTION=sqlite
+      # Add your database and other env variables
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./database:/var/www/html/database
