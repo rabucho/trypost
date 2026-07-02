@@ -24,7 +24,7 @@ class RefreshSocialToken implements ShouldQueue
     public function handle(ConnectionVerifier $verifier): void
     {
         try {
-            $verifier->refreshToken($this->account);
+            $verifier->verify($this->account);
         } catch (PlatformUnavailableException $e) {
             Log::warning('Token refresh skipped: platform unavailable', [
                 'account_id' => $this->account->id,

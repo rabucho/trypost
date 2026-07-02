@@ -31,9 +31,7 @@ class ConnectionVerifier
         // refresh, so proactive refreshes during races cause false-positive
         // disconnects even though the access_token still works fine.
         if ($account->is_token_expired) {
-            $this->refreshToken($account);
-
-            return $this->callVerifyEndpoint($account);
+            return $this->refreshThenVerify($account);
         }
 
         try {
@@ -41,14 +39,39 @@ class ConnectionVerifier
         } catch (TokenExpiredException $e) {
             // Verify returned 401: the access_token is actually invalid.
             // Refresh and retry once with the new token.
-            try {
-                $this->refreshToken($account);
-            } catch (TokenExpiredException) {
-                throw $e;
+            return $this->refreshThenVerify($account, $e);
+        }
+    }
+
+    /**
+     * Refresh the token, then verify with the new one.
+     *
+     * If the refresh is rejected (4xx) but a concurrent refresh has already
+     * rotated the account and persisted a fresh access_token, reload and
+     * verify with that token instead of giving up — X (and other providers
+     * that single-use their refresh_token) otherwise disconnect a still-usable
+     * account whenever two refreshes race and one loses the rotation.
+     *
+     * @throws TokenExpiredException
+     * @throws PlatformUnavailableException
+     */
+    private function refreshThenVerify(SocialAccount $account, ?TokenExpiredException $original = null): bool
+    {
+        $accessTokenBeforeRefresh = $account->access_token;
+
+        try {
+            $this->refreshToken($account);
+        } catch (TokenExpiredException $e) {
+            $account->refresh();
+
+            if ($account->access_token !== $accessTokenBeforeRefresh) {
+                return $this->callVerifyEndpoint($account);
             }
 
-            return $this->callVerifyEndpoint($account);
+            throw $original ?? $e;
         }
+
+        return $this->callVerifyEndpoint($account);
     }
 
     /**

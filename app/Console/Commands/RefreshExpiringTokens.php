@@ -13,7 +13,7 @@ class RefreshExpiringTokens extends Command
 {
     protected $signature = 'social:refresh-expiring-tokens';
 
-    protected $description = 'Proactively refresh tokens expiring in the next 2 hours (or already expired)';
+    protected $description = 'Proactively refresh tokens expiring in the next 30 minutes (or already expired)';
 
     public function handle(): void
     {
@@ -22,7 +22,7 @@ class RefreshExpiringTokens extends Command
         SocialAccount::query()
             ->where('status', Status::Connected)
             ->whereNotNull('token_expires_at')
-            ->where('token_expires_at', '<=', now()->addHours(2))
+            ->where('token_expires_at', '<=', now()->addMinutes(30))
             ->chunk(50, function ($accounts) use (&$count) {
                 foreach ($accounts as $account) {
                     RefreshSocialToken::dispatch($account);

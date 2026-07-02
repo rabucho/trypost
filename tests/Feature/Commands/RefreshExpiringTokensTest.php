@@ -9,25 +9,25 @@ use App\Models\SocialAccount;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Queue;
 
-test('it dispatches refresh jobs for tokens expiring within 2 hours or already expired', function () {
+test('it dispatches refresh jobs for tokens expiring within 30 minutes or already expired', function () {
     Queue::fake();
 
     $workspace = Workspace::factory()->create();
 
-    // Should be refreshed (expires in 1 hour)
+    // Should be refreshed (expires in 15 minutes — inside the proactive window)
     $expiringSoon = SocialAccount::factory()->create([
         'workspace_id' => $workspace->id,
         'platform' => Platform::LinkedIn,
         'status' => Status::Connected,
-        'token_expires_at' => now()->addHour(),
+        'token_expires_at' => now()->addMinutes(15),
     ]);
 
-    // Should NOT be refreshed (expires in 5 hours — outside the proactive window)
+    // Should NOT be refreshed (expires in 1 hour — outside the proactive window)
     SocialAccount::factory()->create([
         'workspace_id' => $workspace->id,
         'platform' => Platform::Instagram,
         'status' => Status::Connected,
-        'token_expires_at' => now()->addHours(5),
+        'token_expires_at' => now()->addHour(),
     ]);
 
     // SHOULD be refreshed (already expired — last-chance attempt before the

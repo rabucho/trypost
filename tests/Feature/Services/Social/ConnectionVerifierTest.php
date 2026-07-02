@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\SocialAccount\Status;
 use App\Exceptions\PlatformUnavailableException;
 use App\Exceptions\TokenExpiredException;
 use App\Models\SocialAccount;
@@ -412,6 +413,36 @@ test('connection failure during refresh raises PlatformUnavailableException', fu
     $verifier = new ConnectionVerifier;
 
     expect(fn () => $verifier->refreshToken($account))->toThrow(PlatformUnavailableException::class);
+});
+
+test('does not disconnect when a concurrent refresh already rotated the token (lost-rotation race)', function () {
+    Http::fake([
+        // Our stale refresh_token is rejected — a concurrent process already used it.
+        config('trypost.platforms.x.api').'/oauth2/token' => Http::response(['error' => 'invalid_grant'], 400),
+        // But the access_token the winning refresh persisted still works.
+        config('trypost.platforms.x.api').'/users/me' => Http::response(['data' => ['id' => '123']], 200),
+    ]);
+
+    $account = SocialAccount::factory()->x()->create([
+        'status' => Status::Connected,
+        'access_token' => 'stale-token',
+        'refresh_token' => 'already-rotated',
+        'token_expires_at' => now()->subHour(),
+    ]);
+
+    // Simulate the concurrent refresh: a separate instance persists a fresh,
+    // valid token (through the encrypted cast) while our in-memory copy stays
+    // the stale, expired one.
+    SocialAccount::find($account->id)->update([
+        'access_token' => 'fresh-token',
+        'token_expires_at' => now()->addHours(2),
+    ]);
+
+    expect((new ConnectionVerifier)->verify($account))->toBeTrue();
+    expect($account->fresh()->status)->toBe(Status::Connected);
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/users/me')
+        && $request->header('Authorization')[0] === 'Bearer fresh-token');
 });
 
 test('4xx during refresh keeps raising TokenExpiredException', function () {
