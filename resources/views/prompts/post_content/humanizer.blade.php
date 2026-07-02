@@ -96,4 +96,6 @@ For carousel input: humanize the `caption`, and each slide's `title` and `body`.
 For single-post input: humanize the `content` field.
 @endif
 
+FINAL CHECK before replying: scan every text field of your JSON output for em dash (—) and en dash (–) characters. If even one remains, rewrite that sentence using a comma, parentheses, a colon, or two separate sentences, until none are left. A response that still contains a — or – is a failed response. Return your answer only after zero remain.
+
 Reply with the JSON object only, no preamble.
