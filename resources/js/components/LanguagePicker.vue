@@ -8,8 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 
 interface Props {
-    /** Selectable languages as { value: locale code, label: native name }. */
-    options: { value: string; label: string }[];
+    /** Selectable languages as { value: locale code, label: native name, englishName: name in English }. */
+    options: { value: string; label: string; englishName?: string }[];
     placeholder?: string;
     searchPlaceholder?: string;
     emptyText?: string;
@@ -49,7 +49,7 @@ const select = (code: string) => {
                 <span :class="selectedLabel ? '' : 'text-muted-foreground'">
                     {{ selectedLabel || placeholder }}
                 </span>
-                <IconChevronDown class="ml-2 size-4 shrink-0 opacity-50" />
+                <IconChevronDown class="ms-2 size-4 shrink-0 opacity-50" />
             </Button>
         </PopoverTrigger>
 
@@ -62,11 +62,12 @@ const select = (code: string) => {
                         <CommandItem
                             v-for="option in options"
                             :key="option.value"
-                            :value="option.label"
+                            :value="option.value"
                             @select="select(option.value)"
                         >
                             {{ option.label }}
-                            <IconCheck :class="cn('ml-auto size-4', value === option.value ? 'opacity-100' : 'opacity-0')" />
+                            <span v-if="option.englishName" class="sr-only">{{ option.englishName }}</span>
+                            <IconCheck :class="cn('ms-auto size-4', value === option.value ? 'opacity-100' : 'opacity-0')" />
                         </CommandItem>
                     </CommandGroup>
                 </CommandList>

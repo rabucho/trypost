@@ -390,6 +390,37 @@ test('when llm is configured, polishes description/tone/language/voice_notes via
     expect($result->toArray()['brand_voice_traits'])->toBe(['third_person', 'direct', 'no_hype']);
 });
 
+test('LLM language detection carries any supported language, not just en/es/pt-BR', function () {
+    config()->set('services.gemini.api_key', 'fake-key');
+    config()->set('ai.default', 'gemini');
+
+    Http::fake([
+        'example.com' => Http::response(<<<'HTML'
+            <html lang="de">
+            <head>
+              <title>Beispiel GmbH</title>
+              <meta name="description" content="Kurze Beschreibung.">
+            </head>
+            <body><main><p>Wir bauen Widgets.</p></main></body>
+            </html>
+        HTML, 200),
+    ]);
+
+    BrandAnalyzer::fake([
+        [
+            'description' => 'Beispiel GmbH baut Widgets für kleine Teams.',
+            'language' => 'de',
+            'voice_traits' => ['third_person'],
+        ],
+    ]);
+
+    $result = ($this->autofill)('https://example.com');
+
+    // The LLM's detected language wins over the deterministic one and must be
+    // able to be one of the 12 languages added beyond the original en/es/pt-BR.
+    expect($result->language)->toBe('de');
+});
+
 test('when llm is not configured, falls back to meta tags only', function () {
     // beforeEach already cleared api keys.
     Http::fake([

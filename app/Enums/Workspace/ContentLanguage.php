@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Enums\Workspace;
 
 /**
- * Languages a workspace can pick for AI-generated content. This is the single
- * source of truth for the supported set: request validation, the brand
- * analyzer's structured-output enum, homepage language detection, the AI image
- * prompt's language name, and the picker options in the UI all derive from it.
+ * The set of languages the app supports, and the single source of truth for it:
+ * request validation, the brand analyzer's structured-output enum, homepage
+ * language detection, the AI image prompt's language name, the content-language
+ * picker options, and the right-to-left direction of the UI all derive from it.
  *
  * The string value is the language code stored on the workspace and passed
- * straight to the content prompts (`content_language`). This is unrelated to
- * the application's UI locale — we are not translating the interface here.
+ * straight to the content prompts (`content_language`); the same codes also back
+ * the application's UI locales, so `isRtl()` drives the document `dir` attribute.
  */
 enum ContentLanguage: string
 {
@@ -130,12 +130,16 @@ enum ContentLanguage: string
     }
 
     /**
-     * @return array<int, array{value: string, label: string}>
+     * @return array<int, array{value: string, label: string, englishName: string}>
      */
     public static function options(): array
     {
         return array_map(
-            fn (self $language) => ['value' => $language->value, 'label' => $language->label()],
+            fn (self $language) => [
+                'value' => $language->value,
+                'label' => $language->label(),
+                'englishName' => $language->englishName(),
+            ],
             self::cases(),
         );
     }

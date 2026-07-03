@@ -13,7 +13,7 @@ return [
         'type' => '输入',
         'to_confirm' => '以确认。',
         'copy_to_clipboard' => '复制到剪贴板',
-        'delete_keyword' => 'delete',
+        'delete_keyword' => '删除',
     ],
 
     'photo_upload' => [

@@ -13,7 +13,7 @@ return [
         'type' => 'Πληκτρολογήστε',
         'to_confirm' => 'για επιβεβαίωση.',
         'copy_to_clipboard' => 'Αντιγραφή στο πρόχειρο',
-        'delete_keyword' => 'delete',
+        'delete_keyword' => 'διαγραφή',
     ],
 
     'photo_upload' => [

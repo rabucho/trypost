@@ -13,7 +13,7 @@ return [
         'type' => 'اكتب',
         'to_confirm' => 'للتأكيد.',
         'copy_to_clipboard' => 'نسخ إلى الحافظة',
-        'delete_keyword' => 'delete',
+        'delete_keyword' => 'حذف',
     ],
 
     'photo_upload' => [

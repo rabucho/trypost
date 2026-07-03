@@ -61,7 +61,7 @@ test('create workspace shows form for user with no workspaces', function () {
     $response->assertInertia(fn ($page) => $page
         ->component('workspaces/Create', false)
         ->has('availableContentLanguages', count(ContentLanguage::cases()))
-        ->where('availableContentLanguages.0', ['value' => 'en', 'label' => 'English'])
+        ->where('availableContentLanguages.0', ['value' => 'en', 'label' => 'English', 'englishName' => 'English'])
     );
 });
 
@@ -626,6 +626,31 @@ test('store persists brand fields and redirects to /accounts', function () {
     expect($workspace->name)->toBe('Acme Inc');
     expect($workspace->brand_website)->toBe('https://acme.example');
     expect($workspace->brand_description)->toBe('We sell rockets.');
+});
+
+test('store persists a newly supported non-default content language', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->create(['account_id' => $account->id]);
+    $account->update(['owner_id' => $user->id]);
+
+    $this->actingAs($user)->post(route('app.workspaces.store'), [
+        'name' => 'Beispiel GmbH',
+        'content_language' => 'de',
+    ])->assertSessionHasNoErrors();
+
+    // 'de' is not the DB default ('en'), so this proves the field is written.
+    expect(Workspace::where('name', 'Beispiel GmbH')->sole()->content_language)->toBe('de');
+});
+
+test('store rejects an unsupported content language', function () {
+    $account = Account::factory()->create();
+    $user = User::factory()->create(['account_id' => $account->id]);
+    $account->update(['owner_id' => $user->id]);
+
+    $this->actingAs($user)->post(route('app.workspaces.store'), [
+        'name' => 'Bad Lang',
+        'content_language' => 'sv',
+    ])->assertSessionHasErrors(['content_language']);
 });
 
 test('store redirects additional workspace to /accounts', function () {

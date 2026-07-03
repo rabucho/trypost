@@ -13,7 +13,7 @@ return [
         'type' => '入力',
         'to_confirm' => 'で確認してください。',
         'copy_to_clipboard' => 'クリップボードにコピー',
-        'delete_keyword' => 'delete',
+        'delete_keyword' => '削除',
     ],
 
     'photo_upload' => [

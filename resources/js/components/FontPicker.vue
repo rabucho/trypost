@@ -87,7 +87,7 @@ const select = (font: string) => {
                 <span :style="{ fontFamily: `'${value}', sans-serif` }">
                     {{ value || placeholder }}
                 </span>
-                <IconChevronDown class="ml-2 size-4 shrink-0 opacity-50" />
+                <IconChevronDown class="ms-2 size-4 shrink-0 opacity-50" />
             </Button>
         </PopoverTrigger>
 
@@ -105,7 +105,7 @@ const select = (font: string) => {
                         >
                             <span :style="{ fontFamily: `'${font}', sans-serif` }">{{ font }}</span>
                             <IconCheck
-                                :class="cn('ml-auto size-4', value === font ? 'opacity-100' : 'opacity-0')"
+                                :class="cn('ms-auto size-4', value === font ? 'opacity-100' : 'opacity-0')"
                             />
                         </CommandItem>
                     </CommandGroup>

@@ -21,6 +21,9 @@ class BrandAnalyzer implements Agent, HasStructuredOutput
         return view('prompts.brand_analyzer', [
             'voice_groups' => BrandVoiceTrait::grouped(),
             'single_select_groups' => BrandVoiceTrait::singleSelectGroups(),
+            'content_languages' => collect(ContentLanguage::values())
+                ->map(fn (string $code) => "`{$code}`")
+                ->implode(', '),
         ])->render();
     }
 
