@@ -117,7 +117,7 @@ class ThreadsController extends SocialController
 
             $longLivedData = $longLivedResponse->json();
             $longLivedToken = $longLivedData['access_token'] ?? $shortLivedToken;
-            $expiresIn = $longLivedData['expires_in'] ?? SocialPlatform::LONG_LIVED_TOKEN_TTL_SECONDS;
+            $expiresIn = $longLivedData['expires_in'] ?? $this->platform->defaultTokenTtlSeconds();
 
             // Fetch user profile
             $profileResponse = Http::get(config('trypost.platforms.threads.graph_api')."/{$userId}", [

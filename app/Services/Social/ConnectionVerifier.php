@@ -181,7 +181,7 @@ class ConnectionVerifier
         $account->update([
             'access_token' => data_get($data, 'access_token'),
             'refresh_token' => data_get($data, 'refresh_token', $account->refresh_token),
-            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', 7200)),
+            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', $account->platform->defaultTokenTtlSeconds())),
         ]);
 
         $account->refresh();
@@ -328,7 +328,7 @@ class ConnectionVerifier
         $account->update([
             'access_token' => $newToken,
             'refresh_token' => $newToken,
-            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', Platform::LONG_LIVED_TOKEN_TTL_SECONDS)),
+            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', $account->platform->defaultTokenTtlSeconds())),
         ]);
 
         $account->refresh();
@@ -350,7 +350,7 @@ class ConnectionVerifier
         $account->update([
             'access_token' => $newToken,
             'refresh_token' => $newToken,
-            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', Platform::LONG_LIVED_TOKEN_TTL_SECONDS)),
+            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', $account->platform->defaultTokenTtlSeconds())),
         ]);
 
         $account->refresh();

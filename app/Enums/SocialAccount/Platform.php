@@ -24,13 +24,6 @@ enum Platform: string
     case Discord = 'discord';
 
     /**
-     * Fallback lifetime, in seconds, for Meta long-lived tokens (Instagram and
-     * Threads — see extendsAccessTokenOnRefresh) when the provider response
-     * omits expires_in. Meta issues these tokens for 60 days.
-     */
-    public const LONG_LIVED_TOKEN_TTL_SECONDS = 5184000;
-
-    /**
      * The social network this platform belongs to. Variants that represent the
      * same network (LinkedIn profile vs. company page, Instagram standalone vs.
      * Facebook-linked) collapse to one key so a workspace may connect only one
@@ -298,6 +291,28 @@ enum Platform: string
             fn (self $platform): string => $platform->value,
             array_filter(self::cases(), fn (self $platform): bool => $platform->extendsAccessTokenOnRefresh()),
         ));
+    }
+
+    /**
+     * The token lifetime, in seconds, to assume when the provider's OAuth
+     * response omits expires_in. Each value is that network's own documented
+     * default:
+     *
+     *  - X: a 2-hour access token.
+     *  - Instagram / Threads: Meta's 60-day long-lived token.
+     *
+     * Networks that always return expires_in (LinkedIn, TikTok, YouTube,
+     * Pinterest), whose refresh sets a fixed lifetime directly (Bluesky), or
+     * whose tokens never expire (Facebook, Mastodon, Telegram, Discord) have no
+     * fallback here and return null.
+     */
+    public function defaultTokenTtlSeconds(): ?int
+    {
+        return match ($this) {
+            self::X => 7200,
+            self::Instagram, self::Threads => 5184000,
+            default => null,
+        };
     }
 
     public function queue(): string
