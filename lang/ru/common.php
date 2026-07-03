@@ -6,6 +6,8 @@ return [
 
     'back' => 'Назад',
 
+    'beta' => 'Бета',
+
     'confirm_modal' => [
         'cannot_be_undone' => 'Это действие нельзя отменить.',
         'type' => 'Введите',

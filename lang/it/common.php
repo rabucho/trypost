@@ -6,6 +6,8 @@ return [
 
     'back' => 'Indietro',
 
+    'beta' => 'Beta',
+
     'confirm_modal' => [
         'cannot_be_undone' => 'Questa azione non può essere annullata.',
         'type' => 'Digita',

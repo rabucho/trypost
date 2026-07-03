@@ -87,7 +87,7 @@ const mainNavItems = computed<NavItem[]>(() => [
                   title: trans('sidebar.automations'),
                   href: automations.url(),
                   icon: IconBolt,
-                  badge: 'Beta',
+                  badge: trans('common.beta'),
               },
           ]
         : []),

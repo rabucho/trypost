@@ -6,6 +6,8 @@ return [
 
     'back' => 'Geri',
 
+    'beta' => 'Beta',
+
     'confirm_modal' => [
         'cannot_be_undone' => 'Bu işlem geri alınamaz.',
         'type' => 'Yazın:',

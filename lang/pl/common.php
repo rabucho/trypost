@@ -6,6 +6,8 @@ return [
 
     'back' => 'Wstecz',
 
+    'beta' => 'Beta',
+
     'confirm_modal' => [
         'cannot_be_undone' => 'Tej operacji nie można cofnąć.',
         'type' => 'Wpisz',
