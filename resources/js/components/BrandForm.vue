@@ -61,6 +61,7 @@ const props = withDefaults(
         availableFonts: string[];
         availableImageStyles: string[];
         availableVoiceTraits: Record<string, string[]>;
+        availableContentLanguages: { value: string; label: string }[];
         autofill?: boolean;
         showName?: boolean;
     }>(),
@@ -95,26 +96,9 @@ const toggleTrait = (group: string, value: string): void => {
     props.fields.brand_voice_traits = [...current.filter((v) => !groupValues.includes(v)), value];
 };
 
-const languageLabel = computed(() => {
-    const map: Record<string, string> = {
-        en: 'English',
-        'pt-BR': 'Português (Brasil)',
-        es: 'Español',
-        fr: 'Français',
-        de: 'Deutsch',
-        it: 'Italiano',
-        nl: 'Nederlandse',
-        pl: 'Polski',
-        el: 'Ελληνικά',
-        ja: '日本語',
-        ko: '한국어',
-        zh: '现代标准汉语',
-        ru: 'Русский',
-        tr: 'Türkçe',
-        ar: 'العربية',
-    };
-    return map[props.fields.content_language] ?? '';
-});
+const languageLabel = computed(
+    () => props.availableContentLanguages.find((language) => language.value === props.fields.content_language)?.label ?? '',
+);
 
 const runAutofill = async () => {
     const url = props.fields.brand_website?.trim() ?? '';
@@ -209,21 +193,9 @@ const runAutofill = async () => {
                     </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
-                    <SelectItem value="es">Español</SelectItem>
-                    <SelectItem value="fr">Français</SelectItem>
-                    <SelectItem value="de">Deutsch</SelectItem>
-                    <SelectItem value="it">Italiano</SelectItem>
-                    <SelectItem value="nl">Nederlandse</SelectItem>
-                    <SelectItem value="pl">Polski</SelectItem>
-                    <SelectItem value="el">Ελληνικά</SelectItem>
-                    <SelectItem value="ja">日本語</SelectItem>
-                    <SelectItem value="ko">한국어</SelectItem>
-                    <SelectItem value="zh">现代标准汉语</SelectItem>
-                    <SelectItem value="ru">Русский</SelectItem>
-                    <SelectItem value="tr">Türkçe</SelectItem>
-                    <SelectItem value="ar">العربية</SelectItem>
+                    <SelectItem v-for="language in availableContentLanguages" :key="language.value" :value="language.value">
+                        {{ language.label }}
+                    </SelectItem>
                 </SelectContent>
             </Select>
             <p class="text-xs font-medium text-foreground/60">

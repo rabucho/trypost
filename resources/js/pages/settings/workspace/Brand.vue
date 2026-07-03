@@ -30,6 +30,7 @@ defineProps<{
     availableFonts: string[];
     availableImageStyles: string[];
     availableVoiceTraits: Record<string, string[]>;
+    availableContentLanguages: { value: string; label: string }[];
 }>();
 
 const tabs = computed(() => [
@@ -57,6 +58,7 @@ const tabs = computed(() => [
                 :available-fonts="availableFonts"
                 :available-image-styles="availableImageStyles"
                 :available-voice-traits="availableVoiceTraits"
+                :available-content-languages="availableContentLanguages"
             />
         </div>
     </AppLayout>

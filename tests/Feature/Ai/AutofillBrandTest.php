@@ -104,8 +104,10 @@ test('normalizes various language codes to supported locales', function (string 
     ['pt-PT', 'pt-BR'],
     ['en-US', 'en'],
     ['es-MX', 'es'],
-    ['fr', null],
-    ['ja-JP', null],
+    ['fr', 'fr'],
+    ['ja-JP', 'ja'],
+    ['zh-Hans', 'zh'],
+    ['sv', null],
 ]);
 
 test('rejects non-http schemes', function () {

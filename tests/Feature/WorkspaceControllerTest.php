@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Ai\Agents\BrandAnalyzer;
 use App\Enums\UserWorkspace\Role;
+use App\Enums\Workspace\ContentLanguage;
 use App\Models\Account;
 use App\Models\AiUsageLog;
 use App\Models\User;
@@ -59,6 +60,8 @@ test('create workspace shows form for user with no workspaces', function () {
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
         ->component('workspaces/Create', false)
+        ->has('availableContentLanguages', count(ContentLanguage::cases()))
+        ->where('availableContentLanguages.0', ['value' => 'en', 'label' => 'English'])
     );
 });
 
@@ -187,6 +190,7 @@ test('brand settings shows the brand settings page', function () {
     $response->assertInertia(fn ($page) => $page
         ->component('settings/workspace/Brand', false)
         ->has('workspace')
+        ->has('availableContentLanguages', count(ContentLanguage::cases()))
     );
 });
 
@@ -286,6 +290,26 @@ test('update workspace settings rejects unknown image_style values', function ()
             'brand_font' => 'Inter',
             'image_style' => 'pixel-art',
         ])->assertSessionHasErrors(['image_style']);
+});
+
+test('update workspace settings persists a newly supported content language', function () {
+    $this->actingAs($this->user)
+        ->from(route('app.workspace.brand'))
+        ->put(route('app.workspace.settings.update'), [
+            'name' => $this->workspace->name,
+            'content_language' => 'fr',
+        ])->assertRedirect(route('app.workspace.brand'))
+        ->assertSessionHasNoErrors();
+
+    expect($this->workspace->refresh()->content_language)->toBe('fr');
+});
+
+test('update workspace settings rejects an unsupported content language', function () {
+    $this->actingAs($this->user)
+        ->put(route('app.workspace.settings.update'), [
+            'name' => $this->workspace->name,
+            'content_language' => 'sv',
+        ])->assertSessionHasErrors(['content_language']);
 });
 
 test('update workspace settings validates required fields', function () {

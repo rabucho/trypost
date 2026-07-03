@@ -25,6 +25,7 @@ const props = defineProps<{
     availableFonts: string[];
     availableImageStyles: string[];
     availableVoiceTraits: Record<string, string[]>;
+    availableContentLanguages: { value: string; label: string }[];
 }>();
 
 const form = useForm({
@@ -58,6 +59,7 @@ const submit = () => {
             :available-fonts="availableFonts"
             :available-image-styles="availableImageStyles"
             :available-voice-traits="availableVoiceTraits"
+            :available-content-languages="availableContentLanguages"
             :autofill="!workspace.brand_website"
         />
 
