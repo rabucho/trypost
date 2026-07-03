@@ -100,13 +100,29 @@ test('normalizes various language codes to supported locales', function (string 
 
     expect($result->language)->toBe($expected);
 })->with([
+    // Every supported language, detected from its primary subtag.
+    ['en', 'en'],
     ['pt', 'pt-BR'],
+    ['es', 'es'],
+    ['fr', 'fr'],
+    ['de', 'de'],
+    ['it', 'it'],
+    ['nl', 'nl'],
+    ['pl', 'pl'],
+    ['el', 'el'],
+    ['ja', 'ja'],
+    ['ko', 'ko'],
+    ['zh', 'zh'],
+    ['ru', 'ru'],
+    ['tr', 'tr'],
+    ['ar', 'ar'],
+    // Region/script subtags still resolve to the supported language.
     ['pt-PT', 'pt-BR'],
     ['en-US', 'en'],
     ['es-MX', 'es'],
-    ['fr', 'fr'],
     ['ja-JP', 'ja'],
     ['zh-Hans', 'zh'],
+    // Unsupported languages stay null.
     ['sv', null],
 ]);
 

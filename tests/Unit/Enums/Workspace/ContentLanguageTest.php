@@ -44,4 +44,7 @@ test('fromHtmlLang resolves the two-letter primary subtag', function (string $la
     ['sv', null],
     ['e', null],
     ['', null],
+    // A malformed tag is matched on its whole primary subtag, never a
+    // two-letter prefix — "english" must not resolve to English via "en".
+    ['english', null],
 ]);
