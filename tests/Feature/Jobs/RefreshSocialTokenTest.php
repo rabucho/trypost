@@ -107,6 +107,28 @@ test('proactive refresh EXTENDS a still-valid Threads token (extension-model pla
     expect($account->fresh()->access_token)->toBe('extended-threads-token');
 });
 
+test('proactive refresh does NOT disconnect Instagram on a Meta rate-limit (400 OAuthException code 4)', function () {
+    $account = SocialAccount::factory()->create([
+        'workspace_id' => $this->workspace->id,
+        'platform' => Platform::Instagram,
+        'status' => Status::Connected,
+        'access_token' => 'valid-ig-token',
+        'token_expires_at' => now()->addMinutes(20),
+    ]);
+
+    Http::fake([
+        config('trypost.platforms.instagram.auth_api').'/refresh_access_token*' => Http::response([
+            'error' => ['message' => 'Application request limit reached', 'type' => 'OAuthException', 'code' => 4],
+        ], 400),
+    ]);
+
+    (new RefreshSocialToken($account))->handle(app(ConnectionVerifier::class));
+
+    // A rate-limit is transient — the still-valid token must stay Connected.
+    expect($account->fresh()->status)->toBe(Status::Connected);
+    expect($account->fresh()->access_token)->toBe('valid-ig-token');
+});
+
 test('refresh job marks account as TokenExpired when refresh_token is rejected', function () {
     Queue::fake();
 

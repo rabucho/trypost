@@ -9,6 +9,7 @@ use App\Exceptions\PlatformUnavailableException;
 use App\Exceptions\TokenExpiredException;
 use App\Models\SocialAccount;
 use App\Services\Social\Discord\DiscordClient;
+use App\Services\Social\Meta\GraphError;
 use App\Services\Social\Telegram\TelegramApi;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -311,10 +312,13 @@ class ConnectionVerifier
     private function refreshThreadsToken(SocialAccount $account): void
     {
         // Threads uses long-lived tokens that can be refreshed
-        $response = TokenRefreshClient::for(Platform::Threads)->send(fn () => Http::get(config('trypost.platforms.threads.auth_api').'/refresh_access_token', [
-            'grant_type' => 'th_refresh_token',
-            'access_token' => $account->access_token,
-        ]));
+        $response = TokenRefreshClient::for(Platform::Threads)->send(
+            fn () => Http::get(config('trypost.platforms.threads.auth_api').'/refresh_access_token', [
+                'grant_type' => 'th_refresh_token',
+                'access_token' => $account->access_token,
+            ]),
+            GraphError::indicatesInvalidToken(...),
+        );
 
         $data = $response->json();
         $newToken = data_get($data, 'access_token');
@@ -322,7 +326,7 @@ class ConnectionVerifier
         $account->update([
             'access_token' => $newToken,
             'refresh_token' => $newToken,
-            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', 5184000)),
+            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', Platform::LONG_LIVED_TOKEN_TTL_SECONDS)),
         ]);
 
         $account->refresh();
@@ -330,10 +334,13 @@ class ConnectionVerifier
 
     private function refreshInstagramToken(SocialAccount $account): void
     {
-        $response = TokenRefreshClient::for(Platform::Instagram)->send(fn () => Http::get(config('trypost.platforms.instagram.auth_api').'/refresh_access_token', [
-            'grant_type' => 'ig_refresh_token',
-            'access_token' => $account->access_token,
-        ]));
+        $response = TokenRefreshClient::for(Platform::Instagram)->send(
+            fn () => Http::get(config('trypost.platforms.instagram.auth_api').'/refresh_access_token', [
+                'grant_type' => 'ig_refresh_token',
+                'access_token' => $account->access_token,
+            ]),
+            GraphError::indicatesInvalidToken(...),
+        );
 
         $data = $response->json();
         $newToken = data_get($data, 'access_token');
@@ -341,7 +348,7 @@ class ConnectionVerifier
         $account->update([
             'access_token' => $newToken,
             'refresh_token' => $newToken,
-            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', 5184000)),
+            'token_expires_at' => now()->addSeconds(data_get($data, 'expires_in', Platform::LONG_LIVED_TOKEN_TTL_SECONDS)),
         ]);
 
         $account->refresh();
@@ -408,13 +415,8 @@ class ConnectionVerifier
 
         $body = $response->json() ?? [];
 
-        if (isset($body['error'])) {
-            $errorCode = $body['error']['code'] ?? null;
-            $errorType = $body['error']['type'] ?? null;
-
-            if ($errorType === 'OAuthException' || $errorCode === 190) {
-                throw new TokenExpiredException('Instagram access token is invalid or expired');
-            }
+        if (GraphError::indicatesInvalidToken($body)) {
+            throw new TokenExpiredException('Instagram access token is invalid or expired');
         }
 
         return $response->successful();
@@ -429,13 +431,8 @@ class ConnectionVerifier
 
         $body = $response->json() ?? [];
 
-        if (isset($body['error'])) {
-            $errorCode = $body['error']['code'] ?? null;
-            $errorType = $body['error']['type'] ?? null;
-
-            if ($errorType === 'OAuthException' || $errorCode === 190) {
-                throw new TokenExpiredException('Facebook access token is invalid or expired');
-            }
+        if (GraphError::indicatesInvalidToken($body)) {
+            throw new TokenExpiredException('Facebook access token is invalid or expired');
         }
 
         return $response->successful();
@@ -450,13 +447,8 @@ class ConnectionVerifier
 
         $body = $response->json() ?? [];
 
-        if (isset($body['error'])) {
-            $errorCode = $body['error']['code'] ?? null;
-            $errorType = $body['error']['type'] ?? null;
-
-            if ($errorType === 'OAuthException' || $errorCode === 190) {
-                throw new TokenExpiredException('Threads access token is invalid or expired');
-            }
+        if (GraphError::indicatesInvalidToken($body)) {
+            throw new TokenExpiredException('Threads access token is invalid or expired');
         }
 
         return $response->successful();
