@@ -277,6 +277,22 @@ enum Platform: string
         };
     }
 
+    /**
+     * All platform values that refresh by extending the access_token itself
+     * (see extendsAccessTokenOnRefresh). Because these can't be refreshed once
+     * expired, the proactive-refresh cron gives them a wider window than
+     * rotating platforms so a queue backlog can't let them lapse.
+     *
+     * @return array<int, string>
+     */
+    public static function extensionModelValues(): array
+    {
+        return array_values(array_map(
+            fn (self $platform): string => $platform->value,
+            array_filter(self::cases(), fn (self $platform): bool => $platform->extendsAccessTokenOnRefresh()),
+        ));
+    }
+
     public function queue(): string
     {
         return 'social-'.$this->value;
