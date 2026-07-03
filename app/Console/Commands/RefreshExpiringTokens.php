@@ -32,10 +32,10 @@ class RefreshExpiringTokens extends Command
             ->whereNotNull('token_expires_at')
             ->where(function (Builder $query) {
                 $query->where(function (Builder $extension) {
-                    $extension->whereIn('platform', Platform::extensionModelValues())
+                    $extension->whereIn('platform', Platform::accessTokenExtendingPlatformValues())
                         ->where('token_expires_at', '<=', now()->addDay());
                 })->orWhere(function (Builder $rotating) {
-                    $rotating->whereNotIn('platform', Platform::extensionModelValues())
+                    $rotating->whereNotIn('platform', Platform::accessTokenExtendingPlatformValues())
                         ->where('token_expires_at', '<=', now()->addMinutes(30));
                 });
             })

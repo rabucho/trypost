@@ -24,6 +24,13 @@ enum Platform: string
     case Discord = 'discord';
 
     /**
+     * Fallback lifetime, in seconds, for Meta long-lived tokens (Instagram and
+     * Threads — see extendsAccessTokenOnRefresh) when the provider response
+     * omits expires_in. Meta issues these tokens for 60 days.
+     */
+    public const LONG_LIVED_TOKEN_TTL_SECONDS = 5184000;
+
+    /**
      * The social network this platform belongs to. Variants that represent the
      * same network (LinkedIn profile vs. company page, Instagram standalone vs.
      * Facebook-linked) collapse to one key so a workspace may connect only one
@@ -278,14 +285,14 @@ enum Platform: string
     }
 
     /**
-     * All platform values that refresh by extending the access_token itself
-     * (see extendsAccessTokenOnRefresh). Because these can't be refreshed once
-     * expired, the proactive-refresh cron gives them a wider window than
-     * rotating platforms so a queue backlog can't let them lapse.
+     * The `platform` column values of the platforms that refresh by extending
+     * their access token in place (Instagram and Threads — see
+     * extendsAccessTokenOnRefresh), for use in database whereIn/whereNotIn
+     * filters. Derived from extendsAccessTokenOnRefresh() so the two never drift.
      *
      * @return array<int, string>
      */
-    public static function extensionModelValues(): array
+    public static function accessTokenExtendingPlatformValues(): array
     {
         return array_values(array_map(
             fn (self $platform): string => $platform->value,
