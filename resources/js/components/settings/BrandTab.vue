@@ -5,6 +5,7 @@ import WorkspaceController from '@/actions/App/Http/Controllers/App/WorkspaceCon
 import BrandForm from '@/components/BrandForm.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
+import type { ContentLanguageOption } from '@/types';
 
 interface Workspace {
     id: string;
@@ -25,7 +26,7 @@ const props = defineProps<{
     availableFonts: string[];
     availableImageStyles: string[];
     availableVoiceTraits: Record<string, string[]>;
-    availableContentLanguages: { value: string; label: string }[];
+    availableContentLanguages: ContentLanguageOption[];
 }>();
 
 const form = useForm({

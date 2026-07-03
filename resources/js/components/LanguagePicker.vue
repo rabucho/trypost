@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import type { ContentLanguageOption } from '@/types';
 
 interface Props {
     /** Selectable languages as { value: locale code, label: native name, englishName: name in English }. */
-    options: { value: string; label: string; englishName?: string }[];
+    options: ContentLanguageOption[];
     placeholder?: string;
     searchPlaceholder?: string;
     emptyText?: string;

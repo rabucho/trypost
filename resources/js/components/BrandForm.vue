@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { autofill as autofillBrand } from '@/routes/app/workspaces';
+import type { ContentLanguageOption } from '@/types';
 
 interface BrandFields {
     name?: string;
@@ -55,7 +56,7 @@ const props = withDefaults(
         availableFonts: string[];
         availableImageStyles: string[];
         availableVoiceTraits: Record<string, string[]>;
-        availableContentLanguages: { value: string; label: string }[];
+        availableContentLanguages: ContentLanguageOption[];
         autofill?: boolean;
         showName?: boolean;
     }>(),

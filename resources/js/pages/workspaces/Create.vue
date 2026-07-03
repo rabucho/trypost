@@ -5,12 +5,13 @@ import BrandForm from '@/components/BrandForm.vue';
 import { Button } from '@/components/ui/button';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { store as storeWorkspace } from '@/routes/app/workspaces';
+import type { ContentLanguageOption } from '@/types';
 
 defineProps<{
     availableFonts: string[];
     availableImageStyles: string[];
     availableVoiceTraits: Record<string, string[]>;
-    availableContentLanguages: { value: string; label: string }[];
+    availableContentLanguages: ContentLanguageOption[];
 }>();
 
 const form = useForm({

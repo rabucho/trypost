@@ -390,18 +390,23 @@ test('when llm is configured, polishes description/tone/language/voice_notes via
     expect($result->toArray()['brand_voice_traits'])->toBe(['third_person', 'direct', 'no_hype']);
 });
 
-test('LLM language detection carries any supported language, not just en/es/pt-BR', function () {
+test('LLM language detection wins and carries any supported language, not just en/es/pt-BR', function () {
     config()->set('services.gemini.api_key', 'fake-key');
     config()->set('ai.default', 'gemini');
 
+    // The <html lang> declares "en", so the deterministic extractor yields 'en'.
+    // The LLM reads the actual German body and returns 'de'. Since the fixture's
+    // deterministic value differs from the LLM's, this isolates the mergeLlm
+    // precedence: the LLM value must win, and it must be a language beyond the
+    // original en/es/pt-BR set.
     Http::fake([
         'example.com' => Http::response(<<<'HTML'
-            <html lang="de">
+            <html lang="en">
             <head>
               <title>Beispiel GmbH</title>
               <meta name="description" content="Kurze Beschreibung.">
             </head>
-            <body><main><p>Wir bauen Widgets.</p></main></body>
+            <body><main><p>Wir bauen Widgets für kleine Teams.</p></main></body>
             </html>
         HTML, 200),
     ]);
@@ -416,8 +421,6 @@ test('LLM language detection carries any supported language, not just en/es/pt-B
 
     $result = ($this->autofill)('https://example.com');
 
-    // The LLM's detected language wins over the deterministic one and must be
-    // able to be one of the 12 languages added beyond the original en/es/pt-BR.
     expect($result->language)->toBe('de');
 });
 
