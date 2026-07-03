@@ -3,12 +3,13 @@
 import { useHttp } from '@inertiajs/vue3';
 import { IconCheck, IconLoader2, IconSparkles } from '@tabler/icons-vue';
 import { trans } from 'laravel-vue-i18n';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 
 import FontPicker from '@/components/FontPicker.vue';
 import HexColorInput from '@/components/HexColorInput.vue';
 import InputError from '@/components/InputError.vue';
+import LanguagePicker from '@/components/LanguagePicker.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -19,13 +20,6 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { autofill as autofillBrand } from '@/routes/app/workspaces';
 
@@ -95,10 +89,6 @@ const toggleTrait = (group: string, value: string): void => {
     const groupValues = props.availableVoiceTraits[group] ?? [];
     props.fields.brand_voice_traits = [...current.filter((v) => !groupValues.includes(v)), value];
 };
-
-const languageLabel = computed(
-    () => props.availableContentLanguages.find((language) => language.value === props.fields.content_language)?.label ?? '',
-);
 
 const runAutofill = async () => {
     const url = props.fields.brand_website?.trim() ?? '';
@@ -186,18 +176,13 @@ const runAutofill = async () => {
 
         <div class="grid gap-2">
             <Label for="content_language">{{ $t('settings.brand.content_language') }}</Label>
-            <Select v-model="fields.content_language">
-                <SelectTrigger id="content_language" class="w-full">
-                    <SelectValue :placeholder="$t('settings.brand.content_language')">
-                        {{ languageLabel }}
-                    </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem v-for="language in availableContentLanguages" :key="language.value" :value="language.value">
-                        {{ language.label }}
-                    </SelectItem>
-                </SelectContent>
-            </Select>
+            <LanguagePicker
+                v-model="fields.content_language"
+                :options="availableContentLanguages"
+                :placeholder="$t('settings.brand.language_placeholder')"
+                :search-placeholder="$t('settings.brand.language_search')"
+                :empty-text="$t('settings.brand.language_empty')"
+            />
             <p class="text-xs font-medium text-foreground/60">
                 {{ $t('settings.brand.content_language_description') }}
             </p>
@@ -252,7 +237,13 @@ const runAutofill = async () => {
 
         <div class="grid gap-2">
             <Label for="brand_font">{{ $t('settings.brand.font') }}</Label>
-            <FontPicker v-model="fields.brand_font" :fonts="availableFonts" />
+            <FontPicker
+                v-model="fields.brand_font"
+                :fonts="availableFonts"
+                :placeholder="$t('settings.brand.font_placeholder')"
+                :search-placeholder="$t('settings.brand.font_search')"
+                :empty-text="$t('settings.brand.font_empty')"
+            />
             <InputError :message="errors.brand_font" />
         </div>
 

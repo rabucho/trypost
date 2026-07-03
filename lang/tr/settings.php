@@ -218,6 +218,13 @@ return [
         'image_style_mockup' => 'Model (Mockup)',
         'content_language' => 'İçerik dili',
         'content_language_description' => 'AI ile oluşturulan açıklamalar, hashtag\'ler ve oluşturulan görsel veya videoların içindeki metinler için kullanılan dil.',
+        'font_placeholder' => 'Yazı tipi seçin…',
+        'font_search' => 'Yazı tipi ara…',
+        'font_empty' => 'Yazı tipi bulunamadı.',
+        'language_placeholder' => 'Dil seçin…',
+        'language_search' => 'Dil ara…',
+        'language_empty' => 'Dil bulunamadı.',
+
     ],
 
     'members' => [

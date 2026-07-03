@@ -19,12 +19,16 @@ interface Props {
      *  preview text in the dropdown renders in the actual typeface. */
     fonts: string[];
     placeholder?: string;
+    searchPlaceholder?: string;
+    emptyText?: string;
     name?: string;
     disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     placeholder: 'Select a font…',
+    searchPlaceholder: 'Search font…',
+    emptyText: 'No fonts match.',
     disabled: false,
 });
 
@@ -89,9 +93,9 @@ const select = (font: string) => {
 
         <PopoverContent class="w-[--reka-popover-trigger-width] p-0" align="start">
             <Command>
-                <CommandInput placeholder="Search font…" />
+                <CommandInput :placeholder="searchPlaceholder" />
                 <CommandList>
-                    <CommandEmpty>No fonts match.</CommandEmpty>
+                    <CommandEmpty>{{ emptyText }}</CommandEmpty>
                     <CommandGroup>
                         <CommandItem
                             v-for="font in fonts"

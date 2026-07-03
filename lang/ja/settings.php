@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'モックアップ',
         'content_language' => 'コンテンツの言語',
         'content_language_description' => 'AI が生成するキャプション、ハッシュタグ、生成された画像や動画内のテキストに使用される言語です。',
+        'font_placeholder' => 'フォントを選択…',
+        'font_search' => 'フォントを検索…',
+        'font_empty' => '一致するフォントがありません。',
+        'language_placeholder' => '言語を選択…',
+        'language_search' => '言語を検索…',
+        'language_empty' => '言語が見つかりません。',
+
     ],
 
     'members' => [

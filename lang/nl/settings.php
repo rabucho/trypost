@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'Mockup',
         'content_language' => 'Contenttaal',
         'content_language_description' => 'Taal die wordt gebruikt voor AI-gegenereerde bijschriften, hashtags en tekst in gegenereerde afbeeldingen of video\'s.',
+        'font_placeholder' => 'Kies een lettertype…',
+        'font_search' => 'Lettertype zoeken…',
+        'font_empty' => 'Geen lettertypen gevonden.',
+        'language_placeholder' => 'Kies een taal…',
+        'language_search' => 'Taal zoeken…',
+        'language_empty' => 'Geen taal gevonden.',
+
     ],
 
     'members' => [

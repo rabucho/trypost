@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => '목업',
         'content_language' => '콘텐츠 언어',
         'content_language_description' => 'AI가 생성하는 캡션, 해시태그, 생성된 이미지나 동영상 내 텍스트에 사용되는 언어입니다.',
+        'font_placeholder' => '글꼴 선택…',
+        'font_search' => '글꼴 검색…',
+        'font_empty' => '일치하는 글꼴이 없습니다.',
+        'language_placeholder' => '언어 선택…',
+        'language_search' => '언어 검색…',
+        'language_empty' => '언어를 찾을 수 없습니다.',
+
     ],
 
     'members' => [

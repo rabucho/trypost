@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'Mockup',
         'content_language' => 'Γλώσσα περιεχομένου',
         'content_language_description' => 'Γλώσσα που χρησιμοποιείται για λεζάντες, hashtags και οποιοδήποτε κείμενο μέσα σε εικόνες ή βίντεο που δημιουργεί το AI.',
+        'font_placeholder' => 'Επιλογή γραμματοσειράς…',
+        'font_search' => 'Αναζήτηση γραμματοσειράς…',
+        'font_empty' => 'Δεν βρέθηκαν γραμματοσειρές.',
+        'language_placeholder' => 'Επιλογή γλώσσας…',
+        'language_search' => 'Αναζήτηση γλώσσας…',
+        'language_empty' => 'Δεν βρέθηκε γλώσσα.',
+
     ],
 
     'members' => [

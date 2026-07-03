@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'نموذج أوّلي',
         'content_language' => 'لغة المحتوى',
         'content_language_description' => 'اللغة المستخدمة في التسميات التوضيحية والوسوم المُنشأة بالذكاء الاصطناعي وأي نص داخل الصور أو مقاطع الفيديو المُنشأة.',
+        'font_placeholder' => 'اختر خطًا…',
+        'font_search' => 'ابحث عن خط…',
+        'font_empty' => 'لا توجد خطوط مطابقة.',
+        'language_placeholder' => 'اختر لغة…',
+        'language_search' => 'ابحث عن لغة…',
+        'language_empty' => 'لم يتم العثور على لغة.',
+
     ],
 
     'members' => [

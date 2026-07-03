@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'Maquette',
         'content_language' => 'Langue du contenu',
         'content_language_description' => 'Langue utilisée pour les légendes, les hashtags générés par l\'IA et tout texte à l\'intérieur des images ou vidéos générées.',
+        'font_placeholder' => 'Sélectionner une police…',
+        'font_search' => 'Rechercher une police…',
+        'font_empty' => 'Aucune police trouvée.',
+        'language_placeholder' => 'Sélectionner une langue…',
+        'language_search' => 'Rechercher une langue…',
+        'language_empty' => 'Aucune langue trouvée.',
+
     ],
 
     'members' => [

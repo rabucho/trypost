@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'Mockup',
         'content_language' => 'Lingua dei contenuti',
         'content_language_description' => 'Lingua usata per didascalie, hashtag generati dall\'IA e qualsiasi testo all\'interno di immagini o video generati.',
+        'font_placeholder' => 'Seleziona un font…',
+        'font_search' => 'Cerca font…',
+        'font_empty' => 'Nessun font trovato.',
+        'language_placeholder' => 'Seleziona una lingua…',
+        'language_search' => 'Cerca lingua…',
+        'language_empty' => 'Nessuna lingua trovata.',
+
     ],
 
     'members' => [

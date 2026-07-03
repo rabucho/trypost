@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware\App;
 
-use App\Enums\Workspace\ContentLanguage;
 use App\Http\Resources\App\HandleInertiaRequests\AuthAccountResource;
 use App\Http\Resources\App\HandleInertiaRequests\AuthPlanResource;
 use App\Http\Resources\App\HandleInertiaRequests\AuthUserResource;
@@ -53,7 +52,6 @@ class HandleInertiaRequests extends Middleware
             'applicationUrl' => config('app.url'),
             'env' => config('app.env'),
             'locale' => app()->getLocale(),
-            'dir' => ContentLanguage::tryFrom(app()->getLocale())?->isRtl() ? 'rtl' : 'ltr',
             'languages' => collect(config('languages.available'))->map(fn ($name, $code) => [
                 'code' => $code,
                 'name' => $name,

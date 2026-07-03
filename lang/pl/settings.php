@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'Makieta',
         'content_language' => 'Język treści',
         'content_language_description' => 'Język używany w podpisach, hasztagach generowanych przez AI oraz w dowolnym tekście wewnątrz generowanych obrazów lub filmów.',
+        'font_placeholder' => 'Wybierz czcionkę…',
+        'font_search' => 'Szukaj czcionki…',
+        'font_empty' => 'Nie znaleziono czcionek.',
+        'language_placeholder' => 'Wybierz język…',
+        'language_search' => 'Szukaj języka…',
+        'language_empty' => 'Nie znaleziono języka.',
+
     ],
 
     'members' => [

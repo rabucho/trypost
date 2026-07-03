@@ -218,6 +218,13 @@ return [
         'image_style_mockup' => 'Mockup',
         'content_language' => 'Inhaltssprache',
         'content_language_description' => 'Sprache für KI-generierte Bildunterschriften, Hashtags und jeglichen Text in generierten Bildern oder Videos.',
+        'font_placeholder' => 'Schriftart auswählen…',
+        'font_search' => 'Schriftart suchen…',
+        'font_empty' => 'Keine Schriftarten gefunden.',
+        'language_placeholder' => 'Sprache auswählen…',
+        'language_search' => 'Sprache suchen…',
+        'language_empty' => 'Keine Sprache gefunden.',
+
     ],
 
     'members' => [

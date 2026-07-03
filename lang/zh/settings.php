@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => '样机',
         'content_language' => '内容语言',
         'content_language_description' => '用于 AI 生成的文案、话题标签，以及生成图片或视频中任何文字的语言。',
+        'font_placeholder' => '选择字体…',
+        'font_search' => '搜索字体…',
+        'font_empty' => '没有匹配的字体。',
+        'language_placeholder' => '选择语言…',
+        'language_search' => '搜索语言…',
+        'language_empty' => '未找到语言。',
+
     ],
 
     'members' => [

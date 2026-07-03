@@ -216,6 +216,13 @@ return [
         'image_style_mockup' => 'Макет',
         'content_language' => 'Язык контента',
         'content_language_description' => 'Язык, используемый для сгенерированных ИИ подписей, хэштегов и любого текста внутри сгенерированных изображений или видео.',
+        'font_placeholder' => 'Выберите шрифт…',
+        'font_search' => 'Поиск шрифта…',
+        'font_empty' => 'Шрифты не найдены.',
+        'language_placeholder' => 'Выберите язык…',
+        'language_search' => 'Поиск языка…',
+        'language_empty' => 'Язык не найден.',
+
     ],
 
     'members' => [
