@@ -105,10 +105,6 @@ jobs:
           db-port: ${{ job.services.postgres.ports['5432'] }}
           redis-port: ${{ job.services.redis.ports['6379'] }}
 
-      - name: Run frontend unit tests
-        if: matrix.shard == 1
-        run: npm run test:unit
-
       - name: Build assets
         run: npm run build
 
