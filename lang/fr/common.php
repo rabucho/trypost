@@ -21,6 +21,12 @@ return [
         'uploading' => 'Import en cours...',
         'remove' => 'Supprimer la photo',
         'hint' => 'Recommandé : image carrée, 2 Mo maximum.',
+        'crop_title' => 'Recadrer l\'image',
+        'crop_description' => 'Sélectionnez la zone à conserver.',
+        'crop_hint' => 'Faites glisser pour déplacer, ou un coin pour redimensionner.',
+        'crop_save' => 'Enregistrer',
+        'crop_cancel' => 'Annuler',
+        'crop_error' => 'Impossible de charger cette image. Essayez un autre fichier.',
     ],
 
     'timezone' => [

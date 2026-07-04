@@ -21,6 +21,12 @@ return [
         'uploading' => '上传中…',
         'remove' => '移除照片',
         'hint' => '推荐：正方形图片，最大 2 MB。',
+        'crop_title' => '裁剪图片',
+        'crop_description' => '选择要保留的区域。',
+        'crop_hint' => '拖动以移动，拖动边角可调整大小。',
+        'crop_save' => '保存',
+        'crop_cancel' => '取消',
+        'crop_error' => '无法加载此图片。请尝试其他文件。',
     ],
 
     'timezone' => [

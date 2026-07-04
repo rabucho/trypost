@@ -21,6 +21,12 @@ return [
         'uploading' => 'アップロード中...',
         'remove' => '写真を削除',
         'hint' => '推奨: 正方形の画像、最大 2 MB。',
+        'crop_title' => '画像を切り抜く',
+        'crop_description' => '残したい範囲を選択してください。',
+        'crop_hint' => 'ドラッグで移動、角でサイズ変更できます。',
+        'crop_save' => '保存',
+        'crop_cancel' => 'キャンセル',
+        'crop_error' => 'この画像を読み込めませんでした。別のファイルをお試しください。',
     ],
 
     'timezone' => [

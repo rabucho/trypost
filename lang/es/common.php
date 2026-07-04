@@ -21,6 +21,12 @@ return [
         'uploading' => 'Subiendo...',
         'remove' => 'Eliminar foto',
         'hint' => 'Recomendado: imagen cuadrada, máximo 2 MB.',
+        'crop_title' => 'Recortar imagen',
+        'crop_description' => 'Selecciona el área que quieres conservar.',
+        'crop_hint' => 'Arrastra para mover o una esquina para redimensionar.',
+        'crop_save' => 'Guardar',
+        'crop_cancel' => 'Cancelar',
+        'crop_error' => 'No se pudo cargar esta imagen. Prueba con otro archivo.',
     ],
 
     'timezone' => [

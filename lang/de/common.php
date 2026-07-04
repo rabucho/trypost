@@ -21,6 +21,12 @@ return [
         'uploading' => 'Wird hochgeladen...',
         'remove' => 'Foto entfernen',
         'hint' => 'Empfohlen: quadratisches Bild, max. 2 MB.',
+        'crop_title' => 'Bild zuschneiden',
+        'crop_description' => 'Wählen Sie den Bereich aus, den Sie behalten möchten.',
+        'crop_hint' => 'Zum Verschieben ziehen oder an einer Ecke die Größe ändern.',
+        'crop_save' => 'Speichern',
+        'crop_cancel' => 'Abbrechen',
+        'crop_error' => 'Dieses Bild konnte nicht geladen werden. Versuchen Sie eine andere Datei.',
     ],
 
     'timezone' => [
