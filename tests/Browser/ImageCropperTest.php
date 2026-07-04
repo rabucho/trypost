@@ -12,7 +12,7 @@ use App\Models\User;
  */
 function selectPhoto(mixed $page): void
 {
-    $base64 = base64_encode((string) file_get_contents(base_path('tests/fixtures/blue-logo.png')));
+    $base64 = base64_encode((string) file_get_contents(base_path('tests/fixtures/crop-quadrants.png')));
 
     $page->script(<<<JS
         (async () => {
@@ -59,6 +59,7 @@ function recordUpload(mixed $page): void
                         url: this.__url,
                         keys: [...body.keys()],
                         size: photo instanceof File ? photo.size : 0,
+                        type: photo instanceof File ? photo.type : null,
                     };
                 }
                 return send.apply(this, arguments);
@@ -87,7 +88,23 @@ test('cropping a selected photo dispatches a valid 512x512 avatar upload', funct
                 return 'null';
             }
             const bitmap = await createImageBitmap(window.__uploadFile);
-            return JSON.stringify({ ...window.__uploadRequest, width: bitmap.width, height: bitmap.height });
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const context = canvas.getContext('2d');
+            context.drawImage(bitmap, 0, 0);
+            const sample = (x, y) => Array.from(context.getImageData(x, y, 1, 1).data);
+            return JSON.stringify({
+                ...window.__uploadRequest,
+                width: bitmap.width,
+                height: bitmap.height,
+                pixels: {
+                    topLeft: sample(128, 128),
+                    topRight: sample(384, 128),
+                    bottomLeft: sample(128, 384),
+                    bottomRight: sample(384, 384),
+                },
+            });
         })();
     JS), true);
 
@@ -96,6 +113,19 @@ test('cropping a selected photo dispatches a valid 512x512 avatar upload', funct
         ->and($request['url'])->toContain(route('app.profile.upload-photo', absolute: false))
         ->and($request['keys'])->toContain('photo')
         ->and($request['size'])->toBeGreaterThan(0)
+        ->and($request['type'])->toBe('image/png')
         ->and($request['width'])->toBe(512)
         ->and($request['height'])->toBe(512);
+
+    $isColour = function (array $pixel, array $rgb): bool {
+        return abs($pixel[0] - $rgb[0]) <= 24
+            && abs($pixel[1] - $rgb[1]) <= 24
+            && abs($pixel[2] - $rgb[2]) <= 24
+            && $pixel[3] >= 250;
+    };
+
+    expect($isColour($request['pixels']['topLeft'], [255, 0, 0]))->toBeTrue()
+        ->and($isColour($request['pixels']['topRight'], [0, 255, 0]))->toBeTrue()
+        ->and($isColour($request['pixels']['bottomLeft'], [0, 0, 255]))->toBeTrue()
+        ->and($isColour($request['pixels']['bottomRight'], [255, 255, 0]))->toBeTrue();
 });

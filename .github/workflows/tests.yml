@@ -83,6 +83,9 @@ jobs:
       - name: Build assets
         run: npm run build
 
+      - name: Run frontend unit tests
+        run: npm run test:unit
+
       - name: Run migrations
         run: php artisan migrate --force
         env:
@@ -94,6 +97,15 @@ jobs:
 
       - name: Run tests
         run: php artisan test --compact --parallel
+        env:
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
+          REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: php artisan test tests/Browser --compact
         env:
           DB_PORT: ${{ job.services.postgres.ports['5432'] }}
           REDIS_PORT: ${{ job.services.redis.ports['6379'] }}

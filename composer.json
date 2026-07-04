@@ -121,6 +121,11 @@
             "@test:lint",
             "@php artisan test"
         ],
+        "test:all": [
+            "@test",
+            "npm run test:unit",
+            "@php artisan test tests/Browser"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
