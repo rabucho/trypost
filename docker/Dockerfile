@@ -140,7 +140,15 @@ RUN composer dump-autoload --no-scripts --optimize \
     && npm ci --no-audit --no-fund \
     && npm run build \
     && npm run build:ssr
+    
+RUN rm -rf /var/www/html/vendor /var/www/html/bootstrap/cache/*.php
+COPY --from=composer-deps-prod /var/www/html/vendor /var/www/html/vendor
 
+# ----- FIX: Remove Pail provider before dump-autoload -----
+RUN sed -i '/Laravel\\Pail\\PailServiceProvider/d' bootstrap/providers.php || true
+
+RUN composer dump-autoload --optimize --classmap-authoritative --no-scripts \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 # ----------------------------------------------------------------------------
 # Stage 6: dev — local development image (bind-mount the source at runtime)
 # ----------------------------------------------------------------------------
